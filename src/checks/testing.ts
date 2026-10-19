@@ -34,7 +34,11 @@ export function testingCheck(context: AnalysisContext): CheckResult {
     findings.push({
       severity: 'high',
       message: 'Unit tests run on Karma, which is deprecated',
-      detail: `Karma was deprecated in 2023 and receives no further development. Vitest is the Angular CLI's default runner since v21 (\`@angular/build:unit-test\`). Moving means replacing ${formatCount(jasmineCalls)} Jasmine-specific calls (\`spyOn\`, \`jasmine.*\`) with their Vitest equivalents across ${plural(specs.length, 'spec file')}.`,
+      detail: `Karma was deprecated in 2023 and receives no further development. Vitest is the Angular CLI's default runner since v21 (\`@angular/build:unit-test\`). ${
+        specs.length === 0
+          ? 'With no specs written yet, moving costs only the configuration, and the first specs can be written for Vitest directly.'
+          : `Moving means replacing ${plural(jasmineCalls, 'Jasmine-specific call')} (\`spyOn\`, \`jasmine.*\`) with their Vitest equivalents across ${plural(specs.length, 'spec file')}.`
+      }`,
     });
   }
   if (specs.length === 0 && testable.length > 0) {

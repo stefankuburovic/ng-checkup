@@ -102,7 +102,9 @@ export function deprecatedApisCheck(context: AnalysisContext): CheckResult {
     grade,
     summary:
       findings.length === 0
-        ? 'No deprecated Angular or NgRx API in use.'
+        ? current !== undefined && current < context.latestAngular.major
+          ? `Nothing deprecated as of Angular ${current} is in use; APIs deprecated in later versions surface at each upgrade step.`
+          : 'No deprecated Angular or NgRx API in use.'
         : `${plural(usages.size, 'deprecated symbol')} in ${plural(affectedFiles.size, 'file')}${ngIf && legacyUses > 0 ? ', plus deprecated control flow in templates' : ''}.`,
     metrics: [
       { label: 'Deprecated symbols', value: usages.size },

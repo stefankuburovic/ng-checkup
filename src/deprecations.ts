@@ -63,8 +63,10 @@ export function buildDeprecationIndex(root: string): DeprecationIndex {
  * Each public entry point of a package with its type definition file.
  *
  * Reads `exports` (Angular 13+ and every NgRx release that matters), skipping
- * wildcard and non-code entries, and falls back to the top-level `types` or
- * `typings` field for packages without an `exports` map.
+ * wildcard and non-code entries. A package without an `exports` map uses the
+ * older layout, where every secondary entry point (`@angular/core/testing`,
+ * `@angular/common/http`) is a folder with its own `package.json` naming its
+ * `typings`; those are found by `legacyEntriesOf`.
  */
 function typeEntriesOf(packageDirectory: string): Array<[string, string]> {
   const packageJson = readJson(join(packageDirectory, 'package.json'));
@@ -75,11 +77,37 @@ function typeEntriesOf(packageDirectory: string): Array<[string, string]> {
     const types = asRecord(target)['types'] ?? asRecord(target)['typings'];
     if (typeof types === 'string' && types.endsWith('.d.ts')) entries.push([entry, resolve(packageDirectory, types)]);
   }
-  if (entries.length === 0) {
-    const types = packageJson['types'] ?? packageJson['typings'];
-    if (typeof types === 'string') entries.push(['.', resolve(packageDirectory, types)]);
-  }
+  if (entries.length === 0) entries.push(...legacyEntriesOf(packageDirectory, '.', 0));
   return entries.filter(([, path]) => existsSync(path));
+}
+
+/**
+ * Folders that never hold an entry point in the pre-`exports` layout: build
+ * formats, schematics and nested dependencies. Skipping them keeps the walk to
+ * a few dozen directories per package.
+ */
+const NON_ENTRY_DIRECTORIES = new Set(['node_modules', 'schematics', 'bundles', 'esm5', 'esm2015', 'esm2020', 'fesm5', 'fesm2015', 'fesm2020', 'src', 'locales', 'third_party', 'migrations']);
+
+/**
+ * Entry points of a package in the pre-`exports` layout (Angular 12 and
+ * older): this folder's `package.json` `typings`, then each subfolder's, up to
+ * three levels deep (`@angular/common/http/testing` is the deepest Angular has).
+ *
+ * @param entry The entry as an `exports` key would spell it: `.`, `./testing`.
+ */
+function legacyEntriesOf(directory: string, entry: string, depth: number): Array<[string, string]> {
+  const entries: Array<[string, string]> = [];
+  const packageJson = readJson(join(directory, 'package.json'));
+  const types = packageJson?.['types'] ?? packageJson?.['typings'];
+  if (typeof types === 'string') entries.push([entry, resolve(directory, types)]);
+  if (depth >= 3) return entries;
+  for (const name of safeReaddir(directory)) {
+    if (NON_ENTRY_DIRECTORIES.has(name) || name.startsWith('.')) continue;
+    const child = join(directory, name);
+    if (!existsSync(join(child, 'package.json'))) continue;
+    entries.push(...legacyEntriesOf(child, `${entry}/${name}`, depth + 1));
+  }
+  return entries;
 }
 
 /**
