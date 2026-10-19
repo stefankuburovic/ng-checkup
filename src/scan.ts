@@ -1,0 +1,369 @@
+import { readFileSync } from 'node:fs';
+import ts from 'typescript';
+import { isSpecFile, toReportPath } from './files.js';
+
+/** One name brought in by an import or re-export. */
+export interface ImportBinding {
+  /** The name the module exports. `default` for a default import, `*` for a namespace import. */
+  imported: string;
+  /** The name it is bound to in this file. */
+  local: string;
+  typeOnly: boolean;
+}
+
+/** One `import`, `export … from` or dynamic `import()` in a source file. */
+export interface ImportFact {
+  specifier: string;
+  line: number;
+  /**
+   * True for `import type`, and for a named import whose every binding is
+   * `type`. Such an import is erased at compile time, so it cannot take part in
+   * a runtime cycle and the dependency graph ignores it.
+   */
+  typeOnly: boolean;
+  /** `import()` loads lazily and does not form an eager cycle either. */
+  dynamic: boolean;
+  /** Empty for a side-effect import (`import 'zone.js'`) and for `export * from`. */
+  bindings: ImportBinding[];
+}
+
+/** One `@Component` class. */
+export interface ComponentFact {
+  name: string;
+  line: number;
+  /**
+   * The literal value of `standalone` in the decorator, undefined when absent.
+   * What an absent flag means depends on the Angular version (standalone is the
+   * default from v19), which is why the scanner records only what is written
+   * and the components check interprets it.
+   */
+  standalone?: boolean;
+  /**
+   * The strategy named in `changeDetection`, undefined when absent. Like
+   * `standalone`, the default changed (OnPush from v22), so an absent value is
+   * interpreted by the check that knows the version.
+   */
+  changeDetection?: string;
+}
+
+/** Control-flow and escape-hatch counts for one template, inline or external. */
+export interface TemplateStats {
+  ngIf: number;
+  ngFor: number;
+  ngSwitch: number;
+  ifBlocks: number;
+  forBlocks: number;
+  switchBlocks: number;
+  deferBlocks: number;
+  /** `$any(...)`, the template's way of switching type checking off for one expression. */
+  anyCasts: number;
+}
+
+/** A template and where its first legacy structural directive sits, for report examples. */
+export interface TemplateFact {
+  path: string;
+  /** True for a `template:` string inside a component file. */
+  inline: boolean;
+  stats: TemplateStats;
+  /** 1-based line of the first `*ngIf`/`*ngFor`/`[ngSwitch]`, undefined when there is none. */
+  firstLegacyLine?: number;
+}
+
+/** Everything the checks need from one TypeScript file, gathered in a single AST pass. */
+export interface SourceFileFacts {
+  /** Report path: relative to the root, `/`-separated. */
+  path: string;
+  absolutePath: string;
+  isSpec: boolean;
+  /** Non-blank lines. */
+  linesOfCode: number;
+  imports: ImportFact[];
+  components: ComponentFact[];
+  ngModules: number;
+  injectables: number;
+  /** `@Input()` decorators on properties and setters. */
+  decoratorInputs: number;
+  /** `@Output()` decorators. */
+  decoratorOutputs: number;
+  /**
+   * Calls of imported functions, keyed `module#name` (`@angular/core#signal`)
+   * or `module#name.member` for calls such as `input.required()`. Values are the
+   * 1-based lines of each call. Resolving through the imports is what keeps a
+   * local helper that happens to be called `signal` out of the signal count.
+   */
+  calls: Map<string, number[]>;
+  /** `new X()` of an imported class, keyed like `calls`. */
+  constructions: Map<string, number[]>;
+  /** `X.member` on an imported binding, keyed `module#X.member`. Used for deprecated enum members. */
+  memberAccesses: Map<string, number[]>;
+  /**
+   * Calls of test-framework globals that are never imported: `spyOn` and
+   * `jasmine.*` for Jasmine. Each one is a line to rewrite when moving to Vitest
+   * or Jest, which is what the testing check reports them for.
+   */
+  jasmineCalls: number;
+  /** Lines of every `any` type annotation or `as any`. */
+  anyLines: number[];
+  /** Lines of every `x!` non-null assertion. */
+  nonNullLines: number[];
+  /** `x!: T` property declarations, which skip definite-assignment checking. */
+  definiteAssignments: number;
+  /** `@ts-ignore`, `@ts-expect-error` and `@ts-nocheck` comments. */
+  typeSuppressions: number;
+  /** `templateUrl`/`template` is resolved by the template scan; inline templates are collected here. */
+  inlineTemplates: TemplateFact[];
+}
+
+/**
+ * Parses one file and extracts its facts. Parsing is syntax-only (no type
+ * checker, no program), which is what lets a 3 000-file repository finish in
+ * seconds and lets the tool run without the project's dependencies installed.
+ * The cost is that identifiers are matched by their import, never by type.
+ */
+export function scanSourceFile(root: string, absolutePath: string): SourceFileFacts {
+  const text = readFileSync(absolutePath, 'utf8');
+  const source = ts.createSourceFile(absolutePath, text, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
+  const path = toReportPath(root, absolutePath);
+  const facts: SourceFileFacts = {
+    path,
+    absolutePath,
+    isSpec: isSpecFile(absolutePath),
+    linesOfCode: countLinesOfCode(text),
+    imports: [],
+    components: [],
+    ngModules: 0,
+    injectables: 0,
+    decoratorInputs: 0,
+    decoratorOutputs: 0,
+    calls: new Map(),
+    constructions: new Map(),
+    memberAccesses: new Map(),
+    jasmineCalls: 0,
+    anyLines: [],
+    nonNullLines: [],
+    definiteAssignments: 0,
+    typeSuppressions: (text.match(/@ts-(ignore|expect-error|nocheck)\b/g) ?? []).length,
+    inlineTemplates: [],
+  };
+
+  /** Imported bindings by local name: what `signal` in this file actually refers to. */
+  const locals = new Map<string, { module: string; imported: string }>();
+  for (const statement of source.statements) {
+    const fact = importFactOf(statement, source);
+    if (!fact) continue;
+    facts.imports.push(fact);
+    for (const binding of fact.bindings) locals.set(binding.local, { module: fact.specifier, imported: binding.imported });
+  }
+
+  const lineOf = (node: ts.Node): number => source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1;
+
+  /** `module#name` for an identifier bound by an import, undefined for anything local or global. */
+  const keyOf = (expression: ts.Expression): string | undefined => {
+    if (ts.isIdentifier(expression)) {
+      const binding = locals.get(expression.text);
+      return binding && binding.imported !== '*' ? `${binding.module}#${binding.imported}` : undefined;
+    }
+    if (ts.isPropertyAccessExpression(expression) && ts.isIdentifier(expression.expression)) {
+      const binding = locals.get(expression.expression.text);
+      if (!binding) return undefined;
+      // `core.signal()` on a namespace import is `signal`; `input.required()` on a named import is `input.required`.
+      return binding.imported === '*' ? `${binding.module}#${expression.name.text}` : `${binding.module}#${binding.imported}.${expression.name.text}`;
+    }
+    return undefined;
+  };
+
+  const record = (map: Map<string, number[]>, key: string, line: number): void => {
+    const lines = map.get(key);
+    if (lines) lines.push(line);
+    else map.set(key, [line]);
+  };
+
+  const visit = (node: ts.Node): void => {
+    if (ts.isCallExpression(node)) {
+      const key = keyOf(node.expression);
+      if (key) record(facts.calls, key, lineOf(node));
+      else if (isJasmineGlobalCall(node.expression, locals)) facts.jasmineCalls++;
+      if (node.expression.kind === ts.SyntaxKind.ImportKeyword) {
+        const [argument] = node.arguments;
+        if (argument && ts.isStringLiteralLike(argument)) {
+          facts.imports.push({ specifier: argument.text, line: lineOf(node), typeOnly: false, dynamic: true, bindings: [] });
+        }
+      }
+    } else if (ts.isNewExpression(node)) {
+      const key = keyOf(node.expression);
+      if (key) record(facts.constructions, key, lineOf(node));
+    } else if (ts.isPropertyAccessExpression(node) && ts.isIdentifier(node.expression)) {
+      const binding = locals.get(node.expression.text);
+      if (binding && binding.imported !== '*') record(facts.memberAccesses, `${binding.module}#${binding.imported}.${node.name.text}`, lineOf(node));
+    } else if (node.kind === ts.SyntaxKind.AnyKeyword) {
+      facts.anyLines.push(lineOf(node));
+    } else if (ts.isNonNullExpression(node)) {
+      facts.nonNullLines.push(lineOf(node));
+    } else if (ts.isPropertyDeclaration(node) && node.exclamationToken) {
+      facts.definiteAssignments++;
+    }
+
+    if (ts.isClassDeclaration(node)) visitClassDecorators(node);
+    if ((ts.isPropertyDeclaration(node) || ts.isSetAccessorDeclaration(node) || ts.isGetAccessorDeclaration(node)) && ts.canHaveDecorators(node)) {
+      for (const decorator of ts.getDecorators(node) ?? []) {
+        const key = decoratorKey(decorator);
+        if (key === '@angular/core#Input') facts.decoratorInputs++;
+        else if (key === '@angular/core#Output') facts.decoratorOutputs++;
+      }
+    }
+    ts.forEachChild(node, visit);
+  };
+
+  /** `module#Name` of a decorator such as `@Component({...})`, resolved through the imports. */
+  const decoratorKey = (decorator: ts.Decorator): string | undefined => {
+    const expression = ts.isCallExpression(decorator.expression) ? decorator.expression.expression : decorator.expression;
+    return keyOf(expression);
+  };
+
+  const visitClassDecorators = (node: ts.ClassDeclaration): void => {
+    for (const decorator of ts.getDecorators(node) ?? []) {
+      const key = decoratorKey(decorator);
+      if (key === '@angular/core#NgModule') facts.ngModules++;
+      else if (key === '@angular/core#Injectable') facts.injectables++;
+      else if (key === '@angular/core#Component') {
+        const metadata = ts.isCallExpression(decorator.expression) ? decorator.expression.arguments[0] : undefined;
+        const component: ComponentFact = { name: node.name?.text ?? '(anonymous)', line: lineOf(node) };
+        if (metadata && ts.isObjectLiteralExpression(metadata)) {
+          for (const property of metadata.properties) {
+            if (!ts.isPropertyAssignment(property) || !ts.isIdentifier(property.name)) continue;
+            const value = property.initializer;
+            if (property.name.text === 'standalone') {
+              if (value.kind === ts.SyntaxKind.TrueKeyword) component.standalone = true;
+              else if (value.kind === ts.SyntaxKind.FalseKeyword) component.standalone = false;
+            } else if (property.name.text === 'changeDetection' && ts.isPropertyAccessExpression(value)) {
+              component.changeDetection = value.name.text;
+            } else if (property.name.text === 'template') {
+              const template = templateTextOf(value);
+              if (template !== undefined) {
+                const stats = scanTemplate(template.text);
+                const legacyOffset = firstLegacyOffset(template.text);
+                facts.inlineTemplates.push({
+                  path,
+                  inline: true,
+                  stats,
+                  firstLegacyLine: legacyOffset === undefined ? undefined : source.getLineAndCharacterOfPosition(template.start + legacyOffset).line + 1,
+                });
+              }
+            }
+          }
+        }
+        facts.components.push(component);
+      }
+    }
+  };
+
+  visit(source);
+  return facts;
+}
+
+/** Turns an import or re-export statement into an `ImportFact`; undefined for any other statement. */
+function importFactOf(statement: ts.Statement, source: ts.SourceFile): ImportFact | undefined {
+  const line = source.getLineAndCharacterOfPosition(statement.getStart(source)).line + 1;
+  if (ts.isImportDeclaration(statement) && ts.isStringLiteralLike(statement.moduleSpecifier)) {
+    const clause = statement.importClause;
+    const bindings: ImportBinding[] = [];
+    const clauseTypeOnly = clause?.isTypeOnly ?? false;
+    if (clause?.name) bindings.push({ imported: 'default', local: clause.name.text, typeOnly: clauseTypeOnly });
+    const named = clause?.namedBindings;
+    if (named && ts.isNamespaceImport(named)) bindings.push({ imported: '*', local: named.name.text, typeOnly: clauseTypeOnly });
+    if (named && ts.isNamedImports(named)) {
+      for (const element of named.elements) {
+        bindings.push({ imported: (element.propertyName ?? element.name).text, local: element.name.text, typeOnly: clauseTypeOnly || element.isTypeOnly });
+      }
+    }
+    return {
+      specifier: statement.moduleSpecifier.text,
+      line,
+      typeOnly: clauseTypeOnly || (bindings.length > 0 && bindings.every((binding) => binding.typeOnly)),
+      dynamic: false,
+      bindings,
+    };
+  }
+  if (ts.isExportDeclaration(statement) && statement.moduleSpecifier && ts.isStringLiteralLike(statement.moduleSpecifier)) {
+    const clause = statement.exportClause;
+    const bindings: ImportBinding[] =
+      clause && ts.isNamedExports(clause)
+        ? clause.elements.map((element) => ({
+            imported: (element.propertyName ?? element.name).text,
+            // A re-export binds nothing locally; the empty name keeps it out of the local lookup.
+            local: '',
+            typeOnly: statement.isTypeOnly || element.isTypeOnly,
+          }))
+        : [];
+    return {
+      specifier: statement.moduleSpecifier.text,
+      line,
+      typeOnly: statement.isTypeOnly || (bindings.length > 0 && bindings.every((binding) => binding.typeOnly)),
+      dynamic: false,
+      bindings,
+    };
+  }
+  return undefined;
+}
+
+/**
+ * True for `spyOn(...)` and `jasmine.x(...)` when neither name is imported. An
+ * imported `spyOn` (some Vitest setups re-export one) is not Jasmine.
+ */
+function isJasmineGlobalCall(expression: ts.Expression, locals: Map<string, unknown>): boolean {
+  if (ts.isIdentifier(expression)) return (expression.text === 'spyOn' || expression.text === 'spyOnProperty') && !locals.has(expression.text);
+  return ts.isPropertyAccessExpression(expression) && ts.isIdentifier(expression.expression) && expression.expression.text === 'jasmine' && !locals.has('jasmine');
+}
+
+/**
+ * The text of an inline template and the offset of its first character in the
+ * file. For a template literal with `${}` substitutions only the literal parts
+ * are kept, which is enough for counting control flow and rare in practice.
+ */
+function templateTextOf(value: ts.Expression): { text: string; start: number } | undefined {
+  if (ts.isStringLiteral(value) || ts.isNoSubstitutionTemplateLiteral(value)) return { text: value.text, start: value.getStart() + 1 };
+  if (ts.isTemplateExpression(value)) {
+    return { text: [value.head.text, ...value.templateSpans.map((span) => span.literal.text)].join(' '), start: value.getStart() + 1 };
+  }
+  return undefined;
+}
+
+/** Counts control flow in one template's text. */
+export function scanTemplate(text: string): TemplateStats {
+  const count = (pattern: RegExp): number => (text.match(pattern) ?? []).length;
+  return {
+    ngIf: count(/\*ngIf\s*=|\[ngIf\]\s*=/g),
+    ngFor: count(/\*ngFor\s*=|\[ngForOf\]\s*=/g),
+    ngSwitch: count(/\[ngSwitch\]\s*=/g),
+    ifBlocks: count(/@if\s*\(/g),
+    forBlocks: count(/@for\s*\(/g),
+    switchBlocks: count(/@switch\s*\(/g),
+    deferBlocks: count(/@defer\b/g),
+    anyCasts: count(/\$any\s*\(/g),
+  };
+}
+
+/** Character offset of the first legacy structural directive in a template, or undefined. */
+export function firstLegacyOffset(text: string): number | undefined {
+  const match = /\*ngIf\s*=|\[ngIf\]\s*=|\*ngFor\s*=|\[ngForOf\]\s*=|\[ngSwitch\]\s*=/.exec(text);
+  return match?.index;
+}
+
+/** Scans an external template file. */
+export function scanTemplateFile(root: string, absolutePath: string): TemplateFact {
+  const text = readFileSync(absolutePath, 'utf8');
+  const offset = firstLegacyOffset(text);
+  return {
+    path: toReportPath(root, absolutePath),
+    inline: false,
+    stats: scanTemplate(text),
+    firstLegacyLine: offset === undefined ? undefined : text.slice(0, offset).split('\n').length,
+  };
+}
+
+/** Non-blank lines, the figure a reader expects behind "lines of code". */
+function countLinesOfCode(text: string): number {
+  let count = 0;
+  for (const line of text.split('\n')) if (line.trim() !== '') count++;
+  return count;
+}

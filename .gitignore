@@ -1,0 +1,7 @@
+node_modules/
+!test/fixtures/**/node_modules/
+dist/
+coverage/
+ng-checkup-report.*
+*.log
+.DS_Store

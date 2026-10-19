@@ -1,0 +1,17 @@
+{
+  // Comments are legal in angular.json.
+  "version": 1,
+  "projects": {
+    "legacy-app": {
+      "root": "",
+      "architect": {
+        "build": {
+          "builder": "@angular-devkit/build-angular:browser",
+          "options": { "tsConfig": "tsconfig.app.json", "polyfills": ["zone.js"] },
+        },
+        "test": { "builder": "@angular-devkit/build-angular:karma", "options": {} },
+        "e2e": { "builder": "@angular-devkit/build-angular:protractor", "options": {} }
+      }
+    }
+  }
+}

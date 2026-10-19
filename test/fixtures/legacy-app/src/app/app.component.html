@@ -1,0 +1,4 @@
+<div *ngIf="heroes.length">
+  <app-hero-list *ngFor="let hero of heroes" [heroes]="heroes"></app-hero-list>
+</div>
+<span>{{ $any(heroes).name }}</span>
