@@ -17,6 +17,12 @@ import type { CheckupOptions, Report } from './types.js';
 import { asRecord, majorOf, readJson, readWorkspace } from './workspace.js';
 
 export type * from './types.js';
+// The renderers and the score are public so a script can turn a report from
+// `runCheckup` into the same HTML or Markdown the CLI writes, e.g. to post it
+// as a pull-request comment.
+export { renderHtml } from './report/html.js';
+export { renderMarkdown } from './report/markdown.js';
+export { overallScore, topPriorities } from './report/summary.js';
 
 /**
  * The newest Angular major this release of the tool knows about. Used only
