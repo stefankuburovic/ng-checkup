@@ -60,6 +60,23 @@ export function renderTerminal(report: Report, options: TerminalOptions): string
     lines.push(`${c.bold('Score')} ${color(c.bold(`${score}/100`))}  ${c.dim(SCORE_EXPLANATION)}`);
   }
 
+  const comparison = report.baseline;
+  if (comparison) {
+    lines.push('');
+    const { regressions, improvements } = comparison;
+    if (regressions.length === 0 && improvements.length === 0) {
+      lines.push(`${c.bold('Baseline')}  ${c.dim('no change')}`);
+    } else {
+      const parts = [regressions.length > 0 ? c.red(`${regressions.length} worse`) : undefined, improvements.length > 0 ? c.green(`${improvements.length} better`) : undefined].filter(Boolean);
+      lines.push(`${c.bold('Baseline')}  ${parts.join(', ')}`);
+      for (const delta of regressions) lines.push(`  ${c.red('worse ')} ${delta.check}: ${delta.label} ${delta.before} → ${c.bold(String(delta.after))}`);
+      const shown = options.verbose ? improvements : improvements.slice(0, 5);
+      for (const delta of shown) lines.push(`  ${c.green('better')} ${delta.check}: ${delta.label} ${delta.before} → ${delta.after}`);
+      if (shown.length < improvements.length) lines.push(c.dim(`  and ${improvements.length - shown.length} more better`));
+      if (improvements.length > 0 && regressions.length === 0) lines.push(c.dim('  Lock the improvements in with: ng-checkup baseline'));
+    }
+  }
+
   const priorities = topPriorities(report);
   if (!options.verbose && priorities.length > 0) {
     lines.push('');

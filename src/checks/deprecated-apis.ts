@@ -42,6 +42,7 @@ export function deprecatedApisCheck(context: AnalysisContext): CheckResult {
           detail: 'Deprecations are read from the `@deprecated` tags of the installed `@angular/*` and `@ngrx/*` type definitions, so they always match the version the project actually uses.',
         },
       ],
+      measures: [{ id: 'legacy-template-directives', label: '*ngIf / *ngFor / [ngSwitch] uses', value: legacyUses }],
     };
   }
 
@@ -112,6 +113,10 @@ export function deprecatedApisCheck(context: AnalysisContext): CheckResult {
       { label: 'Legacy template directives', value: formatCount(legacyUses), hint: ngIf ? 'deprecated' : 'not deprecated in this version' },
     ],
     findings,
+    measures: [
+      { id: 'deprecated-usages', label: 'Deprecated API uses (symbol × file)', value: sorted.reduce((sum, usage) => sum + usage.refs.length, 0) },
+      { id: 'legacy-template-directives', label: '*ngIf / *ngFor / [ngSwitch] uses', value: legacyUses },
+    ],
   };
 }
 

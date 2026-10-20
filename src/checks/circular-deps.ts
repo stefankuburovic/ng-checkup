@@ -44,5 +44,8 @@ export function circularDepsCheck(context: AnalysisContext): CheckResult {
       { label: 'Largest tangle', value: formatCount(largest), hint: 'files' },
     ],
     findings,
+    measures: [
+      { id: 'files-in-cycles', label: 'Files in import cycles', value: filesInTangles },
+    ],
   };
 }

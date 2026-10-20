@@ -13,8 +13,8 @@ export const CONFIG_FILE = 'ng-checkup.config.json';
 export interface CheckupConfig {
   /** Report files to write, relative to the config file's directory. */
   reports?: string[];
-  /** As `--fail-on`. */
-  failOn?: 'fair' | 'poor';
+  /** As `--fail-on`. `regression` fails only when a measure is worse than the baseline. */
+  failOn?: 'fair' | 'poor' | 'regression';
   /** As `--max-examples`. */
   maxExamples?: number;
   /** As `--offline`. */
@@ -25,10 +25,12 @@ export interface CheckupConfig {
    * everything below it; `*` stops at `/`, `**` does not.
    */
   ignore?: string[];
+  /** The baseline file, relative to the config file. Defaults to `ng-checkup.baseline.json` in the root. */
+  baseline?: string;
 }
 
 /** Keys the file may contain. `$schema` is accepted so editors can attach one later. */
-const KNOWN_KEYS = new Set(['$schema', 'reports', 'failOn', 'maxExamples', 'offline', 'ignore']);
+const KNOWN_KEYS = new Set(['$schema', 'reports', 'failOn', 'maxExamples', 'offline', 'ignore', 'baseline']);
 
 /**
  * Reads and validates the config file.
@@ -71,7 +73,7 @@ export function loadConfig(root: string, explicitPath?: string): { config: Check
     config.reports = reports;
   }
   if (record['failOn'] !== undefined) {
-    if (record['failOn'] !== 'fair' && record['failOn'] !== 'poor') throw new Error(`${path}: failOn must be "poor" or "fair"`);
+    if (record['failOn'] !== 'fair' && record['failOn'] !== 'poor' && record['failOn'] !== 'regression') throw new Error(`${path}: failOn must be "poor", "fair" or "regression"`);
     config.failOn = record['failOn'];
   }
   if (record['maxExamples'] !== undefined) {
@@ -87,6 +89,10 @@ export function loadConfig(root: string, explicitPath?: string): { config: Check
     const ignore = record['ignore'];
     if (!Array.isArray(ignore) || !ignore.every((entry) => typeof entry === 'string')) throw new Error(`${path}: ignore must be an array of paths`);
     config.ignore = ignore;
+  }
+  if (record['baseline'] !== undefined) {
+    if (typeof record['baseline'] !== 'string' || record['baseline'].trim() === '') throw new Error(`${path}: baseline must be a file path`);
+    config.baseline = record['baseline'];
   }
   return { config, directory: resolve(path, '..'), path };
 }

@@ -36,6 +36,20 @@ export interface Metric {
   hint?: string;
 }
 
+/**
+ * A count where lower is better, under a stable id: what a baseline records
+ * and later compares. Only things the code controls are measures, which is
+ * why the number of majors behind is not one: it grows when Angular ships,
+ * not when the code gets worse, and a baseline on it would fail CI twice a
+ * year for nothing.
+ */
+export interface Measure {
+  /** Unique within its check; the baseline key is `checkId.measureId`. */
+  id: string;
+  label: string;
+  value: number;
+}
+
 /** One thing a check wants a reader to act on, or at least to know. */
 export interface Finding {
   severity: Severity;
@@ -61,6 +75,8 @@ export interface CheckResult {
   summary: string;
   metrics: Metric[];
   findings: Finding[];
+  /** Absent when the check had nothing to measure (graded `info` for lack of input). */
+  measures?: Measure[];
 }
 
 /** The `ng-checkup` result as a whole, which is also the JSON output schema. */
@@ -79,6 +95,12 @@ export interface Report {
   };
   checks: CheckResult[];
   durationMs: number;
+  /**
+   * The comparison with the committed baseline, when the run had one. Set by
+   * the CLI (or by the caller, through `compareWithBaseline`), never by
+   * `runCheckup`, which reads nothing it was not given.
+   */
+  baseline?: import('./baseline.js').BaselineComparison;
 }
 
 /**

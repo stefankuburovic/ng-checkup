@@ -113,5 +113,10 @@ export function versionCheck(context: AnalysisContext): CheckResult {
       { label: 'Build system', value: webpackTargets.length > 0 ? 'webpack' : usesApplicationBuilder ? 'esbuild' : 'unknown' },
     ],
     findings,
+    measures: [
+      { id: 'end-of-life-packages', label: 'End-of-life packages', value: endOfLife.length },
+      { id: 'webpack-builders', label: 'Projects on the webpack builder', value: webpackTargets.length },
+      { id: 'mismatched-angular-packages', label: 'Angular packages on another major', value: mismatched.length },
+    ],
   };
 }

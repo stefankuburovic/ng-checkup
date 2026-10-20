@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.0 (2026-10-20)
+
+- Baseline mode. `ng-checkup baseline` records 22 counts (explicit `any`, `x!`, files in import cycles, components without OnPush or a spec, deprecated API uses, ...) in `ng-checkup.baseline.json`, and `--fail-on regression` fails CI only when one of them goes up. Updating the baseline may only lower numbers; `--force` accepts an increase.
+- Every run with a baseline shows what got worse and better, in the terminal, Markdown and HTML reports.
+- `ng add` and `init` create the first baseline and set CI to `--fail-on regression`, so an existing codebase can adopt the check on day one. An older workflow that still runs `--fail-on poor` is pointed out.
+- Each check now returns `measures`; the baseline functions are exported.
+
 ## 0.2.0 (2026-10-20)
 
 - `ng add ng-checkup` and `npx ng-checkup init`: a `checkup` script, `ng-checkup.config.json`, the reports in `.gitignore` and a CI step for GitHub Actions or GitLab CI, in one command. Idempotent, `--dry-run`, never overwrites your files.

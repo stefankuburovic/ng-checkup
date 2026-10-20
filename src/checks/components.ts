@@ -102,6 +102,11 @@ export function componentsCheck(context: AnalysisContext): CheckResult {
     summary: `${plural(components.length, 'component')}: ${standaloneShare}% standalone, ${inputs > 0 ? `${signalInputShare}% signal inputs` : 'no inputs'}, ${controlFlow > 0 ? `${controlFlowShare}% built-in control flow` : 'no control flow'}.`,
     metrics,
     findings,
+    measures: [
+      { id: 'module-components', label: 'Components declared in NgModules', value: moduleBased.length },
+      { id: 'decorator-inputs-outputs', label: '@Input() / @Output() decorators', value: decoratorInputs + decoratorOutputs },
+      { id: 'legacy-control-flow', label: '*ngIf / *ngFor / [ngSwitch] uses', value: totals.legacy },
+    ],
   };
 }
 

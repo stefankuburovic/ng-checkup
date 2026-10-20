@@ -31,6 +31,18 @@ export function renderMarkdown(report: Report): string {
     lines.push('');
   }
 
+  const comparison = report.baseline;
+  if (comparison && (comparison.regressions.length > 0 || comparison.improvements.length > 0)) {
+    lines.push('## Compared with the baseline', '');
+    lines.push(`${comparison.regressions.length} worse, ${comparison.improvements.length} better.`, '');
+    lines.push('| | Area | Measure | Baseline | Now |', '| --- | --- | --- | --- | --- |');
+    for (const delta of comparison.regressions) lines.push(`| Worse | ${cell(delta.check)} | ${cell(delta.label)} | ${delta.before} | **${delta.after}** |`);
+    for (const delta of comparison.improvements) lines.push(`| Better | ${cell(delta.check)} | ${cell(delta.label)} | ${delta.before} | ${delta.after} |`);
+    lines.push('');
+  } else if (comparison) {
+    lines.push('## Compared with the baseline', '', 'No change.', '');
+  }
+
   for (const check of report.checks) {
     lines.push(`## ${check.title}: ${gradeLabel(check.grade)}`, '', check.summary, '');
     if (check.metrics.length > 0) {

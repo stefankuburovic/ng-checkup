@@ -25,8 +25,13 @@ const { pathToFileURL } = require('node:url');
  */
 function ngAdd(options) {
   return async (tree, context) => {
-    const { planInit } = await import(pathToFileURL(join(__dirname, '..', '..', 'dist', 'init.js')).href);
+    const { planInit, runCheckup, createBaseline, serializeBaseline, BASELINE_FILE } = await import(pathToFileURL(join(__dirname, '..', '..', 'dist', 'index.js')).href);
     const { version } = require(join(__dirname, '..', '..', 'package.json'));
+
+    // The first baseline measures the workspace on disk (the CLI runs ng add
+    // from its root). The tree only holds pending changes, and none of them
+    // touch source files, so the disk is what the code looks like.
+    const baseline = tree.exists(`/${BASELINE_FILE}`) ? undefined : serializeBaseline(createBaseline(await runCheckup(process.cwd(), { offline: true })));
 
     const plan = planInit(
       {
@@ -41,7 +46,7 @@ function ngAdd(options) {
           return directory.subfiles.length > 0 || directory.subdirs.length > 0;
         },
       },
-      { ci: options.ci ?? 'auto', force: options.force ?? false, addDependency: false, version },
+      { ci: options.ci ?? 'auto', force: options.force ?? false, addDependency: false, version, baseline },
     );
 
     for (const change of plan.changes) {

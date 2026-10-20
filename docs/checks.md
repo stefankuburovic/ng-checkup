@@ -158,3 +158,34 @@ Cycles are reported as **groups** of files that import each other in a loop (str
 | poor | more than that |
 
 **Fixing it:** most loops close through a barrel import that drags in a sibling. Importing the file directly instead of `./index` usually breaks it.
+
+---
+
+## Measures recorded by the baseline <a id="measures"></a>
+
+`ng-checkup baseline` records these counts in `ng-checkup.baseline.json`, and `--fail-on regression` fails when any of them goes up. Lower is better for every one. The number of majors behind is deliberately not a measure: it grows when Angular ships a release, not when the code gets worse.
+
+| Key | Counts |
+| --- | --- |
+| `change-detection.eager-components` | Components with eager change detection |
+| `change-detection.ngzone-files` | Files injecting NgZone |
+| `change-detection.zone-test-helpers` | Zone-based test helper calls |
+| `circular-deps.files-in-cycles` | Files in import cycles |
+| `components.decorator-inputs-outputs` | `@Input()` / `@Output()` decorators |
+| `components.legacy-control-flow` | `*ngIf` / `*ngFor` / `[ngSwitch]` uses |
+| `components.module-components` | Components declared in NgModules |
+| `deprecated-apis.deprecated-usages` | Deprecated API uses (symbol × file) |
+| `deprecated-apis.legacy-template-directives` | `*ngIf` / `*ngFor` / `[ngSwitch]` uses |
+| `state.behaviorsubject-services` | Services holding state in a `BehaviorSubject` |
+| `state.classic-ngrx-files` | Files on classic NgRx |
+| `state.effect-decorators` | Removed `@Effect()` decorators |
+| `testing.untested-files` | Components and services without a spec |
+| `type-safety.explicit-any` | Explicit `any` in application code |
+| `type-safety.non-null-assertions` | Non-null assertions (`x!`) |
+| `type-safety.strict-flags-off` | `strictNullChecks` / `strictTemplates` / `noImplicitAny` off |
+| `type-safety.template-any-casts` | `$any()` casts in templates |
+| `type-safety.ts-suppressions` | `@ts-ignore` / `@ts-expect-error` comments |
+| `type-safety.untyped-form-files` | Files importing `UntypedForm*` |
+| `version.end-of-life-packages` | End-of-life packages |
+| `version.mismatched-angular-packages` | Angular packages on another major |
+| `version.webpack-builders` | Projects on the webpack builder |

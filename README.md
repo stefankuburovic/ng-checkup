@@ -21,6 +21,7 @@ npx ng-checkup
 - [Quick start](#quick-start)
 - [Set it up in a project](#set-it-up-in-a-project)
 - [Configuration](#configuration)
+- [Baseline: adopt it on legacy code](#baseline-adopt-it-on-legacy-code)
 - [What it checks](#what-it-checks)
 - [Reports](#reports)
 - [In CI](#in-ci)
@@ -42,8 +43,9 @@ npx ng-checkup
 # 2. The full report as a page to share
 npx ng-checkup --report checkup.html
 
-# 3. Fail CI when an area turns poor
-npx ng-checkup --fail-on poor
+# 3. Record today's numbers, then fail CI only when one gets worse
+npx ng-checkup baseline
+npx ng-checkup --fail-on regression
 ```
 
 Install dependencies first (`npm install`) if you can: the deprecated-API check reads the installed Angular packages, and without them it is skipped.
@@ -65,7 +67,8 @@ Both make the same changes and list what they changed:
 | `package.json` | a `"checkup": "ng-checkup"` script, and `ng-checkup` in `devDependencies` (`init` only; `ng add` installs it itself) |
 | `ng-checkup.config.json` | writes `checkup.html` on every run, and an empty `ignore` list |
 | `.gitignore` | the generated reports, if the repository has a `.gitignore` |
-| `.github/workflows/ng-checkup.yml` | runs on every pull request, fails on a poor area, uploads the reports (when `.github/` exists) |
+| `ng-checkup.baseline.json` | today's numbers, so CI fails only when one gets worse ([baseline](#baseline-adopt-it-on-legacy-code)) |
+| `.github/workflows/ng-checkup.yml` | runs on every pull request with `--fail-on regression`, uploads the reports (when `.github/` exists) |
 | `ng-checkup.gitlab-ci.yml` | the same as a GitLab job; add `include: [{ local: ng-checkup.gitlab-ci.yml }]` to your `.gitlab-ci.yml` (when that file exists) |
 
 After that it is `npm run checkup` (or `pnpm checkup`, `yarn checkup`; the lockfile decides). Running either command again changes nothing. It never overwrites a file you wrote: an existing workflow or config is kept, and a different `checkup` script is kept unless you pass `--force`.
@@ -92,12 +95,35 @@ npx ng-checkup init --ci gitlab    # pick the CI instead of detecting it (github
 | Key | Meaning | Flag |
 | --- | --- | --- |
 | `reports` | report files to write, relative to the config file | `--report` |
-| `failOn` | exit with 1 when an area is `poor` (or `fair`) | `--fail-on` |
+| `failOn` | exit with 1 when an area is `poor` (or `fair`), or with `regression` when a measure is worse than the baseline | `--fail-on` |
 | `maxExamples` | example files listed per finding | `--max-examples` |
 | `offline` | skip the npm lookup of the latest Angular version | `--offline` |
 | `ignore` | paths left out of the analysis; a path matches everything below it, `*` stays within a folder, `**` crosses folders | |
+| `baseline` | the baseline file, relative to the config file (default `ng-checkup.baseline.json` in the root) | |
 
 An unknown key or a wrong type stops the run with an error, so a typo cannot silently switch off a CI threshold. Use `--config path/to/file.json` for a file elsewhere.
+
+## Baseline: adopt it on legacy code
+
+A ten-year-old Angular app will not pass `--fail-on poor` on day one, and a CI check that is red from the start gets switched off. The baseline fixes that: it records today's numbers, and CI fails only when one of them gets worse.
+
+```bash
+npx ng-checkup baseline                    # writes ng-checkup.baseline.json; commit it
+npx ng-checkup --fail-on regression        # in CI: fails only on a number that went up
+```
+
+```text
+Baseline  2 worse
+  worse  Type safety: Explicit any in application code 13 → 15
+  worse  Type safety: Non-null assertions (x!) 0 → 1
+```
+
+- **It records counts, not grades:** explicit `any`, `x!`, files in import cycles, components without OnPush or a spec, NgModule-declared components, deprecated API uses and [18 more](https://github.com/stefankuburovic/ng-checkup/blob/main/docs/checks.md#measures). Lower is better for every one.
+- **It only goes down.** When numbers drop, the run says so; `npx ng-checkup baseline` locks the new numbers in. If a number went up, `baseline` refuses and lists it, so a regression cannot be waved through by re-running the command. `--force` accepts it, which is the moment someone has to explain why in review.
+- **It is a plain, sorted JSON file**, so lowering a number is a one-line diff in a merge request.
+- **The gap to the latest Angular is not in it.** That grows when Angular ships, not when the code gets worse.
+
+`ng add ng-checkup` and `npx ng-checkup init` create the first baseline and set CI to `--fail-on regression` for you.
 
 ## What it checks
 
@@ -137,6 +163,7 @@ Defaults that changed between versions are applied per version: a component with
 ```text
 Usage: ng-checkup [path] [options]
        ng-checkup init [path] [init options]
+       ng-checkup baseline [path] [--force]
 
 Arguments:
   path                   Repository root (default: current directory)
@@ -146,8 +173,9 @@ Options:
                          .html, .md or .json. Repeatable.
       --json             Print the report as JSON to stdout instead of the summary
   -v, --verbose          Print every finding with its files
-      --fail-on <grade>  Exit with code 1 if any area is graded <grade> or worse:
-                         poor or fair (for CI)
+      --fail-on <grade>  Exit with code 1 if any area is graded <grade> or worse
+                         (poor or fair), or with regression if a measure is
+                         worse than the baseline (for CI)
       --max-examples <n> Example files listed per finding (default 5)
       --offline          Do not look up the latest Angular version online
       --config <file>    Config file (default: ng-checkup.config.json in the root)
@@ -159,9 +187,12 @@ Init options (ng-checkup init):
       --ci <provider>    auto (default), github, gitlab or none
       --dry-run          Show what would change without writing anything
       --force            Replace an existing "checkup" script
+
+Baseline options (ng-checkup baseline):
+      --force            Accept measures that went up since the last baseline
 ```
 
-Exit codes: `0` done, `1` `--fail-on` tripped, `2` usage error. Areas graded `info` never fail a run.
+Exit codes: `0` done, `1` `--fail-on` tripped, `2` usage error (including `--fail-on regression` without a baseline). Areas graded `info` never fail a run.
 
 </details>
 
@@ -176,7 +207,7 @@ Exit codes: `0` done, `1` `--fail-on` tripped, `2` usage error. Areas graded `in
   with:
     node-version: 22
 - run: npm ci
-- run: npx ng-checkup --fail-on poor --report checkup.md --report checkup.html
+- run: npx ng-checkup --fail-on regression --report checkup.md --report checkup.html
 - uses: actions/upload-artifact@v4
   if: always()
   with:
@@ -191,13 +222,13 @@ ng-checkup:
   image: node:22
   script:
     - npm ci
-    - npx ng-checkup --fail-on poor --report checkup.md --report checkup.html
+    - npx ng-checkup --fail-on regression --report checkup.md --report checkup.html
   artifacts:
     when: always
     paths: [checkup.md, checkup.html]
 ```
 
-Start with `--fail-on poor`. `--fail-on fair` is for codebases that are already in good shape and want to stay there.
+On an existing codebase, start with a [baseline](#baseline-adopt-it-on-legacy-code) and `--fail-on regression`. `--fail-on poor` and `--fail-on fair` are for codebases that are already in good shape and want to stay there.
 
 ## Programmatic API
 
@@ -216,7 +247,7 @@ for (const check of report.checks) {
 await writeFile('checkup.md', renderMarkdown(report));
 ```
 
-`runCheckup` never writes anything. `renderHtml`, `renderMarkdown`, `overallScore`, `topPriorities`, `loadConfig` and `planInit` (what `init` would change, without writing it) are exported too, along with the `Report`, `CheckResult`, `Finding` and `Grade` types. `Report` is also the schema of the JSON output.
+`runCheckup` never writes anything. `renderHtml`, `renderMarkdown`, `overallScore`, `topPriorities`, `loadConfig`, `planInit` (what `init` would change, without writing it) and the baseline functions (`createBaseline`, `compareWithBaseline`, `readBaseline`, `serializeBaseline`) are exported too, along with the `Report`, `CheckResult`, `Finding` and `Grade` types. `Report` is also the schema of the JSON output.
 
 ## What leaves your machine
 
@@ -244,7 +275,6 @@ One request: the latest `@angular/core` version from the npm registry, with a th
 
 ## Roadmap
 
-- Baseline mode: fail CI only when a number gets worse, so legacy code can adopt it on day one
 - Upgrade plan: the steps from your version to the latest, with the migrations each needs
 - Per-project reports for Nx and multi-project workspaces
 - Bundle size from the build's esbuild metafile

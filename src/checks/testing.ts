@@ -72,6 +72,9 @@ export function testingCheck(context: AnalysisContext): CheckResult {
       { label: 'End-to-end', value: e2e ?? 'none' },
     ],
     findings,
+    measures: [
+      { id: 'untested-files', label: 'Components and services without a spec', value: untested.length },
+    ],
   };
 }
 

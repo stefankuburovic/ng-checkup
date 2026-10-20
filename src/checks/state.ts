@@ -75,5 +75,10 @@ export function stateCheck(context: AnalysisContext): CheckResult {
       { label: 'BehaviorSubject services', value: formatCount(subjectServices.length) },
     ],
     findings,
+    measures: [
+      { id: 'classic-ngrx-files', label: 'Files on classic NgRx', value: classicFiles.length },
+      { id: 'behaviorsubject-services', label: 'Services holding state in a BehaviorSubject', value: subjectServices.length },
+      { id: 'effect-decorators', label: 'Removed @Effect() decorators', value: removedEffectDecorators },
+    ],
   };
 }

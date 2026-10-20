@@ -123,5 +123,13 @@ export function typeSafetyCheck(context: AnalysisContext): CheckResult {
       { label: 'Non-null assertions', value: formatCount(nonNull) },
     ],
     findings,
+    measures: [
+      ...(hasConfig ? [{ id: 'strict-flags-off', label: 'strictNullChecks / strictTemplates / noImplicitAny off', value: [strictNullChecks, strictTemplates, noImplicitAny].filter((flag) => !flag).length }] : []),
+      { id: 'explicit-any', label: 'Explicit any in application code', value: anyCount },
+      { id: 'non-null-assertions', label: 'Non-null assertions (x!)', value: nonNull },
+      { id: 'ts-suppressions', label: '@ts-ignore / @ts-expect-error comments', value: suppressions },
+      { id: 'template-any-casts', label: '$any() casts in templates', value: templateAnyCasts },
+      { id: 'untyped-form-files', label: 'Files importing UntypedForm*', value: untypedForms.length },
+    ],
   };
 }

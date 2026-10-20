@@ -3,6 +3,7 @@ import { existsSync, mkdirSync, readFileSync, realpathSync, statSync, writeFileS
 import { dirname, extname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
+import { BASELINE_FILE, baselineIncreases, compareWithBaseline, createBaseline, readBaseline, serializeBaseline } from './baseline.js';
 import { loadConfig, type CheckupConfig } from './config.js';
 import { runCheckup, TOOL } from './index.js';
 import { planInit, type CiChoice, type InitPlan } from './init.js';
@@ -13,6 +14,7 @@ import type { Grade, Report } from './types.js';
 
 const HELP = `Usage: ng-checkup [path] [options]
        ng-checkup init [path] [init options]
+       ng-checkup baseline [path] [--force]
 
 A one-minute modernization report for an Angular codebase. Reads the code,
 never changes it, and sends nothing anywhere except one npm registry lookup
@@ -26,8 +28,9 @@ Options:
                          .html, .md or .json. Repeatable.
       --json             Print the report as JSON to stdout instead of the summary
   -v, --verbose          Print every finding with its files
-      --fail-on <grade>  Exit with code 1 if any area is graded <grade> or worse:
-                         poor or fair (for CI)
+      --fail-on <grade>  Exit with code 1 if any area is graded <grade> or worse
+                         (poor or fair), or with regression if a measure is
+                         worse than the baseline (for CI)
       --max-examples <n> Example files listed per finding (default 5)
       --offline          Do not look up the latest Angular version online
       --config <file>    Config file (default: ng-checkup.config.json in the root)
@@ -40,11 +43,15 @@ Init options (ng-checkup init):
       --dry-run          Show what would change without writing anything
       --force            Replace an existing "checkup" script
 
+Baseline options (ng-checkup baseline):
+      --force            Accept measures that went up since the last baseline
+
 Examples:
   npx ng-checkup
   npx ng-checkup ../my-app --report checkup.html
   npx ng-checkup --fail-on poor --report checkup.md
-  npx ng-checkup init`;
+  npx ng-checkup init
+  npx ng-checkup baseline && npx ng-checkup --fail-on regression`;
 
 /** Grades in order of how bad they are, for `--fail-on`. */
 const SEVERITY_ORDER: Grade[] = ['good', 'fair', 'poor'];
@@ -56,7 +63,7 @@ export interface CliArguments {
   reports: string[];
   json: boolean;
   verbose: boolean;
-  failOn?: 'fair' | 'poor';
+  failOn?: FailOn;
   /** Undefined when the flag was not given, so the config file can supply it. */
   maxExamples?: number;
   offline: boolean;
@@ -72,10 +79,22 @@ export interface InitArguments {
   force: boolean;
 }
 
+/** What `--fail-on` accepts: a grade threshold, or `regression` against the baseline. */
+export type FailOn = 'fair' | 'poor' | 'regression';
+
+/** Parsed arguments of `ng-checkup baseline`. */
+export interface BaselineArguments {
+  root: string;
+  force: boolean;
+  config?: string;
+}
+
 /** What a run actually uses: the command line laid over the config file. */
 export interface RunSettings {
   reports: string[];
-  failOn?: 'fair' | 'poor';
+  failOn?: FailOn;
+  /** Absolute path of the baseline file, whether or not it exists. */
+  baselinePath: string;
   maxExamples: number;
   offline: boolean;
   ignore?: string[];
@@ -113,7 +132,7 @@ export function parseCliArguments(argv: string[], environment: NodeJS.ProcessEnv
   for (const report of reports) assertReportFormat(report);
 
   const failOn = values['fail-on'];
-  if (failOn !== undefined && failOn !== 'fair' && failOn !== 'poor') throw new Error(`--fail-on takes poor or fair, got ${failOn}`);
+  if (failOn !== undefined && failOn !== 'fair' && failOn !== 'poor' && failOn !== 'regression') throw new Error(`--fail-on takes poor, fair or regression, got ${failOn}`);
 
   let maxExamples: number | undefined;
   if (values['max-examples'] !== undefined) {
@@ -166,7 +185,19 @@ export function resolveSettings(args: CliArguments, config: CheckupConfig, confi
     maxExamples: args.maxExamples ?? config.maxExamples ?? 5,
     offline: args.offline || (config.offline ?? false),
     ignore: config.ignore,
+    baselinePath: config.baseline ? resolve(configDirectory, config.baseline) : join(args.root, BASELINE_FILE),
   };
+}
+
+/** Parses the arguments after `baseline`. */
+export function parseBaselineArguments(argv: string[]): BaselineArguments | 'help' {
+  const { values, positionals } = parseArgs({
+    args: argv,
+    allowPositionals: true,
+    options: { force: { type: 'boolean' }, config: { type: 'string' }, help: { type: 'boolean', short: 'h' } },
+  });
+  if (values.help) return 'help';
+  return { root: parseRoot(positionals), force: values.force ?? false, config: values.config };
 }
 
 /** The single optional path argument, checked to be a directory. */
@@ -191,11 +222,13 @@ export function renderForFile(report: Report, path: string): string {
 }
 
 /**
- * True when some area is graded `failOn` or worse. `info` never fails a
- * run: it means the area could not be measured, not that it is bad.
+ * True when some area is graded `failOn` or worse, or, for `regression`,
+ * when the report's baseline comparison holds a regression. `info` never
+ * fails a run: it means the area could not be measured, not that it is bad.
  */
-export function shouldFail(report: Report, failOn: 'fair' | 'poor' | undefined): boolean {
+export function shouldFail(report: Report, failOn: FailOn | undefined): boolean {
   if (!failOn) return false;
+  if (failOn === 'regression') return (report.baseline?.regressions.length ?? 0) > 0;
   const threshold = SEVERITY_ORDER.indexOf(failOn);
   return report.checks.some((check) => check.grade !== 'info' && SEVERITY_ORDER.indexOf(check.grade) >= threshold);
 }
@@ -204,7 +237,11 @@ export function shouldFail(report: Report, failOn: 'fair' | 'poor' | undefined):
  * Runs `ng-checkup init`: plans against the real file system, then writes
  * the changes unless `dryRun`. Returns the plan so the caller can print it.
  */
-export function runInit(args: InitArguments): InitPlan {
+export async function runInit(args: InitArguments): Promise<InitPlan> {
+  // The first baseline is today's code, measured offline: no measure depends
+  // on the registry. Skipped when one exists, which the planner keeps anyway.
+  const baselinePath = join(args.root, BASELINE_FILE);
+  const baseline = existsSync(baselinePath) ? undefined : serializeBaseline(createBaseline(await runCheckup(args.root, { offline: true })));
   const plan = planInit(
     {
       read: (path) => {
@@ -213,7 +250,7 @@ export function runInit(args: InitArguments): InitPlan {
       },
       exists: (path) => existsSync(join(args.root, path)),
     },
-    { ci: args.ci, force: args.force, version: TOOL.version },
+    { ci: args.ci, force: args.force, version: TOOL.version, baseline },
   );
   if (!args.dryRun) {
     for (const change of plan.changes) {
@@ -245,9 +282,11 @@ export function describeInitPlan(plan: InitPlan, dryRun: boolean): string {
 /** Entry point. Exit codes: 0 done, 1 `--fail-on` tripped, 2 usage or runtime error. */
 async function main(argv: string[]): Promise<number> {
   if (argv[0] === 'init') return mainInit(argv.slice(1));
+  if (argv[0] === 'baseline') return mainBaseline(argv.slice(1));
 
   let parsed: ReturnType<typeof parseCliArguments>;
   let settings: RunSettings;
+  let baseline: ReturnType<typeof readBaseline>;
   try {
     parsed = parseCliArguments(argv);
     if (parsed === 'help' || parsed === 'version') {
@@ -256,11 +295,14 @@ async function main(argv: string[]): Promise<number> {
     }
     const { config, directory } = loadConfig(parsed.root, parsed.config);
     settings = resolveSettings(parsed, config, directory);
+    baseline = readBaseline(settings.baselinePath);
+    if (settings.failOn === 'regression' && !baseline) throw new Error(`--fail-on regression needs a baseline, and there is none at ${settings.baselinePath}. Create it with: ng-checkup baseline`);
   } catch (error) {
     return usageError(error);
   }
 
   const report = await runCheckup(parsed.root, { offline: settings.offline, maxExamples: settings.maxExamples, ignore: settings.ignore });
+  if (baseline) report.baseline = compareWithBaseline(report, baseline, settings.baselinePath);
 
   for (const target of settings.reports) {
     mkdirSync(dirname(target), { recursive: true });
@@ -277,19 +319,64 @@ async function main(argv: string[]): Promise<number> {
 }
 
 /** `ng-checkup init`. */
-function mainInit(argv: string[]): number {
+async function mainInit(argv: string[]): Promise<number> {
   try {
     const parsed = parseInitArguments(argv);
     if (parsed === 'help') {
       process.stdout.write(`${HELP}\n`);
       return 0;
     }
-    const plan = runInit(parsed);
+    const plan = await runInit(parsed);
     process.stdout.write(`${describeInitPlan(plan, parsed.dryRun)}\n`);
     return 0;
   } catch (error) {
     return usageError(error);
   }
+}
+
+/**
+ * `ng-checkup baseline`: records the current measures. Updating may only
+ * lower numbers; a measure that went up is refused unless `--force`, so a
+ * regression cannot be waved through by re-running the command.
+ */
+async function mainBaseline(argv: string[]): Promise<number> {
+  try {
+    const parsed = parseBaselineArguments(argv);
+    if (parsed === 'help') {
+      process.stdout.write(`${HELP}\n`);
+      return 0;
+    }
+    const written = await writeBaseline(parsed);
+    process.stdout.write(`${written}\n`);
+    return 0;
+  } catch (error) {
+    return usageError(error);
+  }
+}
+
+/**
+ * Runs the analysis and writes the baseline. Returns the message to print.
+ * Offline on purpose: no measure depends on the latest Angular version.
+ *
+ * @throws When a measure went up and `force` is not set, listing each one.
+ */
+export async function writeBaseline(args: BaselineArguments): Promise<string> {
+  const { config, directory } = loadConfig(args.root, args.config);
+  const path = config.baseline ? resolve(directory, config.baseline) : join(args.root, BASELINE_FILE);
+  const previous = readBaseline(path);
+  const report = await runCheckup(args.root, { offline: true, ignore: config.ignore });
+  const next = createBaseline(report);
+  const increases = baselineIncreases(previous, next);
+  if (increases.length > 0 && !args.force) {
+    throw new Error(`these measures went up since the last baseline, which only ever goes down:\n${increases.map((entry) => `  ${entry.key}: ${entry.before} -> ${entry.after}`).join('\n')}\nFix them, or accept the new numbers with: ng-checkup baseline --force`);
+  }
+  writeFileSync(path, serializeBaseline(next));
+  const lowered = previous ? Object.entries(next.measures).filter(([key, value]) => previous.measures[key] !== undefined && value < previous.measures[key]!) : [];
+  const lines = [`Baseline ${previous ? 'updated' : 'written'}: ${path} (${Object.keys(next.measures).length} measures)`];
+  for (const [key, value] of lowered) lines.push(`  lowered ${key}: ${previous!.measures[key]} -> ${value}`);
+  if (increases.length > 0) for (const entry of increases) lines.push(`  raised (--force) ${entry.key}: ${entry.before} -> ${entry.after}`);
+  if (!previous) lines.push('Commit it, then run ng-checkup --fail-on regression in CI: it fails only when a number gets worse.');
+  return lines.join('\n');
 }
 
 /** Prints a user-facing error with the hint to `--help` and returns exit code 2. */

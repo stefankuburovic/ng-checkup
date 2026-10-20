@@ -96,6 +96,11 @@ export function changeDetectionCheck(context: AnalysisContext): CheckResult {
       { label: 'Zone test helpers', value: formatCount(zoneHelpers) },
     ],
     findings,
+    measures: [
+      { id: 'eager-components', label: 'Components with eager change detection', value: eager.length },
+      { id: 'ngzone-files', label: 'Files injecting NgZone', value: ngZoneFiles.length },
+      { id: 'zone-test-helpers', label: 'Zone-based test helper calls', value: zoneHelpers },
+    ],
   };
 }
 

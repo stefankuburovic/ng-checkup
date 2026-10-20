@@ -1,3 +1,4 @@
+import { BASELINE_FILE } from './baseline.js';
 import { CONFIG_FILE } from './config.js';
 
 /**
@@ -28,6 +29,12 @@ export interface InitOptions {
   version: string;
   /** Replace an existing `checkup` script that runs something else. */
   force?: boolean;
+  /**
+   * Serialised baseline of the code as it is now, computed by the caller
+   * (the planner never analyses). Written when no baseline exists, and it
+   * switches the CI step to `--fail-on regression`.
+   */
+  baseline?: string;
 }
 
 /** One file to write. Content is the whole new file. */
@@ -66,7 +73,13 @@ const CI_REPORTS = ['checkup.md', 'checkup.html'];
  * 1. a `checkup` script in `package.json` (and `ng-checkup` in `devDependencies`),
  * 2. `ng-checkup.config.json` with the local report and an empty `ignore` list,
  * 3. the generated reports in `.gitignore`, when there is one,
- * 4. a CI step: a GitHub Actions workflow, or a GitLab CI file to `include`.
+ * 4. a CI step: a GitHub Actions workflow, or a GitLab CI file to `include`,
+ * 5. a baseline of today's numbers, when the caller supplies one.
+ *
+ * With a baseline the CI step runs `--fail-on regression`: it fails only
+ * when a number gets worse, so a ten-year-old codebase can adopt it on day
+ * one instead of being red until every legacy finding is fixed. Without one
+ * it falls back to `--fail-on poor`.
  *
  * Idempotent: on a repository that already has all of it, the plan is empty.
  * It never overwrites a file the user wrote: an existing workflow, config or
@@ -142,16 +155,27 @@ export function planInit(files: InitFileSystem, options: InitOptions): InitPlan 
     }
   }
 
+  // 5. The baseline (written before the CI step, which depends on it).
+  const hasBaseline = files.exists(BASELINE_FILE);
+  if (!hasBaseline && options.baseline !== undefined) {
+    changes.push({ path: BASELINE_FILE, action: 'create', content: options.baseline, summary: "Today's numbers; CI fails only when one gets worse. Commit it" });
+  }
+  const failOn = hasBaseline || options.baseline !== undefined ? 'regression' : 'poor';
+
   // 4. CI.
   const ci = resolveCi(files, options.ci ?? 'auto');
   if (ci === 'github') {
     const path = '.github/workflows/ng-checkup.yml';
-    if (files.exists(path)) notes.push(`Kept the existing ${path}.`);
-    else changes.push({ path, action: 'create', content: githubWorkflow(packageManager), summary: 'Runs the checkup on every pull request and uploads the reports' });
+    if (files.exists(path)) {
+      notes.push(`Kept the existing ${path}.`);
+      if (failOn === 'regression' && (files.read(path) ?? '').includes('--fail-on poor')) notes.push(`${path} still runs --fail-on poor. With a baseline, --fail-on regression lets existing code pass and fails only when a number gets worse.`);
+    } else changes.push({ path, action: 'create', content: githubWorkflow(packageManager, failOn), summary: 'Runs the checkup on every pull request and uploads the reports' });
   } else if (ci === 'gitlab') {
     const path = 'ng-checkup.gitlab-ci.yml';
-    if (files.exists(path)) notes.push(`Kept the existing ${path}.`);
-    else changes.push({ path, action: 'create', content: gitlabJob(packageManager), summary: 'A GitLab CI job that runs the checkup and keeps the reports as artifacts' });
+    if (files.exists(path)) {
+      notes.push(`Kept the existing ${path}.`);
+      if (failOn === 'regression' && (files.read(path) ?? '').includes('--fail-on poor')) notes.push(`${path} still runs --fail-on poor. With a baseline, --fail-on regression lets existing code pass and fails only when a number gets worse.`);
+    } else changes.push({ path, action: 'create', content: gitlabJob(packageManager, failOn), summary: 'A GitLab CI job that runs the checkup and keeps the reports as artifacts' });
     if (!(files.read('.gitlab-ci.yml') ?? '').includes(path)) {
       notes.push(`Add this to your .gitlab-ci.yml to run it:\n    include:\n      - local: ${path}`);
     }
@@ -199,16 +223,19 @@ function binCommand(manager: PackageManager): string {
   return 'npx ng-checkup';
 }
 
-/** The CI invocation: fail on a poor area, keep both report formats. */
-function ciRun(manager: PackageManager): string {
-  return `${binCommand(manager)} --fail-on poor ${CI_REPORTS.map((report) => `--report ${report}`).join(' ')}`;
+/** What the CI step fails on: a worse number against the baseline, or a poor area without one. */
+export type CiFailOn = 'regression' | 'poor';
+
+/** The CI invocation, keeping both report formats. */
+function ciRun(manager: PackageManager, failOn: CiFailOn): string {
+  return `${binCommand(manager)} --fail-on ${failOn} ${CI_REPORTS.map((report) => `--report ${report}`).join(' ')}`;
 }
 
 /** A GitHub Actions workflow for the repository's package manager. */
-export function githubWorkflow(manager: PackageManager): string {
+export function githubWorkflow(manager: PackageManager, failOn: CiFailOn = 'poor'): string {
   const pnpmSetup = manager === 'pnpm' ? '      - uses: pnpm/action-setup@v4\n' : '';
   return `# Added by ng-checkup init. Grades the Angular codebase on every pull request
-# and fails the job when an area turns poor. Reports: see the run's artifacts.
+# and fails the job ${failOn === 'regression' ? 'when a number gets worse than ng-checkup.baseline.json' : 'when an area turns poor'}. Reports: see the run's artifacts.
 name: ng-checkup
 
 on:
@@ -226,7 +253,7 @@ ${pnpmSetup}      - uses: actions/setup-node@v4
           node-version: 22
           cache: ${manager}
       - run: ${installCommand(manager, true)}
-      - run: ${ciRun(manager)}
+      - run: ${ciRun(manager, failOn)}
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -237,7 +264,7 @@ ${CI_REPORTS.map((report) => `            ${report}`).join('\n')}
 }
 
 /** A GitLab CI job file for the repository's package manager, meant to be `include`d. */
-export function gitlabJob(manager: PackageManager): string {
+export function gitlabJob(manager: PackageManager, failOn: CiFailOn = 'poor'): string {
   const corepack = manager === 'pnpm' ? '    - corepack enable\n' : '';
   return `# Added by ng-checkup init. Include it from .gitlab-ci.yml:
 #   include:
@@ -246,7 +273,7 @@ ng-checkup:
   image: node:22
   script:
 ${corepack}    - ${installCommand(manager, true)}
-    - ${ciRun(manager)}
+    - ${ciRun(manager, failOn)}
   artifacts:
     when: always
     expose_as: ng-checkup report

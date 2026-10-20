@@ -25,6 +25,17 @@ export { renderHtml } from './report/html.js';
 export { renderMarkdown } from './report/markdown.js';
 export { overallScore, topPriorities } from './report/summary.js';
 export { CONFIG_FILE, loadConfig, type CheckupConfig } from './config.js';
+export {
+  BASELINE_FILE,
+  baselineIncreases,
+  compareWithBaseline,
+  createBaseline,
+  readBaseline,
+  serializeBaseline,
+  type Baseline,
+  type BaselineComparison,
+  type MeasureDelta,
+} from './baseline.js';
 export { planInit, type InitChange, type InitOptions, type InitPlan } from './init.js';
 
 /**

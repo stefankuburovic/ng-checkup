@@ -21,7 +21,7 @@ describe('loadConfig', () => {
   it('fails loudly on a typo, a wrong type, bad JSON or a missing --config file', () => {
     root = writeTemp({ 'ng-checkup.config.json': '{"failon":"poor"}', 'bad.json': '{"failOn":"never"}', 'broken.json': '{', 'ext.json': '{"reports":["x.pdf"]}' });
     expect(() => loadConfig(root)).toThrow('unknown key failon');
-    expect(() => loadConfig(root, join(root, 'bad.json'))).toThrow('failOn must be "poor" or "fair"');
+    expect(() => loadConfig(root, join(root, 'bad.json'))).toThrow('failOn must be "poor", "fair" or "regression"');
     expect(() => loadConfig(root, join(root, 'broken.json'))).toThrow('is not valid JSON');
     expect(() => loadConfig(root, join(root, 'ext.json'))).toThrow('unknown report format for x.pdf');
     expect(() => loadConfig(root, join(root, 'missing.json'))).toThrow('Config file not found');
@@ -61,8 +61,9 @@ describe('resolveSettings', () => {
 
   it('lets every flag win over the config, and the config over the defaults', () => {
     const config = { reports: ['checkup.html'], failOn: 'fair' as const, maxExamples: 2, offline: true, ignore: ['x'] };
-    expect(resolveSettings(args({}), config, '/repo')).toEqual({ reports: ['/repo/checkup.html'], failOn: 'fair', maxExamples: 2, offline: true, ignore: ['x'] });
+    expect(resolveSettings(args({}), config, '/repo')).toEqual({ reports: ['/repo/checkup.html'], failOn: 'fair', maxExamples: 2, offline: true, ignore: ['x'], baselinePath: '/repo/ng-checkup.baseline.json' });
     expect(resolveSettings(args({ reports: ['/tmp/a.md'], failOn: 'poor', maxExamples: 9 }), config, '/repo')).toMatchObject({ reports: ['/tmp/a.md'], failOn: 'poor', maxExamples: 9 });
-    expect(resolveSettings(args({}), {}, '/repo')).toEqual({ reports: [], failOn: undefined, maxExamples: 5, offline: false, ignore: undefined });
+    expect(resolveSettings(args({}), {}, '/repo')).toEqual({ reports: [], failOn: undefined, maxExamples: 5, offline: false, ignore: undefined, baselinePath: '/repo/ng-checkup.baseline.json' });
+    expect(resolveSettings(args({}), { baseline: 'ci/base.json' }, '/repo/config').baselinePath).toBe('/repo/config/ci/base.json');
   });
 });

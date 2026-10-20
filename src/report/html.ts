@@ -64,6 +64,8 @@ export function renderHtml(report: Report): string {
   </section>`
   }
 
+  ${report.baseline ? baselineSection(report.baseline) : ''}
+
   ${report.checks.map(checkSection).join('\n  ')}
 
   <footer>
@@ -88,6 +90,34 @@ function scoreRing(score: number): string {
       </svg>
       <figcaption><span class="score-value">${score}</span><span class="score-unit">/100</span></figcaption>
     </figure>`;
+}
+
+/** The comparison with the baseline: what got worse first, then what got better. */
+function baselineSection(comparison: NonNullable<Report['baseline']>): string {
+  const rows = [
+    ...comparison.regressions.map((delta) => ({ delta, kind: 'worse' as const })),
+    ...comparison.improvements.map((delta) => ({ delta, kind: 'better' as const })),
+  ];
+  const summary =
+    rows.length === 0
+      ? 'No change since the baseline.'
+      : `${comparison.regressions.length} worse, ${comparison.improvements.length} better than the baseline.`;
+  return `<section aria-labelledby="baseline-title">
+    <h2 id="baseline-title" class="section-title">Compared with the baseline</h2>
+    <p class="check-summary">${escape(summary)}</p>
+    ${
+      rows.length === 0
+        ? ''
+        : `<ul class="findings">
+      ${rows
+        .map(
+          ({ delta, kind }) =>
+            `<li class="finding"><div class="finding-head"><span class="chip ${kind === 'worse' ? 'sev-high' : 'sev-good'}">${kind === 'worse' ? 'Worse' : 'Better'}</span><strong>${escape(delta.label)}: ${delta.before} → ${delta.after}</strong></div><p>${escape(delta.check)}</p></li>`,
+        )
+        .join('\n      ')}
+    </ul>`
+    }
+  </section>`;
 }
 
 /** One card of the overview grid, linking to its section. */
@@ -184,6 +214,7 @@ h1 { margin: 0 0 8px; font-size: 32px; line-height: 1.15; letter-spacing: -0.01e
 .chip { flex: none; padding: 1px 8px; font-size: 11.5px; }
 .sev-high { color: var(--poor); background: var(--poor-bg); } .sev-medium { color: var(--fair); background: var(--fair-bg); }
 .sev-low, .sev-info { color: var(--info); background: var(--info-bg); }
+.sev-good { color: var(--good); background: var(--good-bg); }
 .priorities { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; counter-reset: priority; }
 .priorities li { display: flex; gap: 10px; align-items: baseline; padding: 12px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; }
 .priorities .area { color: var(--muted); font-size: 13px; margin-left: 6px; white-space: nowrap; }
