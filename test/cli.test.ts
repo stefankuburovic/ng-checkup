@@ -75,7 +75,14 @@ describe('shouldFail', () => {
  * `dist/cli.js` is current; running Vitest directly without a build fails
  * here on purpose rather than skipping, since a skipped test reads as green.
  */
-describe('the built CLI', () => {
+/**
+ * Each test here starts the built CLI as a separate Node process, several times
+ * in a row. That takes about a second locally and five or more on a shared CI
+ * runner, which is past Vitest's default 5 s timeout although nothing is wrong.
+ */
+const SPAWN_TIMEOUT = { timeout: 30_000 };
+
+describe('the built CLI', SPAWN_TIMEOUT, () => {
   const cli = join(fixture('..'), '..', 'dist', 'cli.js');
   beforeAll(() => {
     if (!existsSync(cli)) throw new Error(`${cli} is missing: run npm run build first (npm test does it for you).`);
