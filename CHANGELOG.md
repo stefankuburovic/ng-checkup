@@ -4,6 +4,7 @@
 
 - Security: HTML the code writes itself is no longer flagged. `el.innerHTML = ''` (clearing an element) and fixed markup carry no input; only values that are not constant strings count as direct DOM writes.
 - Test code is recognised beyond `*.spec.ts`: Protractor's `*.e2e-spec.ts` and page objects, Cypress files, mocks, and the `e2e`, `cypress`, `test-config` and `__mocks__` folders. Their `any`, cycles and size no longer count against the application; the spec count still counts unit specs only.
+- Upgrade plan: a project already on angular-eslint that still lists `codelyzer` or `tslint` is told to remove the leftovers (`npm uninstall …`), not to move to ESLint.
 
 ## 0.5.1 (2026-10-20)
 

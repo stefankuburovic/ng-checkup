@@ -93,7 +93,12 @@ export function buildPlan(
   if (overdue.length > 0) {
     before.push({ title: 'Replace APIs deprecated two or more majors ago', detail: 'Any of the next steps may remove them. The deprecated-APIs section lists each one with its replacement.', count: overdue.reduce((sum, finding) => sum + (finding.count ?? 1), 0) });
   }
-  if (has('tslint') || has('codelyzer')) {
+  // A project already on angular-eslint often still lists `codelyzer` or
+  // `tslint` from before the move; telling it to "move to ESLint" is wrong.
+  const leftovers = ['tslint', 'codelyzer'].filter(has);
+  if (leftovers.length > 0 && has('@angular-eslint/builder')) {
+    before.push({ title: 'Remove the TSLint leftovers', command: `npm uninstall ${leftovers.join(' ')}`, detail: 'Linting already runs on angular-eslint; these packages are unused and pin old TypeScript and Angular versions.' });
+  } else if (leftovers.length > 0) {
     before.push({ title: 'Move from TSLint to ESLint', command: 'ng add @angular-eslint/schematics', detail: 'TSLint is deprecated and later versions of the Angular CLI no longer support it.' });
   }
   if (measure('circular-deps', 'files-in-cycles') > 0) {

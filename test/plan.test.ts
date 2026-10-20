@@ -66,3 +66,19 @@ describe('the plan in the reports', () => {
     expect(renderHtml(report)).toContain('Upgrade plan: Angular 15 → 22');
   });
 });
+
+describe('TSLint in the plan', () => {
+  it('asks to remove leftovers when angular-eslint is already set up, and to migrate otherwise', async () => {
+    const { removeTemp, writeTemp } = await import('./helpers.js');
+    const planFor = async (devDependencies: Record<string, string>) => {
+      const root = writeTemp({ 'package.json': JSON.stringify({ dependencies: { '@angular/core': '~17.0.0' }, devDependencies }), 'src/a.ts': 'export const a = 1;' });
+      try {
+        return (await runCheckup(root, { offline: true, plan: true })).plan!.before;
+      } finally {
+        removeTemp(root);
+      }
+    };
+    expect(await planFor({ codelyzer: '^6.0.0', '@angular-eslint/builder': '^17.0.0' })).toContainEqual(expect.objectContaining({ title: 'Remove the TSLint leftovers', command: 'npm uninstall codelyzer' }));
+    expect((await planFor({ tslint: '~6.1.0' })).map((item) => item.title)).toContain('Move from TSLint to ESLint');
+  });
+});
