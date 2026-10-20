@@ -22,6 +22,7 @@ npx ng-checkup
 - [Set it up in a project](#set-it-up-in-a-project)
 - [Configuration](#configuration)
 - [Baseline: adopt it on legacy code](#baseline-adopt-it-on-legacy-code)
+- [Upgrade plan](#upgrade-plan)
 - [What it checks](#what-it-checks)
 - [Reports](#reports)
 - [In CI](#in-ci)
@@ -100,6 +101,7 @@ npx ng-checkup init --ci gitlab    # pick the CI instead of detecting it (github
 | `offline` | skip the npm lookup of the latest Angular version | `--offline` |
 | `ignore` | paths left out of the analysis; a path matches everything below it, `*` stays within a folder, `**` crosses folders | |
 | `baseline` | the baseline file, relative to the config file (default `ng-checkup.baseline.json` in the root) | |
+| `plan` | add the upgrade plan to every run | `--plan` |
 
 An unknown key or a wrong type stops the run with an error, so a typo cannot silently switch off a CI threshold. Use `--config path/to/file.json` for a file elsewhere.
 
@@ -124,6 +126,35 @@ Baseline  2 worse
 - **The gap to the latest Angular is not in it.** That grows when Angular ships, not when the code gets worse.
 
 `ng add ng-checkup` and `npx ng-checkup init` create the first baseline and set CI to `--fail-on regression` for you.
+
+## Upgrade plan
+
+```bash
+npx ng-checkup --plan --report plan.md
+```
+
+`--plan` adds the way from your Angular version to the latest, one major at a time as `ng update` requires:
+
+```text
+Upgrade plan  12 → 22, 10 steps, one major at a time
+  Before you start
+    · Move from TSLint to ESLint  ng add @angular-eslint/schematics
+  → 13  ng update @angular/core@13 @angular/cli@13
+        Node.js ^12.20.0 || ^14.15.0 || >=16.10.0 · TypeScript >=4.4.2 <4.7 (now 4.3.5)
+  ...
+  → 16  ng update @angular/core@16 @angular/cli@16
+        Node.js ^16.14.0 || >=18.10.0 · TypeScript >=4.9.3 <5.2 · zone.js ~0.13.0 (now 0.11.8)
+        · Convert NgModule components to standalone (18)  ng generate @angular/core:standalone
+  → 17  ng update @angular/core@17 @angular/cli@17
+        · Move templates to built-in control flow (13)  ng generate @angular/core:control-flow
+  ...
+```
+
+- **The same for everyone:** each step's `ng update` command (with Material and NgRx when you use them) and the Node.js, TypeScript, RxJS and zone.js ranges that major requires, from the versions' published package metadata. A range your project is outside of today is flagged at the step that has to move it.
+- **Specific to your code:** the migrations your findings call for (standalone, built-in control flow, the esbuild builder, signal inputs, Vitest, zoneless), each scheduled at the first step where Angular ships it, with the number of places it touches. Migrations your code does not need are left out.
+- **No time estimate.** Counts are measured; days would be a guess.
+
+The plan is in every format, including the HTML report ([example](https://stefankuburovic.github.io/ng-checkup/example.html#plan-title)) and the JSON (`report.plan`).
 
 ## What it checks
 
@@ -173,6 +204,8 @@ Options:
                          .html, .md or .json. Repeatable.
       --json             Print the report as JSON to stdout instead of the summary
   -v, --verbose          Print every finding with its files
+      --plan             Add an upgrade plan to the latest Angular, one major
+                         at a time, with the migrations this code needs
       --fail-on <grade>  Exit with code 1 if any area is graded <grade> or worse
                          (poor or fair), or with regression if a measure is
                          worse than the baseline (for CI)
@@ -275,7 +308,6 @@ One request: the latest `@angular/core` version from the npm registry, with a th
 
 ## Roadmap
 
-- Upgrade plan: the steps from your version to the latest, with the migrations each needs
 - Per-project reports for Nx and multi-project workspaces
 - Bundle size from the build's esbuild metafile
 - SARIF output for GitHub code scanning

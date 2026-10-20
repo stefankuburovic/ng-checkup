@@ -28,6 +28,8 @@ Options:
                          .html, .md or .json. Repeatable.
       --json             Print the report as JSON to stdout instead of the summary
   -v, --verbose          Print every finding with its files
+      --plan             Add an upgrade plan to the latest Angular, one major
+                         at a time, with the migrations this code needs
       --fail-on <grade>  Exit with code 1 if any area is graded <grade> or worse
                          (poor or fair), or with regression if a measure is
                          worse than the baseline (for CI)
@@ -49,6 +51,7 @@ Baseline options (ng-checkup baseline):
 Examples:
   npx ng-checkup
   npx ng-checkup ../my-app --report checkup.html
+  npx ng-checkup --plan --report plan.md
   npx ng-checkup --fail-on poor --report checkup.md
   npx ng-checkup init
   npx ng-checkup baseline && npx ng-checkup --fail-on regression`;
@@ -67,6 +70,7 @@ export interface CliArguments {
   /** Undefined when the flag was not given, so the config file can supply it. */
   maxExamples?: number;
   offline: boolean;
+  plan: boolean;
   color: boolean;
   config?: string;
 }
@@ -97,6 +101,7 @@ export interface RunSettings {
   baselinePath: string;
   maxExamples: number;
   offline: boolean;
+  plan: boolean;
   ignore?: string[];
 }
 
@@ -118,6 +123,7 @@ export function parseCliArguments(argv: string[], environment: NodeJS.ProcessEnv
       'fail-on': { type: 'string' },
       'max-examples': { type: 'string' },
       offline: { type: 'boolean' },
+      plan: { type: 'boolean' },
       config: { type: 'string' },
       'no-color': { type: 'boolean' },
       help: { type: 'boolean', short: 'h' },
@@ -148,6 +154,7 @@ export function parseCliArguments(argv: string[], environment: NodeJS.ProcessEnv
     failOn,
     maxExamples,
     offline: values.offline ?? false,
+    plan: values.plan ?? false,
     color: !values['no-color'] && environment['NO_COLOR'] === undefined && isTty,
     config: values.config,
   };
@@ -184,6 +191,7 @@ export function resolveSettings(args: CliArguments, config: CheckupConfig, confi
     failOn: args.failOn ?? config.failOn,
     maxExamples: args.maxExamples ?? config.maxExamples ?? 5,
     offline: args.offline || (config.offline ?? false),
+    plan: args.plan || (config.plan ?? false),
     ignore: config.ignore,
     baselinePath: config.baseline ? resolve(configDirectory, config.baseline) : join(args.root, BASELINE_FILE),
   };
@@ -301,7 +309,7 @@ async function main(argv: string[]): Promise<number> {
     return usageError(error);
   }
 
-  const report = await runCheckup(parsed.root, { offline: settings.offline, maxExamples: settings.maxExamples, ignore: settings.ignore });
+  const report = await runCheckup(parsed.root, { offline: settings.offline, maxExamples: settings.maxExamples, ignore: settings.ignore, plan: settings.plan });
   if (baseline) report.baseline = compareWithBaseline(report, baseline, settings.baselinePath);
 
   for (const target of settings.reports) {

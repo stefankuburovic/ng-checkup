@@ -27,10 +27,12 @@ export interface CheckupConfig {
   ignore?: string[];
   /** The baseline file, relative to the config file. Defaults to `ng-checkup.baseline.json` in the root. */
   baseline?: string;
+  /** As `--plan`: add the upgrade plan to every report. */
+  plan?: boolean;
 }
 
 /** Keys the file may contain. `$schema` is accepted so editors can attach one later. */
-const KNOWN_KEYS = new Set(['$schema', 'reports', 'failOn', 'maxExamples', 'offline', 'ignore', 'baseline']);
+const KNOWN_KEYS = new Set(['$schema', 'reports', 'failOn', 'maxExamples', 'offline', 'ignore', 'baseline', 'plan']);
 
 /**
  * Reads and validates the config file.
@@ -93,6 +95,10 @@ export function loadConfig(root: string, explicitPath?: string): { config: Check
   if (record['baseline'] !== undefined) {
     if (typeof record['baseline'] !== 'string' || record['baseline'].trim() === '') throw new Error(`${path}: baseline must be a file path`);
     config.baseline = record['baseline'];
+  }
+  if (record['plan'] !== undefined) {
+    if (typeof record['plan'] !== 'boolean') throw new Error(`${path}: plan must be true or false`);
+    config.plan = record['plan'];
   }
   return { config, directory: resolve(path, '..'), path };
 }

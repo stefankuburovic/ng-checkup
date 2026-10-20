@@ -31,6 +31,22 @@ export function renderMarkdown(report: Report): string {
     lines.push('');
   }
 
+  const plan = report.plan;
+  if (plan) {
+    lines.push(`## Upgrade plan: Angular ${plan.from} → ${plan.to}`, '', `${plural(plan.steps.length, 'step')}, one major at a time, as \`ng update\` requires.`, '');
+    if (plan.before.length > 0) {
+      lines.push('**Before you start**', '');
+      for (const item of plan.before) lines.push(`- ${item.title}${item.count !== undefined ? ` (${formatCount(item.count)})` : ''}${item.command ? `: \`${item.command}\`` : ''}${item.detail ? `. ${item.detail}` : ''}`);
+      lines.push('');
+    }
+    for (const step of plan.steps) {
+      lines.push(`### → ${step.to} (${step.version})`, '', '```bash', step.command, '```', '');
+      lines.push(step.requirements.map((requirement) => `${requirement.name} \`${requirement.range}\`${requirement.satisfied === false ? ` (now ${requirement.current}, move it in this step)` : ''}`).join(' · '), '');
+      for (const item of step.items) lines.push(`- **${item.title}**${item.count !== undefined ? ` (${formatCount(item.count)})` : ''}${item.command ? `: \`${item.command}\`` : ''}${item.detail ? `. ${item.detail}` : ''}`);
+      if (step.items.length > 0) lines.push('');
+    }
+  }
+
   const comparison = report.baseline;
   if (comparison && (comparison.regressions.length > 0 || comparison.improvements.length > 0)) {
     lines.push('## Compared with the baseline', '');

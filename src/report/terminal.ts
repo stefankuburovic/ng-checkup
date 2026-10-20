@@ -77,6 +77,23 @@ export function renderTerminal(report: Report, options: TerminalOptions): string
     }
   }
 
+  const plan = report.plan;
+  if (plan) {
+    lines.push('');
+    lines.push(`${c.bold('Upgrade plan')}  ${plan.from} → ${plan.to}, ${plural(plan.steps.length, 'step')}, one major at a time`);
+    if (plan.before.length > 0) {
+      lines.push(`  ${c.bold('Before you start')}`);
+      for (const item of plan.before) lines.push(`    · ${code(item.title)}${item.count !== undefined ? c.dim(` (${formatCount(item.count)})`) : ''}${item.command ? `  ${c.cyan(item.command)}` : ''}`);
+    }
+    for (const step of plan.steps) {
+      lines.push(`  ${c.bold(`→ ${step.to}`)}  ${c.cyan(step.command)}`);
+      const notes = step.requirements.filter((requirement) => requirement.name === 'Node.js' || requirement.satisfied === false || requirement.current === undefined);
+      const shown = notes.map((requirement) => `${requirement.name} ${requirement.range}${requirement.satisfied === false ? c.yellow(` (now ${requirement.current})`) : ''}`);
+      if (shown.length > 0) lines.push(`        ${c.dim(shown.join(' · '))}`);
+      for (const item of step.items) lines.push(`        · ${code(item.title)}${item.count !== undefined ? c.dim(` (${formatCount(item.count)})`) : ''}${item.command ? `  ${c.cyan(item.command)}` : ''}`);
+    }
+  }
+
   const priorities = topPriorities(report);
   if (!options.verbose && priorities.length > 0) {
     lines.push('');

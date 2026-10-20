@@ -66,6 +66,8 @@ export function renderHtml(report: Report): string {
 
   ${report.baseline ? baselineSection(report.baseline) : ''}
 
+  ${report.plan ? planSection(report.plan) : ''}
+
   ${report.checks.map(checkSection).join('\n  ')}
 
   <footer>
@@ -90,6 +92,29 @@ function scoreRing(score: number): string {
       </svg>
       <figcaption><span class="score-value">${score}</span><span class="score-unit">/100</span></figcaption>
     </figure>`;
+}
+
+/** The upgrade plan: what to settle first, then one card per major. */
+function planSection(plan: NonNullable<Report['plan']>): string {
+  const item = (entry: { title: string; command?: string; detail?: string; count?: number }): string =>
+    `<li><strong>${inline(entry.title)}</strong>${entry.count !== undefined ? ` <span class="count">${formatCount(entry.count)}</span>` : ''}${entry.command ? `<code class="command">${escape(entry.command)}</code>` : ''}${entry.detail ? `<p>${inline(entry.detail)}</p>` : ''}</li>`;
+  return `<section aria-labelledby="plan-title">
+    <h2 id="plan-title" class="section-title">Upgrade plan: Angular ${plan.from} → ${plan.to}</h2>
+    <p class="check-summary">${plural(plan.steps.length, 'step')}, one major at a time, as <code>ng update</code> requires. Requirements come from each version's published package metadata.</p>
+    ${plan.before.length > 0 ? `<div class="finding step before"><div class="finding-head"><span class="chip sev-medium">First</span><strong>Before you start</strong></div><ul class="plan-items">${plan.before.map(item).join('')}</ul></div>` : ''}
+    <ol class="steps">
+      ${plan.steps
+        .map(
+          (step) => `<li class="finding step">
+        <div class="finding-head"><span class="chip sev-low">→ ${step.to}</span><strong>Angular ${escape(step.version)}</strong></div>
+        <code class="command">${escape(step.command)}</code>
+        <p class="requirements">${step.requirements.map((requirement) => `<span class="${requirement.satisfied === false ? 'req req-move' : 'req'}">${escape(requirement.name)} ${escape(requirement.range)}${requirement.satisfied === false ? ` (now ${escape(requirement.current ?? '')})` : ''}</span>`).join('')}</p>
+        ${step.items.length > 0 ? `<ul class="plan-items">${step.items.map(item).join('')}</ul>` : ''}
+      </li>`,
+        )
+        .join('\n      ')}
+    </ol>
+  </section>`;
 }
 
 /** The comparison with the baseline: what got worse first, then what got better. */
@@ -215,6 +240,16 @@ h1 { margin: 0 0 8px; font-size: 32px; line-height: 1.15; letter-spacing: -0.01e
 .sev-high { color: var(--poor); background: var(--poor-bg); } .sev-medium { color: var(--fair); background: var(--fair-bg); }
 .sev-low, .sev-info { color: var(--info); background: var(--info-bg); }
 .sev-good { color: var(--good); background: var(--good-bg); }
+.steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.step.before { margin-bottom: 10px; }
+.step code.command { display: block; margin: 8px 0 0; padding: 6px 10px; border-radius: 6px; background: var(--code-bg); overflow-x: auto; white-space: nowrap; }
+.requirements { display: flex; flex-wrap: wrap; gap: 6px; }
+.req { font-size: 12.5px; padding: 2px 8px; border-radius: 999px; background: var(--info-bg); color: var(--info); }
+.req-move { background: var(--fair-bg); color: var(--fair); }
+.plan-items { margin: 8px 0 0; padding-left: 18px; color: var(--text); font-size: 14px; }
+.plan-items li { margin: 6px 0; }
+.plan-items p { margin: 2px 0 0; }
+.plan-items .count { color: var(--muted); font-size: 13px; }
 .priorities { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; counter-reset: priority; }
 .priorities li { display: flex; gap: 10px; align-items: baseline; padding: 12px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; }
 .priorities .area { color: var(--muted); font-size: 13px; margin-left: 6px; white-space: nowrap; }

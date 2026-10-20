@@ -13,6 +13,7 @@ import { buildDeprecationIndex } from './deprecations.js';
 import { ignoreMatcher } from './config.js';
 import { collectFiles } from './files.js';
 import { findTangles, readCompilerOptions } from './graph.js';
+import { buildPlan } from './plan.js';
 import { scanSourceFile, scanTemplateFile } from './scan.js';
 import type { CheckupOptions, Report } from './types.js';
 import { asRecord, majorOf, readJson, readWorkspace } from './workspace.js';
@@ -25,6 +26,8 @@ export { renderHtml } from './report/html.js';
 export { renderMarkdown } from './report/markdown.js';
 export { overallScore, topPriorities } from './report/summary.js';
 export { CONFIG_FILE, loadConfig, type CheckupConfig } from './config.js';
+export { buildPlan, type PlanItem, type PlanRequirement, type UpgradePlan, type UpgradeStep } from './plan.js';
+export { ANGULAR_VERSIONS, type AngularVersionInfo } from './angular-versions.js';
 export {
   BASELINE_FILE,
   baselineIncreases,
@@ -68,6 +71,7 @@ export async function runCheckup(root: string, options: CheckupOptions = {}): Pr
   const context = await buildContext(absoluteRoot, options);
   const checks = CHECKS.map((check) => check(context));
   const application = context.sources.filter((file) => !file.isSpec);
+  const plan = options.plan ? buildPlan(context.workspace, checks, context.latestAngular.major) : undefined;
 
   return {
     tool: TOOL,
@@ -83,6 +87,7 @@ export async function runCheckup(root: string, options: CheckupOptions = {}): Pr
     },
     checks,
     durationMs: Date.now() - started,
+    ...(plan ? { plan } : {}),
   };
 }
 

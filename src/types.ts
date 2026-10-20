@@ -101,6 +101,8 @@ export interface Report {
    * `runCheckup`, which reads nothing it was not given.
    */
   baseline?: import('./baseline.js').BaselineComparison;
+  /** The upgrade plan to the latest Angular, when asked for (`--plan`) and there is a gap. */
+  plan?: import('./plan.js').UpgradePlan;
 }
 
 /**
@@ -122,4 +124,6 @@ export interface CheckupOptions {
   maxExamples?: number;
   /** Paths to leave out, as in the config file's `ignore` (see `ignoreMatcher`). */
   ignore?: string[];
+  /** Add an upgrade plan from the installed Angular to the latest major. */
+  plan?: boolean;
 }

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.4.0 (2026-10-20)
+
+- `--plan`: the upgrade from the installed Angular to the latest, one major at a time. Each step has its `ng update` command, the Node.js, TypeScript, RxJS and zone.js ranges that major requires (flagged where the project is outside them), and the migrations this code needs, scheduled at the first step that ships them, with counts. In every report format and in `report.plan`.
+- Requirements come from a snapshot of the npm registry (`scripts/update-angular-versions.mjs`), so the plan works offline.
+- `plan` config key.
+
 ## 0.3.0 (2026-10-20)
 
 - Baseline mode. `ng-checkup baseline` records 22 counts (explicit `any`, `x!`, files in import cycles, components without OnPush or a spec, deprecated API uses, ...) in `ng-checkup.baseline.json`, and `--fail-on regression` fails CI only when one of them goes up. Updating the baseline may only lower numbers; `--force` accepts an increase.
