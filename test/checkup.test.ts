@@ -1,6 +1,6 @@
 import { runCheckup } from '../src/index.js';
 import type { Grade, Report } from '../src/types.js';
-import { fixture } from './helpers.js';
+import { fixture, removeTemp, writeTemp } from './helpers.js';
 
 /** Check id to grade, which is what most of these assertions are about. */
 function grades(report: Report): Record<string, Grade> {
@@ -105,5 +105,32 @@ describe('runCheckup with installed dependencies', () => {
   it('counts a component that sets Default as eager under Angular 22, where OnPush is the default', async () => {
     const report = await runCheckup(fixture('deprecations-app'), { offline: true });
     expect(messages(report, 'change-detection')).toContain('1 component uses eager change detection (100%)');
+  });
+});
+
+describe('strictness defaults that changed between versions', () => {
+  let root = '';
+  afterEach(() => removeTemp(root));
+
+  const typeSafety = async (angular: string, typescript: string) => {
+    root = writeTemp({
+      'package.json': JSON.stringify({ dependencies: { '@angular/core': angular }, devDependencies: { typescript } }),
+      'tsconfig.json': JSON.stringify({ compilerOptions: { target: 'ES2022' }, angularCompilerOptions: {} }),
+      'src/app.ts': 'export const x = 1;',
+    });
+    return (await runCheckup(root, { offline: true })).checks.find((check) => check.id === 'type-safety')!;
+  };
+
+  it('treats an unset strict and strictTemplates as on for TypeScript 6 and Angular 22, like a new CLI project', async () => {
+    const check = await typeSafety('~22.2.0', '~6.0.0');
+    expect(check.grade).toBe('good');
+    expect(check.metrics).toContainEqual({ label: 'strictNullChecks', value: 'on', hint: 'default in TypeScript 6' });
+    expect(check.metrics).toContainEqual({ label: 'strictTemplates', value: 'on', hint: 'default in Angular 22' });
+  });
+
+  it('treats them as off before TypeScript 6 and Angular 22', async () => {
+    const check = await typeSafety('^21.0.0', '~5.9.0');
+    expect(check.grade).toBe('poor');
+    expect(check.metrics).toContainEqual({ label: 'strictTemplates', value: 'off', hint: 'default in Angular 21' });
   });
 });

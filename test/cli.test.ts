@@ -1,6 +1,6 @@
 import { execFileSync, spawnSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 import { parseCliArguments, shouldFail } from '../src/cli.js';
 import type { Report } from '../src/types.js';
 import { fixture, removeTemp, writeTemp } from './helpers.js';
@@ -9,7 +9,7 @@ describe('parseCliArguments', () => {
   const parse = (...argv: string[]) => parseCliArguments(argv, {}, true);
 
   it('defaults to the current directory with colour on a TTY', () => {
-    expect(parse()).toMatchObject({ root: process.cwd(), reports: [], json: false, verbose: false, maxExamples: 5, offline: false, color: true });
+    expect(parse()).toMatchObject({ root: process.cwd(), reports: [], json: false, verbose: false, maxExamples: undefined, offline: false, color: true });
   });
 
   it('turns colour off for NO_COLOR, --no-color and a non-TTY', () => {
@@ -21,7 +21,7 @@ describe('parseCliArguments', () => {
   it('collects repeated reports and the CI options', () => {
     expect(parse(fixture('modern-app'), '-r', 'a.html', '--report', 'b.json', '--fail-on', 'poor', '--max-examples', '2', '--offline')).toMatchObject({
       root: fixture('modern-app'),
-      reports: ['a.html', 'b.json'],
+      reports: [resolve('a.html'), resolve('b.json')],
       failOn: 'poor',
       maxExamples: 2,
       offline: true,
@@ -77,6 +77,30 @@ describe('the built CLI', () => {
     expect(readFileSync(join(output, 'r.html'), 'utf8')).toContain('<!doctype html>');
     expect(readFileSync(join(output, 'r.md'), 'utf8')).toContain('# Angular checkup: legacy-app');
     expect((JSON.parse(readFileSync(join(output, 'r.json'), 'utf8')) as Report).checks).toHaveLength(8);
+  });
+
+  it('sets a repository up with init, is a no-op the second time, and writes nothing on --dry-run', () => {
+    output = writeTemp({ 'package.json': '{\n  "name": "app"\n}\n', 'angular.json': '{}', '.github/.keep': '' });
+    const dry = spawnSync(process.execPath, [cli, 'init', output, '--dry-run'], { encoding: 'utf8' });
+    expect(dry.status).toBe(0);
+    expect(dry.stdout).toContain('dry run, nothing written');
+    expect(existsSync(join(output, 'ng-checkup.config.json'))).toBe(false);
+
+    const first = spawnSync(process.execPath, [cli, 'init', output], { encoding: 'utf8' });
+    expect(first.status).toBe(0);
+    expect(first.stdout).toContain('create  .github/workflows/ng-checkup.yml');
+    expect(first.stdout).toContain('2. npm run checkup');
+    expect(JSON.parse(readFileSync(join(output, 'package.json'), 'utf8')).scripts.checkup).toBe('ng-checkup');
+
+    expect(spawnSync(process.execPath, [cli, 'init', output], { encoding: 'utf8' }).stdout).toContain('Nothing to set up');
+  });
+
+  it('writes the reports the config file asks for when no --report is given', () => {
+    output = writeTemp({ 'package.json': '{}', 'ng-checkup.config.json': JSON.stringify({ reports: ['out/checkup.md'], offline: true }) });
+    const result = spawnSync(process.execPath, [cli, output, '--no-color'], { encoding: 'utf8' });
+    expect(result.status).toBe(0);
+    expect(readFileSync(join(output, 'out', 'checkup.md'), 'utf8')).toContain('# Angular checkup');
+    expect(spawnSync(process.execPath, [cli, output, '--config', join(output, 'nope.json')], { encoding: 'utf8' }).status).toBe(2);
   });
 
   it('prints JSON to stdout with --json and exits 2 on a bad argument', () => {

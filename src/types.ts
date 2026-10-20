@@ -98,4 +98,6 @@ export interface CheckupOptions {
   offline?: boolean;
   /** How many example locations a finding lists. Defaults to 5. */
   maxExamples?: number;
+  /** Paths to leave out, as in the config file's `ignore` (see `ignoreMatcher`). */
+  ignore?: string[];
 }

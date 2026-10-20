@@ -137,6 +137,8 @@ Classic NgRx is supported, so it never makes this check poor on its own. The che
 | fair | one of them off, or more `any` than that |
 | poor | both `strictNullChecks` and `strictTemplates` off |
 
+A flag the tsconfig does not set takes the default of the version you run: `strict` is on by default from TypeScript 6, `strictTemplates` from Angular 22 (17 to 21 default to off). A new Angular 22 project sets neither and is fully strict. The report marks such values "default in TypeScript 6" or "default in Angular 22".
+
 **Fixing it:** in a large codebase, stage it: a separate tsconfig that checks one folder at a time, and a count in CI that may only go down.
 
 ---

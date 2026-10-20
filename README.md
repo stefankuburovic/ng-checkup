@@ -19,6 +19,8 @@ npx ng-checkup
 ## Contents
 
 - [Quick start](#quick-start)
+- [Set it up in a project](#set-it-up-in-a-project)
+- [Configuration](#configuration)
 - [What it checks](#what-it-checks)
 - [Reports](#reports)
 - [In CI](#in-ci)
@@ -45,6 +47,57 @@ npx ng-checkup --fail-on poor
 ```
 
 Install dependencies first (`npm install`) if you can: the deprecated-API check reads the installed Angular packages, and without them it is skipped.
+
+## Set it up in a project
+
+To keep the checkup in the project, with a script, a config file and a CI step:
+
+```bash
+ng add ng-checkup        # Angular CLI: installs it and asks which CI to use
+# or
+npx ng-checkup init      # any workspace, including Nx
+```
+
+Both make the same changes and list what they changed:
+
+| File | Change |
+| --- | --- |
+| `package.json` | a `"checkup": "ng-checkup"` script, and `ng-checkup` in `devDependencies` (`init` only; `ng add` installs it itself) |
+| `ng-checkup.config.json` | writes `checkup.html` on every run, and an empty `ignore` list |
+| `.gitignore` | the generated reports, if the repository has a `.gitignore` |
+| `.github/workflows/ng-checkup.yml` | runs on every pull request, fails on a poor area, uploads the reports (when `.github/` exists) |
+| `ng-checkup.gitlab-ci.yml` | the same as a GitLab job; add `include: [{ local: ng-checkup.gitlab-ci.yml }]` to your `.gitlab-ci.yml` (when that file exists) |
+
+After that it is `npm run checkup` (or `pnpm checkup`, `yarn checkup`; the lockfile decides). Running either command again changes nothing. It never overwrites a file you wrote: an existing workflow or config is kept, and a different `checkup` script is kept unless you pass `--force`.
+
+```bash
+npx ng-checkup init --dry-run      # show the changes, write nothing
+npx ng-checkup init --ci gitlab    # pick the CI instead of detecting it (github, gitlab, none)
+```
+
+## Configuration
+
+`ng-checkup.config.json` in the project root. Every key is optional, and every command-line flag overrides its key.
+
+```json
+{
+  "reports": ["checkup.html"],
+  "failOn": "poor",
+  "maxExamples": 5,
+  "offline": false,
+  "ignore": ["src/legacy", "**/generated", "apps/*/e2e"]
+}
+```
+
+| Key | Meaning | Flag |
+| --- | --- | --- |
+| `reports` | report files to write, relative to the config file | `--report` |
+| `failOn` | exit with 1 when an area is `poor` (or `fair`) | `--fail-on` |
+| `maxExamples` | example files listed per finding | `--max-examples` |
+| `offline` | skip the npm lookup of the latest Angular version | `--offline` |
+| `ignore` | paths left out of the analysis; a path matches everything below it, `*` stays within a folder, `**` crosses folders | |
+
+An unknown key or a wrong type stops the run with an error, so a typo cannot silently switch off a CI threshold. Use `--config path/to/file.json` for a file elsewhere.
 
 ## What it checks
 
@@ -83,6 +136,7 @@ Defaults that changed between versions are applied per version: a component with
 
 ```text
 Usage: ng-checkup [path] [options]
+       ng-checkup init [path] [init options]
 
 Arguments:
   path                   Repository root (default: current directory)
@@ -96,9 +150,15 @@ Options:
                          poor or fair (for CI)
       --max-examples <n> Example files listed per finding (default 5)
       --offline          Do not look up the latest Angular version online
+      --config <file>    Config file (default: ng-checkup.config.json in the root)
       --no-color         Plain output (also off when NO_COLOR is set or not a TTY)
   -h, --help             Show this help
       --version          Show the version
+
+Init options (ng-checkup init):
+      --ci <provider>    auto (default), github, gitlab or none
+      --dry-run          Show what would change without writing anything
+      --force            Replace an existing "checkup" script
 ```
 
 Exit codes: `0` done, `1` `--fail-on` tripped, `2` usage error. Areas graded `info` never fail a run.
@@ -106,6 +166,8 @@ Exit codes: `0` done, `1` `--fail-on` tripped, `2` usage error. Areas graded `in
 </details>
 
 ## In CI
+
+`ng add ng-checkup` and `npx ng-checkup init` write this for you. By hand:
 
 **GitHub Actions**
 
@@ -154,7 +216,7 @@ for (const check of report.checks) {
 await writeFile('checkup.md', renderMarkdown(report));
 ```
 
-`runCheckup` never writes anything. `renderHtml`, `renderMarkdown`, `overallScore` and `topPriorities` are exported too, along with the `Report`, `CheckResult`, `Finding` and `Grade` types. `Report` is also the schema of the JSON output.
+`runCheckup` never writes anything. `renderHtml`, `renderMarkdown`, `overallScore`, `topPriorities`, `loadConfig` and `planInit` (what `init` would change, without writing it) are exported too, along with the `Report`, `CheckResult`, `Finding` and `Grade` types. `Report` is also the schema of the JSON output.
 
 ## What leaves your machine
 
@@ -182,7 +244,6 @@ One request: the latest `@angular/core` version from the npm registry, with a th
 
 ## Roadmap
 
-- `ng-checkup init` and `ng add ng-checkup`: a `checkup` script, a config file and a CI step in one command
 - Baseline mode: fail CI only when a number gets worse, so legacy code can adopt it on day one
 - Upgrade plan: the steps from your version to the latest, with the migrations each needs
 - Per-project reports for Nx and multi-project workspaces

@@ -10,6 +10,7 @@ import { testingCheck } from './checks/testing.js';
 import { typeSafetyCheck } from './checks/type-safety.js';
 import { versionCheck } from './checks/version.js';
 import { buildDeprecationIndex } from './deprecations.js';
+import { ignoreMatcher } from './config.js';
 import { collectFiles } from './files.js';
 import { findTangles, readCompilerOptions } from './graph.js';
 import { scanSourceFile, scanTemplateFile } from './scan.js';
@@ -23,6 +24,8 @@ export type * from './types.js';
 export { renderHtml } from './report/html.js';
 export { renderMarkdown } from './report/markdown.js';
 export { overallScore, topPriorities } from './report/summary.js';
+export { CONFIG_FILE, loadConfig, type CheckupConfig } from './config.js';
+export { planInit, type InitChange, type InitOptions, type InitPlan } from './init.js';
 
 /**
  * The newest Angular major this release of the tool knows about. Used only
@@ -74,7 +77,7 @@ export async function runCheckup(root: string, options: CheckupOptions = {}): Pr
 
 /** Gathers everything the checks read. Exported for tests that want to inspect the facts. */
 export async function buildContext(root: string, options: CheckupOptions): Promise<AnalysisContext> {
-  const files = collectFiles(root);
+  const files = collectFiles(root, ignoreMatcher(options.ignore));
   const workspace = readWorkspace(root, files.projectJsons);
   const sources = files.typescript.map((path) => scanSourceFile(root, path));
   const templates = [...files.html.map((path) => scanTemplateFile(root, path)), ...sources.flatMap((file) => file.inlineTemplates)];

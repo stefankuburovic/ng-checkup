@@ -35,10 +35,14 @@ export interface CollectedFiles {
  * The result is sorted, which keeps report output stable between runs on the
  * same tree. An unreadable directory is skipped rather than failing the run,
  * since a permissions problem in one corner says nothing about the code.
+ *
+ * @param isIgnored The config file's `ignore` patterns as a predicate over
+ *   report paths. An ignored directory is not descended into at all, which is
+ *   what makes ignoring a large generated folder cheap.
  */
-export function collectFiles(root: string): CollectedFiles {
+export function collectFiles(root: string, isIgnored?: (relativePath: string) => boolean): CollectedFiles {
   const result: CollectedFiles = { typescript: [], html: [], projectJsons: [] };
-  walk(root, result);
+  walk(root, root, result, isIgnored);
   result.typescript.sort();
   result.html.sort();
   result.projectJsons.sort();
@@ -48,7 +52,7 @@ export function collectFiles(root: string): CollectedFiles {
 /**
  * The recursive half of `collectFiles`. Mutates `into`.
  */
-function walk(directory: string, into: CollectedFiles): void {
+function walk(root: string, directory: string, into: CollectedFiles, isIgnored?: (relativePath: string) => boolean): void {
   let entries;
   try {
     entries = readdirSync(directory, { withFileTypes: true });
@@ -57,9 +61,10 @@ function walk(directory: string, into: CollectedFiles): void {
   }
   for (const entry of entries) {
     const path = join(directory, entry.name);
+    if (isIgnored?.(toReportPath(root, path))) continue;
     if (entry.isDirectory()) {
       if (entry.name.startsWith('.') || SKIPPED_DIRECTORIES.has(entry.name)) continue;
-      walk(path, into);
+      walk(root, path, into, isIgnored);
       continue;
     }
     if (!entry.isFile()) continue;

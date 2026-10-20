@@ -24,9 +24,21 @@ export function typeSafetyCheck(context: AnalysisContext): CheckResult {
   const angular = context.angularCompilerOptions;
   const hasConfig = context.workspace.appTsconfig !== undefined;
 
-  const strictNullChecks = options.strictNullChecks ?? options.strict ?? false;
-  const noImplicitAny = options.noImplicitAny ?? options.strict ?? false;
-  const strictTemplates = angular['strictTemplates'] === true;
+  // What an absent flag means changed: `strict` is on by default from
+  // TypeScript 6, and `strictTemplates` from Angular 22 (17 to 21 default to
+  // false). A brand-new Angular 22 project sets neither and is fully strict,
+  // so reading only what the tsconfig says would grade it poor.
+  const typescriptMajor = context.workspace.typescriptMajor;
+  const angularMajor = context.workspace.angular.major;
+  const strictByDefault = typescriptMajor !== undefined && typescriptMajor >= 6;
+  const strictTemplatesByDefault = angularMajor !== undefined && angularMajor >= 22;
+  const strictNullChecks = options.strictNullChecks ?? options.strict ?? strictByDefault;
+  const noImplicitAny = options.noImplicitAny ?? options.strict ?? strictByDefault;
+  const explicitStrictTemplates = angular['strictTemplates'];
+  const strictTemplates = typeof explicitStrictTemplates === 'boolean' ? explicitStrictTemplates : strictTemplatesByDefault;
+  /** "default in TypeScript 6" when the value was not written down, so the reader knows where it came from. */
+  const source = (written: boolean, origin: string): string | undefined => (written ? undefined : `default in ${origin}`);
+  const strictWritten = options.strict !== undefined;
 
   const application = applicationFiles(context);
   const linesOfCode = application.reduce((sum, file) => sum + file.linesOfCode, 0);
@@ -104,9 +116,9 @@ export function typeSafetyCheck(context: AnalysisContext): CheckResult {
       ? `strictNullChecks ${on(strictNullChecks)}, strictTemplates ${on(strictTemplates)}, ${formatCount(anyCount)} explicit any.`
       : 'No application tsconfig found.',
     metrics: [
-      { label: 'strictNullChecks', value: on(strictNullChecks) },
-      { label: 'strictTemplates', value: on(strictTemplates) },
-      { label: 'noImplicitAny', value: on(noImplicitAny) },
+      { label: 'strictNullChecks', value: on(strictNullChecks), hint: source(options.strictNullChecks !== undefined || strictWritten, `TypeScript ${typescriptMajor ?? '?'}`) },
+      { label: 'strictTemplates', value: on(strictTemplates), hint: source(typeof explicitStrictTemplates === 'boolean', `Angular ${angularMajor ?? '?'}`) },
+      { label: 'noImplicitAny', value: on(noImplicitAny), hint: source(options.noImplicitAny !== undefined || strictWritten, `TypeScript ${typescriptMajor ?? '?'}`) },
       { label: 'Explicit any', value: formatCount(anyCount), hint: `${anyDensity.toFixed(1)} per 1 000 lines` },
       { label: 'Non-null assertions', value: formatCount(nonNull) },
     ],

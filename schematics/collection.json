@@ -1,0 +1,10 @@
+{
+  "$schema": "../node_modules/@angular-devkit/schematics/collection-schema.json",
+  "schematics": {
+    "ng-add": {
+      "description": "Sets up ng-checkup: a checkup script, a config file and a CI step.",
+      "factory": "./ng-add/index.cjs#ngAdd",
+      "schema": "./ng-add/schema.json"
+    }
+  }
+}

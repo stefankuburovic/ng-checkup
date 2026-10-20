@@ -32,6 +32,12 @@ export interface WorkspaceInfo {
     /** From `installed` when present, else from `declared`. Absent when Angular is not a dependency. */
     major?: number;
   };
+  /**
+   * The project's TypeScript major, installed version first, then the
+   * `package.json` range. It decides what an absent `strict` means: on from
+   * TypeScript 6, off before.
+   */
+  typescriptMajor?: number;
   targets: TargetInfo[];
   /** Every polyfill entry of every target, which is where `zone.js` is wired in for CLI 15+ projects. */
   polyfills: string[];
@@ -73,6 +79,7 @@ export function readWorkspace(root: string, projectJsons: string[]): WorkspaceIn
     dependencies,
     hasNodeModules: installed !== undefined,
     angular: { declared, installed, major: majorOf(installed ?? declared) },
+    typescriptMajor: majorOf(readInstalledVersion(root, 'typescript') ?? dependencies['typescript']),
     targets,
     polyfills: targets.flatMap((target) => polyfillsOf(target.options)),
     appTsconfig: findAppTsconfig(root, targets),
