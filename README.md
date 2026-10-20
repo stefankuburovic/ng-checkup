@@ -1,17 +1,17 @@
 # ng-checkup
 
-[![CI](https://github.com/stefankuburovic/ng-checkup/actions/workflows/ci.yml/badge.svg)](https://github.com/stefankuburovic/ng-checkup/actions/workflows/ci.yml)
+[![npm](https://img.shields.io/npm/v/ng-checkup)](https://www.npmjs.com/package/ng-checkup) [![CI](https://github.com/stefankuburovic/ng-checkup/actions/workflows/ci.yml/badge.svg)](https://github.com/stefankuburovic/ng-checkup/actions/workflows/ci.yml)
 
 A one-minute modernization report for any Angular codebase.
 
 Point it at a repository and it tells you how far the code is from current Angular, what will break on the next upgrade, and where the work is: version gap, deprecated APIs, zoneless readiness, standalone and signal adoption, test runner, type safety and circular dependencies. Each area gets a grade, every finding names the files, and the HTML report is a single self-contained page you can hand to a team lead or a client.
 
 ```bash
-npx github:stefankuburovic/ng-checkup
-npx github:stefankuburovic/ng-checkup path/to/app --report checkup.html
+npx ng-checkup
+npx ng-checkup path/to/app --report checkup.html
 ```
 
-The first run builds the tool (a few seconds); it needs Node 22 or newer. An npm release (`npx ng-checkup`) is on the way.
+Needs Node 22 or newer.
 
 ```text
 ng-checkup 0.1.0  legacy-app · Angular CLI · Angular ^15.2.0
@@ -56,10 +56,10 @@ Defaults that changed between versions are applied per version: a component with
 ## Reports
 
 ```bash
-npx github:stefankuburovic/ng-checkup --report checkup.html   # self-contained page, light and dark, prints to PDF cleanly
-npx github:stefankuburovic/ng-checkup --report checkup.md     # for a pull request or a wiki
-npx github:stefankuburovic/ng-checkup --report checkup.json   # everything, machine-readable
-npx github:stefankuburovic/ng-checkup --verbose               # every finding and file in the terminal
+npx ng-checkup --report checkup.html   # self-contained page, light and dark, prints to PDF cleanly
+npx ng-checkup --report checkup.md     # for a pull request or a wiki
+npx ng-checkup --report checkup.json   # everything, machine-readable
+npx ng-checkup --verbose               # every finding and file in the terminal
 ```
 
 `--report` is repeatable. The HTML page loads nothing from the network: no fonts, no scripts, no images.
@@ -67,7 +67,7 @@ npx github:stefankuburovic/ng-checkup --verbose               # every finding an
 ## In CI
 
 ```bash
-npx github:stefankuburovic/ng-checkup --fail-on poor --report checkup.md
+npx ng-checkup --fail-on poor --report checkup.md
 ```
 
 Exits with `1` when any area is graded `poor` (or `fair` with `--fail-on fair`), `2` on a usage error, `0` otherwise. Areas graded `info`, the ones the tool could not measure, never fail a run.
