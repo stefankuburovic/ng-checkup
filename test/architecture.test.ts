@@ -62,6 +62,22 @@ describe('scanning for security and architecture facts', () => {
     expect(facts.inlineTemplates[0]!.stats.innerHtmlBindings).toBe(1);
   });
 
+  it('does not count HTML the code wrote itself: clearing an element, fixed markup', () => {
+    root = writeTemp({
+      'b.ts': [
+        'export function f(el: HTMLElement, r: Renderer2, name: string) {',
+        "  el.innerHTML = '';",
+        "  el.innerHTML = '<ion-icon name=\"a\"></ion-icon>' + `<ion-icon name=\"b\"></ion-icon>`;",
+        "  el.insertAdjacentHTML('beforeend', '<hr>');",
+        "  r.setProperty(el, 'innerHTML', '');",
+        '  el.innerHTML = `<b>${name}</b>`;',
+        "  el.innerHTML = '<b>' + name + '</b>';",
+        '}',
+      ].join('\n'),
+    });
+    expect(scanSourceFile(root, `${root}/b.ts`).unsafeDomLines).toEqual([6, 7]);
+  });
+
   it('counts [innerHTML] and [outerHTML] bindings in templates, in either spelling', () => {
     expect(scanTemplate('<div [innerHTML]="a"></div><div [innerHtml]="b"></div><p [outerHTML]="c"></p>').innerHtmlBindings).toBe(3);
   });

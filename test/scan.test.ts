@@ -140,3 +140,13 @@ describe('scanTemplate', () => {
     }
   });
 });
+
+describe('isTestCode', () => {
+  it('recognises specs, e2e files, page objects, mocks and test folders, by the report path', async () => {
+    const { isTestCode } = await import('../src/files.js');
+    for (const path of ['src/a.spec.ts', 'e2e/src/app.e2e-spec.ts', 'e2e/src/app.po.ts', 'cypress/e2e/a.cy.ts', 'test-config/mocks-ionic.ts', 'src/__mocks__/x.ts', 'src/api.mock.ts']) {
+      expect(isTestCode(path), path).toBe(true);
+    }
+    for (const path of ['src/app/app.component.ts', 'src/app/e2e-settings.ts', 'src/app/mocking/real.service.ts']) expect(isTestCode(path), path).toBe(false);
+  });
+});

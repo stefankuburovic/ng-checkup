@@ -1,5 +1,6 @@
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
+import { isSpecFile } from '../files.js';
 import type { CheckResult, Finding, Grade } from '../types.js';
 import { applicationFiles, formatCount, percent, plural, specFiles, type AnalysisContext } from './context.js';
 
@@ -19,7 +20,8 @@ type Runner = 'Karma' | 'Jest' | 'Vitest';
 export function testingCheck(context: AnalysisContext): CheckResult {
   const { workspace } = context;
   const runners = detectRunners(context);
-  const specs = specFiles(context);
+  // Unit specs only: mocks, page objects and e2e files are test code but not specs.
+  const specs = specFiles(context).filter((file) => isSpecFile(file.path));
   const testable = applicationFiles(context).filter((file) => file.components.length > 0 || file.injectables > 0);
   const specPaths = new Set(specs.map((file) => file.path));
   const untested = testable.filter((file) => !specPaths.has(file.path.replace(/\.ts$/, '.spec.ts')));

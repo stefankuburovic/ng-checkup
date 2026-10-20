@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.2 (2026-10-20)
+
+- Security: HTML the code writes itself is no longer flagged. `el.innerHTML = ''` (clearing an element) and fixed markup carry no input; only values that are not constant strings count as direct DOM writes.
+- Test code is recognised beyond `*.spec.ts`: Protractor's `*.e2e-spec.ts` and page objects, Cypress files, mocks, and the `e2e`, `cypress`, `test-config` and `__mocks__` folders. Their `any`, cycles and size no longer count against the application; the spec count still counts unit specs only.
+
 ## 0.5.1 (2026-10-20)
 
 - Third-party compatibility no longer grades end-of-life tooling (`codelyzer`, `tslint`, `protractor`, ...). The version check already reports it for removal, and the upgrade plan removes it in its first step, so it was counted twice and could make the area poor on its own.

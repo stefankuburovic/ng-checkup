@@ -103,3 +103,19 @@ export function toReportPath(root: string, absolute: string): string {
 export function isSpecFile(path: string): boolean {
   return /\.(spec|test)\.ts$/.test(path);
 }
+
+/**
+ * True for code that only tests run: unit specs, Protractor's
+ * `*.e2e-spec.ts` and page objects, Cypress and Playwright files, mocks, and
+ * whatever sits in an `e2e`, `cypress`, `test-config` or `__mocks__` folder.
+ * Kept out of "application code", where a mock's `any` or a cycle between
+ * test helpers would be counted against the app (an Ionic wallet's
+ * `test-config/mocks-ionic.ts` was the case).
+ */
+export function isTestCode(path: string): boolean {
+  return (
+    isSpecFile(path) ||
+    /[.-](e2e-spec|spec|cy|po|mock|mocks)\.ts$/.test(path) ||
+    /(^|\/)(e2e|cypress|test-config|__mocks__|playwright)\//.test(path)
+  );
+}

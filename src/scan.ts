@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import ts from 'typescript';
-import { isSpecFile, toReportPath } from './files.js';
+import { isTestCode, toReportPath } from './files.js';
 
 /** One name brought in by an import or re-export. */
 export interface ImportBinding {
@@ -76,6 +76,7 @@ export interface SourceFileFacts {
   /** Report path: relative to the root, `/`-separated. */
   path: string;
   absolutePath: string;
+  /** Test code of any kind (see `isTestCode`), which every check leaves out of "application code". */
   isSpec: boolean;
   /** Non-blank lines. */
   linesOfCode: number;
@@ -159,7 +160,9 @@ export function scanSourceFile(root: string, absolutePath: string): SourceFileFa
   const facts: SourceFileFacts = {
     path,
     absolutePath,
-    isSpec: isSpecFile(absolutePath),
+    // The report path, not the absolute one: a repository checked out under
+    // some `.../e2e/...` folder must not turn every file into test code.
+    isSpec: isTestCode(path),
     linesOfCode: countLinesOfCode(text),
     imports: [],
     components: [],
@@ -226,11 +229,13 @@ export function scanSourceFile(root: string, absolutePath: string): SourceFileFa
         const method = node.expression.name.text;
         if (method === 'toPromise' && node.arguments.length === 0) facts.toPromiseLines.push(lineOf(node));
         else if (method.startsWith('bypassSecurityTrust')) facts.bypassSecurityLines.push(lineOf(node));
-        else if (method === 'insertAdjacentHTML' || ((method === 'write' || method === 'writeln') && ts.isIdentifier(node.expression.expression) && node.expression.expression.text === 'document')) {
-          facts.unsafeDomLines.push(lineOf(node));
+        else if (method === 'insertAdjacentHTML') {
+          if (!isConstantString(node.arguments[1])) facts.unsafeDomLines.push(lineOf(node));
+        } else if ((method === 'write' || method === 'writeln') && ts.isIdentifier(node.expression.expression) && node.expression.expression.text === 'document') {
+          if (!isConstantString(node.arguments[0])) facts.unsafeDomLines.push(lineOf(node));
         } else if (method === 'setProperty' && node.arguments.length >= 3) {
           const property = node.arguments[1];
-          if (property && ts.isStringLiteralLike(property) && /^(inner|outer)HTML$/i.test(property.text)) facts.unsafeDomLines.push(lineOf(node));
+          if (property && ts.isStringLiteralLike(property) && /^(inner|outer)HTML$/i.test(property.text) && !isConstantString(node.arguments[2])) facts.unsafeDomLines.push(lineOf(node));
         }
       } else if (ts.isIdentifier(node.expression) && node.expression.text === 'eval' && !locals.has('eval')) {
         facts.dynamicCodeLines.push(lineOf(node));
@@ -246,7 +251,7 @@ export function scanSourceFile(root: string, absolutePath: string): SourceFileFa
       if (key) record(facts.constructions, key, lineOf(node));
       else if (ts.isIdentifier(node.expression) && node.expression.text === 'Function') facts.dynamicCodeLines.push(lineOf(node));
     } else if (ts.isBinaryExpression(node) && (node.operatorToken.kind === ts.SyntaxKind.EqualsToken || node.operatorToken.kind === ts.SyntaxKind.PlusEqualsToken)) {
-      if (ts.isPropertyAccessExpression(node.left) && /^(innerHTML|outerHTML)$/.test(node.left.name.text)) facts.unsafeDomLines.push(lineOf(node));
+      if (ts.isPropertyAccessExpression(node.left) && /^(innerHTML|outerHTML)$/.test(node.left.name.text) && !isConstantString(node.right)) facts.unsafeDomLines.push(lineOf(node));
     } else if (ts.isObjectLiteralExpression(node)) {
       const names = new Set(node.properties.map((property) => (property.name && (ts.isIdentifier(property.name) || ts.isStringLiteral(property.name)) ? property.name.text : '')));
       if (names.has('path') && !names.has('redirectTo')) {
@@ -332,6 +337,20 @@ export function scanSourceFile(root: string, absolutePath: string): SourceFileFa
 
   visit(source);
   return facts;
+}
+
+/**
+ * True for HTML the code wrote itself: a string literal, a template literal
+ * without substitutions, or literals joined with `+`. `el.innerHTML = ''` (the
+ * usual way to clear an element) and a fixed snippet of markup carry no input,
+ * so they are no XSS; flagging them buried the real cases in a 200-component
+ * app under a dozen harmless ones. Undefined (a missing argument) is not constant.
+ */
+function isConstantString(expression: ts.Expression | undefined): boolean {
+  if (!expression) return false;
+  if (ts.isParenthesizedExpression(expression)) return isConstantString(expression.expression);
+  if (ts.isStringLiteral(expression) || ts.isNoSubstitutionTemplateLiteral(expression)) return true;
+  return ts.isBinaryExpression(expression) && expression.operatorToken.kind === ts.SyntaxKind.PlusToken && isConstantString(expression.left) && isConstantString(expression.right);
 }
 
 /** Router interfaces of class-based guards and resolvers, all replaced by functions (`CanActivateFn`, `ResolveFn`) since Angular 14.2/15. */
