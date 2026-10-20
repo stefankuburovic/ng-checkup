@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.5.0 (2026-10-20)
+
+- Four new areas, twelve in all:
+  - **Third-party compatibility**: the Angular peer range of every installed package, which upgrade step it blocks, and (online) the release that supports each next major and npm deprecations. With `--plan`, each package update is scheduled at the step that needs it.
+  - **Architecture**: eager vs. lazy routes (a `component:` route inside a lazily loaded module counts as lazy), files over 500 and 1 000 lines, constructor injection and class-based guards and interceptors.
+  - **Security**: `bypassSecurityTrust*`, HTML written straight into the DOM, `eval` / `new Function`, `[innerHTML]` bindings.
+  - **Bundle size**: the initial bundle from the last `ng build --stats-json` (esbuild metafile or webpack stats) against the build's own budget, with its largest packages.
+- RxJS deprecations from its installed type definitions, and `.toPromise()` calls on RxJS 7+.
+- `--watch`: re-runs on every save and shows how the score and each measure moved since the watch started. Only changed files are parsed again; the registry is asked again only when dependencies change.
+- `--report x.sarif`: SARIF 2.1.0 for GitHub code scanning, one rule per area.
+- Monorepos: a per-project table, worst first, graded on each project's own files and tsconfig; projects without Angular code are left out. `--project <name>` narrows the report to one project.
+- Fixed: an HTML report written inside the analysed folder was read back as a template on the next run.
+- 11 new baseline measures (33 in all). An existing baseline keeps working: new measures are listed as added, never as regressions.
+
 ## 0.4.0 (2026-10-20)
 
 - `--plan`: the upgrade from the installed Angular to the latest, one major at a time. Each step has its `ng update` command, the Node.js, TypeScript, RxJS and zone.js ranges that major requires (flagged where the project is outside them), and the migrations this code needs, scheduled at the first step that ships them, with counts. In every report format and in `report.plan`.

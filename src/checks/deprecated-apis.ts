@@ -1,5 +1,6 @@
 import type { DeprecationInfo } from '../deprecations.js';
 import { isSpecFile } from '../files.js';
+import { majorOf, readInstalledVersion } from '../workspace.js';
 import type { CheckResult, FileRef, Finding, Grade } from '../types.js';
 import { formatCount, plural, type AnalysisContext } from './context.js';
 
@@ -71,12 +72,18 @@ export function deprecatedApisCheck(context: AnalysisContext): CheckResult {
   }
 
   const current = workspace.angular.major;
-  const isOverdue = (info: DeprecationInfo): boolean => current !== undefined && info.since !== undefined && current - Number.parseInt(info.since, 10) >= 2;
+  /**
+   * Overdue means deprecated two or more Angular majors ago. Only Angular's and
+   * NgRx's version numbers follow Angular majors; RxJS has its own ("7.0"), and
+   * comparing that with Angular 22 would call every RxJS deprecation overdue.
+   */
+  const isOverdue = (info: DeprecationInfo, module?: string): boolean =>
+    (module === undefined || module.startsWith('@angular/') || module.startsWith('@ngrx/')) && current !== undefined && info.since !== undefined && current - Number.parseInt(info.since, 10) >= 2;
   const sorted = [...usages.values()];
-  const groups = groupByDeprecation(sorted).sort((left, right) => Number(isOverdue(right.info)) - Number(isOverdue(left.info)) || right.refs.length - left.refs.length);
+  const groups = groupByDeprecation(sorted).sort((left, right) => Number(isOverdue(right.info, right.module)) - Number(isOverdue(left.info, left.module)) || right.refs.length - left.refs.length);
 
   const findings: Finding[] = groups.map((group) => ({
-    severity: isOverdue(group.info) ? 'high' : 'medium',
+    severity: isOverdue(group.info, group.module) ? 'high' : 'medium',
     message: `${group.names.map((name) => `\`${name}\``).join(', ')} from ${group.module}, used in ${plural(group.refs.length, 'file')}${testShare(group.refs)}`,
     detail: describe(group.info),
     files: group.refs.slice(0, context.maxExamples),
@@ -91,6 +98,20 @@ export function deprecatedApisCheck(context: AnalysisContext): CheckResult {
       detail: `${describe(ngIf)} \`ng generate @angular/core:control-flow\` migrates most templates to \`@if\`, \`@for\` and \`@switch\` automatically; what it leaves behind is usually an \`ngFor\` with a custom \`trackBy\` or a template reference it cannot follow.`,
       files: legacyTemplates.slice(0, context.maxExamples).map((template) => ({ path: template.path, line: template.firstLegacyLine })),
       count: legacyTemplates.length,
+    });
+  }
+
+  // `.toPromise()`: deprecated in RxJS 7 and removed in 8, so it only counts from 7 on.
+  const rxjsMajor = majorOf(readInstalledVersion(workspace.root, 'rxjs') ?? workspace.dependencies['rxjs']);
+  const toPromiseFiles = context.sources.filter((file) => file.toPromiseLines.length > 0);
+  const toPromiseCalls = toPromiseFiles.reduce((sum, file) => sum + file.toPromiseLines.length, 0);
+  if (rxjsMajor !== undefined && rxjsMajor >= 7 && toPromiseCalls > 0) {
+    findings.push({
+      severity: 'medium',
+      message: `${plural(toPromiseCalls, '`.toPromise()` call')} in ${plural(toPromiseFiles.length, 'file')}`,
+      detail: 'Deprecated in RxJS 7 and removed in RxJS 8. `firstValueFrom(source$)` or `lastValueFrom(source$)` replace it; pick by whether the code wants the first value or waits for completion.',
+      files: toPromiseFiles.slice(0, context.maxExamples).map((file) => ({ path: file.path, line: file.toPromiseLines[0] })),
+      count: toPromiseFiles.length,
     });
   }
 
@@ -116,6 +137,7 @@ export function deprecatedApisCheck(context: AnalysisContext): CheckResult {
     measures: [
       { id: 'deprecated-usages', label: 'Deprecated API uses (symbol × file)', value: sorted.reduce((sum, usage) => sum + usage.refs.length, 0) },
       { id: 'legacy-template-directives', label: '*ngIf / *ngFor / [ngSwitch] uses', value: legacyUses },
+      { id: 'to-promise-calls', label: '.toPromise() calls', value: rxjsMajor !== undefined && rxjsMajor >= 7 ? toPromiseCalls : 0 },
     ],
   };
 }

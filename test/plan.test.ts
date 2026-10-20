@@ -33,7 +33,7 @@ describe('buildPlan', () => {
   it('still plans a major newer than the snapshot, without requirements', async () => {
     const report = await runCheckup(fixture('legacy-app'), { offline: true });
     const versions: AngularVersionInfo[] = [{ major: 16, version: '16.2.12', node: '^16.14.0 || >=18.10.0', typescript: '>=4.9.3 <5.2', rxjs: null, zoneJs: null }];
-    const workspace = { root: fixture('legacy-app'), name: 'x', kind: 'angular-cli' as const, dependencies: {}, hasNodeModules: false, angular: { major: 15 }, targets: [], polyfills: [] };
+    const workspace = { root: fixture('legacy-app'), name: 'x', kind: 'angular-cli' as const, dependencies: {}, hasNodeModules: false, angular: { major: 15 }, targets: [], projects: [], polyfills: [] };
     const plan = buildPlan(workspace, report.checks, 17, versions)!;
     expect(plan.steps.map((step) => [step.to, step.requirements.length])).toEqual([[16, 2], [17, 0]]);
     expect(plan.steps[1]!.items[0]!.title).toBe('Check the requirements for this major');

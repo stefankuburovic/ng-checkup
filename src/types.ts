@@ -103,6 +103,11 @@ export interface Report {
   baseline?: import('./baseline.js').BaselineComparison;
   /** The upgrade plan to the latest Angular, when asked for (`--plan`) and there is a gap. */
   plan?: import('./plan.js').UpgradePlan;
+  /**
+   * One row per project that owns source files, worst score first. Present
+   * only for a whole-workspace run of a workspace with two or more projects.
+   */
+  projects?: ProjectSummary[];
 }
 
 /**
@@ -126,4 +131,33 @@ export interface CheckupOptions {
   ignore?: string[];
   /** Add an upgrade plan from the installed Angular to the latest major. */
   plan?: boolean;
+  /** Reuse results between runs (`--watch`); see `createAnalysisCache`. */
+  cache?: import('./cache.js').AnalysisCache;
+  /**
+   * Analyse one project of the workspace, by its name in `angular.json` or
+   * `project.json`: only the files it owns, with its own tsconfig and targets.
+   * Throws, listing the names, when there is no such project.
+   */
+  project?: string;
+}
+
+/**
+ * One project's row in the per-project breakdown of a multi-project
+ * workspace. Graded on the code checks only: the Angular version and the
+ * third-party packages are shared by every project of the workspace, so they
+ * would give every row the same mark and hide the differences the table is for.
+ */
+export interface ProjectSummary {
+  name: string;
+  /** Relative to the analysed root, `/`-separated. */
+  root: string;
+  type: 'application' | 'library' | 'unknown';
+  sourceFiles: number;
+  linesOfCode: number;
+  /** As `overallScore`, over this project's code checks. Undefined when none was graded. */
+  score?: number;
+  /** Grade per check id. */
+  grades: Record<string, Grade>;
+  /** Number of `high` findings across its checks. */
+  highFindings: number;
 }

@@ -57,6 +57,8 @@ export interface TemplateStats {
   deferBlocks: number;
   /** `$any(...)`, the template's way of switching type checking off for one expression. */
   anyCasts: number;
+  /** `[innerHTML]`/`[outerHTML]` bindings. Angular sanitizes them, unless the value went through `bypassSecurityTrustHtml`. */
+  innerHtmlBindings: number;
 }
 
 /** A template and where its first legacy structural directive sits, for report examples. */
@@ -110,6 +112,36 @@ export interface SourceFileFacts {
   definiteAssignments: number;
   /** `@ts-ignore`, `@ts-expect-error` and `@ts-nocheck` comments. */
   typeSuppressions: number;
+  /**
+   * Lines of every `x.toPromise()` call. Matched by name, not by type: an
+   * instance method is invisible to the import-based deprecation index, and
+   * outside RxJS almost nothing in an Angular app has a `toPromise` method.
+   */
+  toPromiseLines: number[];
+  /** Lines of `x.bypassSecurityTrustHtml(...)` and its Style/Script/Url/ResourceUrl siblings: values Angular will not sanitize. */
+  bypassSecurityLines: number[];
+  /**
+   * Lines that write HTML into the DOM past Angular's sanitizer: an
+   * assignment to `.innerHTML`/`.outerHTML`, `insertAdjacentHTML`,
+   * `document.write`, and `Renderer2.setProperty(el, 'innerHTML', …)`.
+   */
+  unsafeDomLines: number[];
+  /** Lines of `eval(...)` and `new Function(...)`: strings run as code, which also breaks a strict CSP. */
+  dynamicCodeLines: number[];
+  /**
+   * Route objects, recognised as object literals with a `path` and either a
+   * `component` (eager) or a `loadComponent`/`loadChildren` (lazy). Lines of
+   * each. A `redirectTo` route is neither.
+   */
+  routes: { eager: number[]; lazy: number[] };
+  /**
+   * Angular classes (component, directive, pipe, injectable) whose
+   * constructor takes parameters: dependencies injected through the
+   * constructor rather than `inject()`.
+   */
+  constructorInjections: Array<{ name: string; line: number; parameters: number }>;
+  /** Classes implementing a router guard/resolver interface or `HttpInterceptor`, the pre-functional style. */
+  classGuards: Array<{ name: string; line: number; kind: string }>;
   /** `templateUrl`/`template` is resolved by the template scan; inline templates are collected here. */
   inlineTemplates: TemplateFact[];
 }
@@ -143,6 +175,13 @@ export function scanSourceFile(root: string, absolutePath: string): SourceFileFa
     nonNullLines: [],
     definiteAssignments: 0,
     typeSuppressions: (text.match(/@ts-(ignore|expect-error|nocheck)\b/g) ?? []).length,
+    toPromiseLines: [],
+    bypassSecurityLines: [],
+    unsafeDomLines: [],
+    dynamicCodeLines: [],
+    routes: { eager: [], lazy: [] },
+    constructorInjections: [],
+    classGuards: [],
     inlineTemplates: [],
   };
 
@@ -183,6 +222,19 @@ export function scanSourceFile(root: string, absolutePath: string): SourceFileFa
       const key = keyOf(node.expression);
       if (key) record(facts.calls, key, lineOf(node));
       else if (isJasmineGlobalCall(node.expression, locals)) facts.jasmineCalls++;
+      if (ts.isPropertyAccessExpression(node.expression)) {
+        const method = node.expression.name.text;
+        if (method === 'toPromise' && node.arguments.length === 0) facts.toPromiseLines.push(lineOf(node));
+        else if (method.startsWith('bypassSecurityTrust')) facts.bypassSecurityLines.push(lineOf(node));
+        else if (method === 'insertAdjacentHTML' || ((method === 'write' || method === 'writeln') && ts.isIdentifier(node.expression.expression) && node.expression.expression.text === 'document')) {
+          facts.unsafeDomLines.push(lineOf(node));
+        } else if (method === 'setProperty' && node.arguments.length >= 3) {
+          const property = node.arguments[1];
+          if (property && ts.isStringLiteralLike(property) && /^(inner|outer)HTML$/i.test(property.text)) facts.unsafeDomLines.push(lineOf(node));
+        }
+      } else if (ts.isIdentifier(node.expression) && node.expression.text === 'eval' && !locals.has('eval')) {
+        facts.dynamicCodeLines.push(lineOf(node));
+      }
       if (node.expression.kind === ts.SyntaxKind.ImportKeyword) {
         const [argument] = node.arguments;
         if (argument && ts.isStringLiteralLike(argument)) {
@@ -192,6 +244,15 @@ export function scanSourceFile(root: string, absolutePath: string): SourceFileFa
     } else if (ts.isNewExpression(node)) {
       const key = keyOf(node.expression);
       if (key) record(facts.constructions, key, lineOf(node));
+      else if (ts.isIdentifier(node.expression) && node.expression.text === 'Function') facts.dynamicCodeLines.push(lineOf(node));
+    } else if (ts.isBinaryExpression(node) && (node.operatorToken.kind === ts.SyntaxKind.EqualsToken || node.operatorToken.kind === ts.SyntaxKind.PlusEqualsToken)) {
+      if (ts.isPropertyAccessExpression(node.left) && /^(innerHTML|outerHTML)$/.test(node.left.name.text)) facts.unsafeDomLines.push(lineOf(node));
+    } else if (ts.isObjectLiteralExpression(node)) {
+      const names = new Set(node.properties.map((property) => (property.name && (ts.isIdentifier(property.name) || ts.isStringLiteral(property.name)) ? property.name.text : '')));
+      if (names.has('path') && !names.has('redirectTo')) {
+        if (names.has('loadComponent') || names.has('loadChildren')) facts.routes.lazy.push(lineOf(node));
+        else if (names.has('component')) facts.routes.eager.push(lineOf(node));
+      }
     } else if (ts.isPropertyAccessExpression(node) && ts.isIdentifier(node.expression)) {
       const binding = locals.get(node.expression.text);
       if (binding && binding.imported !== '*') record(facts.memberAccesses, `${binding.module}#${binding.imported}.${node.name.text}`, lineOf(node));
@@ -221,6 +282,18 @@ export function scanSourceFile(root: string, absolutePath: string): SourceFileFa
   };
 
   const visitClassDecorators = (node: ts.ClassDeclaration): void => {
+    const name = node.name?.text ?? '(anonymous)';
+    for (const clause of node.heritageClauses ?? []) {
+      if (clause.token !== ts.SyntaxKind.ImplementsKeyword) continue;
+      for (const type of clause.types) {
+        const key = keyOf(type.expression);
+        const kind = key?.split('#')[1];
+        if (kind && (key?.startsWith('@angular/router#') ? GUARD_INTERFACES.has(kind) : key === '@angular/common/http#HttpInterceptor')) facts.classGuards.push({ name, line: lineOf(node), kind });
+      }
+    }
+    const angularClass = (ts.getDecorators(node) ?? []).some((decorator) => ANGULAR_CLASS_DECORATORS.has(decoratorKey(decorator) ?? ''));
+    const constructor = angularClass ? node.members.find(ts.isConstructorDeclaration) : undefined;
+    if (constructor && constructor.parameters.length > 0) facts.constructorInjections.push({ name, line: lineOf(constructor), parameters: constructor.parameters.length });
     for (const decorator of ts.getDecorators(node) ?? []) {
       const key = decoratorKey(decorator);
       if (key === '@angular/core#NgModule') facts.ngModules++;
@@ -260,6 +333,12 @@ export function scanSourceFile(root: string, absolutePath: string): SourceFileFa
   visit(source);
   return facts;
 }
+
+/** Router interfaces of class-based guards and resolvers, all replaced by functions (`CanActivateFn`, `ResolveFn`) since Angular 14.2/15. */
+const GUARD_INTERFACES = new Set(['CanActivate', 'CanActivateChild', 'CanDeactivate', 'CanLoad', 'CanMatch', 'Resolve']);
+
+/** Decorators of the classes Angular instantiates through DI, where constructor parameters are injected dependencies. */
+const ANGULAR_CLASS_DECORATORS = new Set(['@angular/core#Component', '@angular/core#Directive', '@angular/core#Pipe', '@angular/core#Injectable']);
 
 /** Turns an import or re-export statement into an `ImportFact`; undefined for any other statement. */
 function importFactOf(statement: ts.Statement, source: ts.SourceFile): ImportFact | undefined {
@@ -340,6 +419,7 @@ export function scanTemplate(text: string): TemplateStats {
     switchBlocks: count(/@switch\s*\(/g),
     deferBlocks: count(/@defer\b/g),
     anyCasts: count(/\$any\s*\(/g),
+    innerHtmlBindings: count(/\[(innerHTML|outerHTML)\]\s*=/gi),
   };
 }
 

@@ -1,5 +1,5 @@
 import { existsSync, readFileSync } from 'node:fs';
-import { basename, dirname, join, resolve } from 'node:path';
+import { basename, dirname, join, relative, resolve } from 'node:path';
 import ts from 'typescript';
 import type { WorkspaceKind } from './types.js';
 
@@ -11,8 +11,24 @@ export interface TargetInfo {
   builder: string;
   /** The target's `options` block, untyped because every builder defines its own. */
   options: Record<string, unknown>;
+  /** The target's `configurations` block (`production`, `development`), untyped like `options`. Read for the bundle budgets. */
+  configurations?: Record<string, unknown>;
   /** Absolute directory the project's relative option paths resolve against. */
   baseDirectory: string;
+}
+
+/** One application or library of the workspace, from `angular.json` or its `project.json`. */
+export interface ProjectInfo {
+  name: string;
+  /** Directory relative to the analysed root, `/`-separated; an empty string for a project at the root. */
+  root: string;
+  type: 'application' | 'library' | 'unknown';
+  /**
+   * The tsconfig the project is compiled with: its build target's `tsConfig`,
+   * else `tsconfig.app.json`, `tsconfig.lib.json` or `tsconfig.json` in its
+   * root. Undefined when none exists.
+   */
+  tsconfig?: string;
 }
 
 /** What the analysis knows about the repository before it reads any source file. */
@@ -39,6 +55,12 @@ export interface WorkspaceInfo {
    */
   typescriptMajor?: number;
   targets: TargetInfo[];
+  /**
+   * Every project the workspace declares, in declaration order. Empty for a
+   * repository with neither `angular.json` nor `project.json` files. A
+   * single-project CLI workspace has one entry whose root is `''`.
+   */
+  projects: ProjectInfo[];
   /** Every polyfill entry of every target, which is where `zone.js` is wired in for CLI 15+ projects. */
   polyfills: string[];
   /** The tsconfig the application is compiled with, used for the strictness flags. */
@@ -69,6 +91,7 @@ export function readWorkspace(root: string, projectJsons: string[]): WorkspaceIn
   const kind: WorkspaceKind = angularJson ? 'angular-cli' : isNx ? 'nx' : 'unknown';
 
   const targets = angularJson ? readAngularJsonTargets(root, angularJson) : readProjectJsonTargets(projectJsons);
+  const projects = angularJson ? readAngularJsonProjects(root, angularJson, targets) : readProjectJsonProjects(root, projectJsons, targets);
   const installed = readInstalledVersion(root, '@angular/core');
   const declared = dependencies['@angular/core'];
 
@@ -81,6 +104,7 @@ export function readWorkspace(root: string, projectJsons: string[]): WorkspaceIn
     angular: { declared, installed, major: majorOf(installed ?? declared) },
     typescriptMajor: majorOf(readInstalledVersion(root, 'typescript') ?? dependencies['typescript']),
     targets,
+    projects,
     polyfills: targets.flatMap((target) => polyfillsOf(target.options)),
     appTsconfig: findAppTsconfig(root, targets),
     rootTsconfig: ['tsconfig.base.json', 'tsconfig.json'].map((name) => join(root, name)).find((path) => existsSync(path)),
@@ -108,6 +132,91 @@ export function readInstalledVersion(root: string, packageName: string): string 
   return typeof version === 'string' ? version : undefined;
 }
 
+/**
+ * Absolute paths of the application entry files: the `browser` option of
+ * the application builder, or `main` of the older browser builders. These
+ * are where the static import graph starts when telling eager code from lazy.
+ */
+export function applicationEntries(workspace: WorkspaceInfo): string[] {
+  return workspace.targets
+    .filter((target) => target.target === 'build')
+    .map((target) => ({ target, entry: target.options['browser'] ?? target.options['main'] }))
+    .filter((item): item is { target: TargetInfo; entry: string } => typeof item.entry === 'string')
+    .map(({ target, entry }) => resolve(target.baseDirectory, entry));
+}
+
+/**
+ * The workspace narrowed to one project, for `--project` and the
+ * per-project breakdown: its own targets, polyfills and tsconfig, everything
+ * read from the root `package.json` unchanged (an Nx workspace has one set of
+ * dependencies for all projects).
+ */
+export function restrictToProject(workspace: WorkspaceInfo, project: ProjectInfo): WorkspaceInfo {
+  const targets = workspace.targets.filter((target) => target.project === project.name);
+  return {
+    ...workspace,
+    name: project.name,
+    targets,
+    projects: [project],
+    polyfills: targets.flatMap((target) => polyfillsOf(target.options)),
+    appTsconfig: project.tsconfig ?? workspace.appTsconfig,
+  };
+}
+
+/**
+ * The project a report path belongs to: the one with the longest root that
+ * contains it, so a library nested inside an application's folder keeps its
+ * own files. Undefined for a file outside every project (root-level scripts,
+ * tooling), which then counts only towards the whole-workspace report.
+ */
+export function owningProject(path: string, projects: ProjectInfo[]): ProjectInfo | undefined {
+  let owner: ProjectInfo | undefined;
+  for (const project of projects) {
+    const inside = project.root === '' || path === project.root || path.startsWith(`${project.root}/`);
+    if (inside && (!owner || project.root.length > owner.root.length)) owner = project;
+  }
+  return owner;
+}
+
+/** Projects of `angular.json`, whose `root` is relative to the workspace (an empty string for the default app). */
+function readAngularJsonProjects(root: string, angularJson: Record<string, unknown>, targets: TargetInfo[]): ProjectInfo[] {
+  return Object.entries(asRecord(angularJson['projects'])).map(([name, value]) => {
+    const project = asRecord(value);
+    const projectRoot = typeof project['root'] === 'string' ? project['root'].replace(/\\/g, '/').replace(/\/+$/, '') : '';
+    return { name, root: projectRoot, type: projectTypeOf(project['projectType']), tsconfig: projectTsconfig(root, projectRoot, name, targets, project['projectType']) };
+  });
+}
+
+/** Projects of an Nx workspace: one per `project.json`, rooted at its directory. */
+function readProjectJsonProjects(root: string, projectJsons: string[], targets: TargetInfo[]): ProjectInfo[] {
+  const projects: ProjectInfo[] = [];
+  for (const path of projectJsons) {
+    const project = readJson(path);
+    if (!project) continue;
+    const name = typeof project['name'] === 'string' ? project['name'] : basename(dirname(path));
+    const projectRoot = relative(root, dirname(path)).split('\\').join('/');
+    projects.push({ name, root: projectRoot, type: projectTypeOf(project['projectType']), tsconfig: projectTsconfig(root, projectRoot, name, targets, project['projectType']) });
+  }
+  return projects;
+}
+
+/** `projectType` as declared; Nx infers it when absent, which this does not try to. */
+function projectTypeOf(value: unknown): ProjectInfo['type'] {
+  return value === 'application' || value === 'library' ? value : 'unknown';
+}
+
+/** See `ProjectInfo.tsconfig`. A library looks for `tsconfig.lib.json` before `tsconfig.app.json`. */
+function projectTsconfig(root: string, projectRoot: string, name: string, targets: TargetInfo[], type: unknown): string | undefined {
+  const build = targets.find((target) => target.project === name && target.target === 'build');
+  const fromTarget = build?.options['tsConfig'];
+  if (build && typeof fromTarget === 'string') {
+    const path = resolve(build.baseDirectory, fromTarget);
+    if (existsSync(path)) return path;
+  }
+  const names = type === 'library' ? ['tsconfig.lib.json', 'tsconfig.app.json', 'tsconfig.json'] : ['tsconfig.app.json', 'tsconfig.lib.json', 'tsconfig.json'];
+  return names.map((file) => join(root, projectRoot, file)).find((path) => existsSync(path));
+}
+
 /** Targets from `angular.json`, which calls them `architect` in older files and `targets` in newer ones. */
 function readAngularJsonTargets(root: string, angularJson: Record<string, unknown>): TargetInfo[] {
   const projects = asRecord(angularJson['projects']);
@@ -120,7 +229,7 @@ function readAngularJsonTargets(root: string, angularJson: Record<string, unknow
       const builder = asRecord(target)['builder'];
       if (typeof builder !== 'string') continue;
       // angular.json resolves option paths against the workspace root, not the project root.
-      targets.push({ project: projectName || projectRoot, target: targetName, builder, options: asRecord(asRecord(target)['options']), baseDirectory: root });
+      targets.push({ project: projectName || projectRoot, target: targetName, builder, options: asRecord(asRecord(target)['options']), configurations: asRecord(asRecord(target)['configurations']), baseDirectory: root });
     }
   }
   return targets;
@@ -139,7 +248,7 @@ function readProjectJsonTargets(projectJsons: string[]): TargetInfo[] {
       if (typeof builder !== 'string') continue;
       // Nx resolves option paths against the workspace root as well, which is
       // two or more levels above the project.json in a typical apps/ layout.
-      targets.push({ project: projectName, target: targetName, builder, options: asRecord(record['options']), baseDirectory: findWorkspaceRoot(path) });
+      targets.push({ project: projectName, target: targetName, builder, options: asRecord(record['options']), configurations: asRecord(record['configurations']), baseDirectory: findWorkspaceRoot(path) });
     }
   }
   return targets;

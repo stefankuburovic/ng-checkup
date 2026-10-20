@@ -1,6 +1,6 @@
 import { formatCount, plural } from '../checks/context.js';
 import type { Report } from '../types.js';
-import { formatDuration, formatLocation, gradeLabel, kindLabel, overallScore, remainingCount, SCORE_EXPLANATION, severityLabel, topPriorities } from './summary.js';
+import { formatDuration, formatLocation, gradeLabel, kindLabel, overallScore, projectAreas, remainingCount, SCORE_EXPLANATION, severityLabel, topPriorities } from './summary.js';
 
 /**
  * Renders the report as GitHub-flavoured Markdown, for a pull request, a
@@ -23,6 +23,17 @@ export function renderMarkdown(report: Report): string {
   lines.push('| Area | Grade | Summary |', '| --- | --- | --- |');
   for (const check of report.checks) lines.push(`| ${cell(check.title)} | ${gradeLabel(check.grade)} | ${cell(check.summary)} |`);
   lines.push('');
+
+  const projects = report.projects ?? [];
+  if (projects.length > 0) {
+    lines.push('## Projects', '', `${plural(projects.length, 'project')}, worst first. Each is graded on its own code; the Angular version and the third-party packages are shared and graded above.`, '');
+    lines.push('| Project | Type | Score | Files | High findings | Poor | Fair |', '| --- | --- | --- | --- | --- | --- | --- |');
+    for (const row of projects) {
+      const { poor, fair } = projectAreas(row, report);
+      lines.push(`| ${cell(row.name)} \`${cell(row.root || '.')}\` | ${row.type} | ${row.score ?? '-'} | ${formatCount(row.sourceFiles)} | ${row.highFindings} | ${cell(poor.join(', '))} | ${cell(fair.join(', '))} |`);
+    }
+    lines.push('');
+  }
 
   const priorities = topPriorities(report);
   if (priorities.length > 0) {

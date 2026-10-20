@@ -1,6 +1,6 @@
 import { formatCount, plural } from '../checks/context.js';
 import type { Grade, Report, Severity } from '../types.js';
-import { formatDuration, formatLocation, gradeLabel, kindLabel, overallScore, remainingCount, SCORE_EXPLANATION, severityLabel, topPriorities } from './summary.js';
+import { formatDuration, formatLocation, gradeLabel, kindLabel, overallScore, projectAreas, remainingCount, SCORE_EXPLANATION, severityLabel, topPriorities } from './summary.js';
 
 /** Options for the terminal renderer. */
 export interface TerminalOptions {
@@ -58,6 +58,25 @@ export function renderTerminal(report: Report, options: TerminalOptions): string
     lines.push('');
     const color = score >= 80 ? c.green : score >= 50 ? c.yellow : c.red;
     lines.push(`${c.bold('Score')} ${color(c.bold(`${score}/100`))}  ${c.dim(SCORE_EXPLANATION)}`);
+  }
+
+  // Ten rows are enough to see where the work is; a 200-project monorepo
+  // would otherwise push everything else off the screen.
+  const projects = report.projects ?? [];
+  if (projects.length > 0) {
+    const shown = options.verbose ? projects : projects.slice(0, 10);
+    const nameWidth = Math.max(...shown.map((row) => row.name.length));
+    const rootWidth = Math.max(...shown.map((row) => (row.root || '.').length));
+    lines.push('');
+    lines.push(`${c.bold('Projects')}  ${c.dim(`${projects.length}, worst first, graded on their own code`)}`);
+    for (const row of shown) {
+      const { poor, fair } = projectAreas(row, report);
+      const scoreText = row.score === undefined ? '  -' : String(row.score).padStart(3);
+      const color = row.score === undefined ? c.gray : row.score >= 80 ? c.green : row.score >= 50 ? c.yellow : c.red;
+      const areas = [poor.length > 0 ? c.red(`poor: ${poor.join(', ')}`) : '', fair.length > 0 ? c.yellow(`fair: ${fair.join(', ')}`) : ''].filter(Boolean).join('  ');
+      lines.push(`  ${color(scoreText)}  ${row.name.padEnd(nameWidth)}  ${c.dim((row.root || '.').padEnd(rootWidth))}  ${areas}`.trimEnd());
+    }
+    if (shown.length < projects.length) lines.push(c.dim(`  and ${projects.length - shown.length} more: --verbose, or the HTML or Markdown report`));
   }
 
   const comparison = report.baseline;

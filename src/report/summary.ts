@@ -1,4 +1,4 @@
-import type { CheckResult, Finding, Grade, Report, Severity } from '../types.js';
+import type { CheckResult, Finding, Grade, ProjectSummary, Report, Severity } from '../types.js';
 
 /** Points per grade for the overall score. `info` is absent: it never counts. */
 const GRADE_POINTS: Record<Exclude<Grade, 'info'>, number> = { good: 100, fair: 60, poor: 20 };
@@ -22,10 +22,23 @@ export interface Priority {
  * because a number whose derivation is hidden invites arguing with it instead
  * of with the findings.
  */
-export function overallScore(report: Report): number | undefined {
+export function overallScore(report: Pick<Report, 'checks'>): number | undefined {
   const graded = report.checks.filter((check): check is CheckResult & { grade: Exclude<Grade, 'info'> } => check.grade !== 'info');
   if (graded.length === 0) return undefined;
   return Math.round(graded.reduce((sum, check) => sum + GRADE_POINTS[check.grade], 0) / graded.length);
+}
+
+/**
+ * The titles of a project's poor and fair areas, in report order, for the
+ * per-project tables. Titles come from the whole-workspace checks, since a
+ * project row stores only the grade per check id.
+ */
+export function projectAreas(row: ProjectSummary, report: Pick<Report, 'checks'>): { poor: string[]; fair: string[] } {
+  const titled = report.checks.filter((check) => row.grades[check.id] !== undefined);
+  return {
+    poor: titled.filter((check) => row.grades[check.id] === 'poor').map((check) => check.title),
+    fair: titled.filter((check) => row.grades[check.id] === 'fair').map((check) => check.title),
+  };
 }
 
 /** The sentence every format prints under the score. */

@@ -33,6 +33,21 @@ export interface DependencyTangle {
  *   Angular CLI resolves and which needs no file extensions.
  */
 export function findTangles(files: SourceFileFacts[], compilerOptions: ts.CompilerOptions): DependencyTangle[] {
+  return findTanglesIn(buildImportGraph(files, compilerOptions));
+}
+
+/** The eager import graph of the application files: absolute path to the absolute paths it imports. */
+export interface ImportGraph {
+  edges: Map<string, string[]>;
+  byAbsolute: Map<string, SourceFileFacts>;
+}
+
+/**
+ * Resolves every eager, value-level import between the analysed files (see
+ * `findTangles` for what counts). Built once per run and shared by the cycle
+ * search and the lazy-loading analysis.
+ */
+export function buildImportGraph(files: SourceFileFacts[], compilerOptions: ts.CompilerOptions): ImportGraph {
   const sources = files.filter((file) => !file.isSpec);
   const byAbsolute = new Map(sources.map((file) => [resolve(file.absolutePath), file]));
   const options: ts.CompilerOptions = { ...compilerOptions, moduleResolution: ts.ModuleResolutionKind.Bundler, module: ts.ModuleKind.ESNext, allowJs: false };
@@ -53,7 +68,29 @@ export function findTangles(files: SourceFileFacts[], compilerOptions: ts.Compil
     }
     edges.set(resolve(file.absolutePath), [...targets]);
   }
+  return { edges, byAbsolute };
+}
 
+/**
+ * Report paths of the files the browser loads up front: everything reachable
+ * from `entries` through static imports. A file reached only through
+ * `import()` (a `loadChildren` or `loadComponent` target and what it imports)
+ * is not in it. Entries that are not analysed files are ignored.
+ */
+export function staticallyReachable(graph: ImportGraph, entries: string[]): Set<string> {
+  const seen = new Set<string>();
+  const queue = entries.map((entry) => resolve(entry)).filter((entry) => graph.byAbsolute.has(entry));
+  while (queue.length > 0) {
+    const next = queue.pop()!;
+    if (seen.has(next)) continue;
+    seen.add(next);
+    queue.push(...(graph.edges.get(next) ?? []));
+  }
+  return new Set([...seen].map((path) => graph.byAbsolute.get(path)!.path));
+}
+
+/** The cycle groups of an already built graph, largest first. */
+export function findTanglesIn({ edges, byAbsolute }: ImportGraph): DependencyTangle[] {
   return stronglyConnectedComponents(edges)
     .filter((component) => component.length > 1 || (edges.get(component[0]!) ?? []).includes(component[0]!))
     .map((component) => {

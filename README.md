@@ -4,7 +4,7 @@
 
 **A one-minute modernization report for any Angular codebase.**
 
-Point it at a repository and it tells you how far the code is from current Angular, what will break on the next upgrade, and where the work is. Eight areas get a grade, every finding names the files, and the HTML report is one self-contained page you can hand to your team lead.
+Point it at a repository and it tells you how far the code is from current Angular, what will break on the next upgrade, and where the work is. Twelve areas get a grade, from the Angular version and third-party packages to security and bundle size, every finding names the files, and the HTML report is one self-contained page you can hand to your team lead.
 
 ```bash
 npx ng-checkup
@@ -22,7 +22,9 @@ npx ng-checkup
 - [Set it up in a project](#set-it-up-in-a-project)
 - [Configuration](#configuration)
 - [Baseline: adopt it on legacy code](#baseline-adopt-it-on-legacy-code)
+- [Watch mode](#watch-mode)
 - [Upgrade plan](#upgrade-plan)
+- [Monorepos](#monorepos)
 - [What it checks](#what-it-checks)
 - [Reports](#reports)
 - [In CI](#in-ci)
@@ -120,12 +122,28 @@ Baseline  2 worse
   worse  Type safety: Non-null assertions (x!) 0 → 1
 ```
 
-- **It records counts, not grades:** explicit `any`, `x!`, files in import cycles, components without OnPush or a spec, NgModule-declared components, deprecated API uses and [18 more](https://github.com/stefankuburovic/ng-checkup/blob/main/docs/checks.md#measures). Lower is better for every one.
+- **It records counts, not grades:** explicit `any`, `x!`, files in import cycles, components without OnPush or a spec, NgModule-declared components, deprecated API uses, sanitizer bypasses, eager routes and [24 more](https://github.com/stefankuburovic/ng-checkup/blob/main/docs/checks.md#measures). Lower is better for every one.
 - **It only goes down.** When numbers drop, the run says so; `npx ng-checkup baseline` locks the new numbers in. If a number went up, `baseline` refuses and lists it, so a regression cannot be waved through by re-running the command. `--force` accepts it, which is the moment someone has to explain why in review.
 - **It is a plain, sorted JSON file**, so lowering a number is a one-line diff in a merge request.
 - **The gap to the latest Angular is not in it.** That grows when Angular ships, not when the code gets worse.
 
 `ng add ng-checkup` and `npx ng-checkup init` create the first baseline and set CI to `--fail-on regression` for you.
+
+## Watch mode
+
+```bash
+npx ng-checkup --watch
+```
+
+Re-runs on every save and prints, under the usual summary, how the score and every measure moved since the watch started:
+
+```text
+Score 72 -> 76 (+4 since the watch started)
+  down Explicit any: 41 -> 37
+  down Components without OnPush: 12 -> 11
+```
+
+Only the changed files are parsed again, and the registry is asked again only when `package.json` or a lockfile changes, so a run after a save takes a fraction of the first one. Keep it open next to the editor while working through a refactor; run `npx ng-checkup baseline` in another terminal to lock a drop in, and the next run compares against it.
 
 ## Upgrade plan
 
@@ -156,18 +174,43 @@ Upgrade plan  12 → 22, 10 steps, one major at a time
 
 The plan is in every format, including the HTML report ([example](https://stefankuburovic.github.io/ng-checkup/example.html#plan-title)) and the JSON (`report.plan`).
 
+## Monorepos
+
+In an Angular CLI workspace with several projects or an Nx workspace, the report adds a table with one row per project, worst score first (here [nx-examples](https://github.com/nrwl/nx-examples), shortened):
+
+```text
+Projects  5, worst first, graded on their own code
+   65  products            apps/products            poor: Change detection & zoneless readiness, Components & templates, Type safety  fair: State management
+   80  products-home-page  libs/products/home-page  poor: Type safety  fair: Components & templates, State management
+   80  shared-cart-state   libs/shared/cart/state   poor: Type safety  fair: State management
+```
+
+Each project is graded on the files it owns (a nested library keeps its own) with its own tsconfig. The Angular version and the third-party packages are shared, so they are graded once, for the workspace. Projects that import nothing from Angular (React apps, Node services, Cypress e2e folders) get no row.
+
+`--project <name>` narrows the whole report to one project, which is how a team owning one app runs it in CI:
+
+```bash
+npx ng-checkup --project admin --report admin.html
+```
+
+The baseline always covers the whole workspace, so `--project` runs do not compare against it.
+
 ## What it checks
 
 | Area | It looks at | Poor when |
 | --- | --- | --- |
 | [**Angular version & tooling**](https://github.com/stefankuburovic/ng-checkup/blob/main/docs/checks.md#version) | installed vs. latest Angular, mixed `@angular/*` majors, webpack builder, end-of-life packages | three or more majors behind, i.e. out of support |
 | [**Deprecated APIs**](https://github.com/stefankuburovic/ng-checkup/blob/main/docs/checks.md#deprecated-apis) | every imported Angular/NgRx symbol your **installed** version tags `@deprecated`, plus `*ngIf` / `*ngFor` in templates | something deprecated two majors ago is still used |
+| [**Third-party compatibility**](https://github.com/stefankuburovic/ng-checkup/blob/main/docs/checks.md#dependencies) | the `@angular/core` peer range of every installed package (PrimeNG, Kendo, ng-bootstrap, NGXS, ...), the release that supports the next majors, npm deprecations | a package does not accept the installed Angular, or no release supports the latest |
 | [**Change detection**](https://github.com/stefankuburovic/ng-checkup/blob/main/docs/checks.md#change-detection) | zoneless or zone.js, OnPush coverage, `NgZone`, zone-only test helpers | zone.js with less than half the components on OnPush |
 | [**Components & templates**](https://github.com/stefankuburovic/ng-checkup/blob/main/docs/checks.md#components) | standalone, signal inputs and outputs, built-in control flow, `@defer` | average adoption below 40% |
 | [**State management**](https://github.com/stefankuburovic/ng-checkup/blob/main/docs/checks.md#state) | classic NgRx, NgRx signal store, signals, `BehaviorSubject` services | the removed `@Effect()` decorator |
+| [**Architecture**](https://github.com/stefankuburovic/ng-checkup/blob/main/docs/checks.md#architecture) | eager vs. lazy routes (following `loadChildren` into lazy modules), files over 500 and 1 000 lines, constructor injection, class-based guards and interceptors | ten eager routes and none lazy, or three files over 1 000 lines |
 | [**Testing**](https://github.com/stefankuburovic/ng-checkup/blob/main/docs/checks.md#testing) | Karma / Jest / Vitest, specs next to components and services, Protractor / Playwright / Cypress | Karma, Protractor or no specs |
 | [**Type safety**](https://github.com/stefankuburovic/ng-checkup/blob/main/docs/checks.md#type-safety) | `strictNullChecks`, `strictTemplates`, `noImplicitAny`, `any`, `x!`, `@ts-ignore`, `$any()` | both `strictNullChecks` and `strictTemplates` off |
+| [**Security**](https://github.com/stefankuburovic/ng-checkup/blob/main/docs/checks.md#security) | `bypassSecurityTrust*`, HTML written straight into the DOM (`innerHTML =`, `insertAdjacentHTML`, `Renderer2.setProperty`), `eval`, `[innerHTML]` bindings | HTML written into the DOM past the sanitizer, or `eval` |
 | [**Circular dependencies**](https://github.com/stefankuburovic/ng-checkup/blob/main/docs/checks.md#circular-deps) | import cycles through relative paths, barrels and tsconfig `paths` | more than three groups or ten files in loops |
+| [**Bundle size**](https://github.com/stefankuburovic/ng-checkup/blob/main/docs/checks.md#bundle) | the initial bundle from the last `ng build --stats-json` (esbuild or webpack) against the build's budget, its largest packages, lazy chunks | over the `initial` error budget (1 MB by default) |
 
 Each finding says why it matters and which `ng generate` migration fixes it. **[Every check, its grading and its fix →](https://github.com/stefankuburovic/ng-checkup/blob/main/docs/checks.md)**
 
@@ -184,6 +227,7 @@ Defaults that changed between versions are applied per version: a component with
 | `npx ng-checkup --report checkup.html` | self-contained page: light and dark mode, prints cleanly to PDF, loads nothing from the network |
 | `npx ng-checkup --report checkup.md` | Markdown for a pull request, an issue or a wiki |
 | `npx ng-checkup --report checkup.json` | everything, machine-readable |
+| `npx ng-checkup --report checkup.sarif` | SARIF 2.1.0 for [GitHub code scanning](#in-ci) and other SARIF viewers |
 | `npx ng-checkup --json` | the JSON on stdout, for piping |
 
 `--report` is repeatable, so one run can write all three files.
@@ -201,11 +245,17 @@ Arguments:
 
 Options:
   -r, --report <file>    Write the full report; format from the extension:
-                         .html, .md or .json. Repeatable.
+                         .html, .md, .json or .sarif (GitHub code scanning).
+                         Repeatable.
       --json             Print the report as JSON to stdout instead of the summary
   -v, --verbose          Print every finding with its files
       --plan             Add an upgrade plan to the latest Angular, one major
                          at a time, with the migrations this code needs
+  -p, --project <name>   Analyse one project of an Angular CLI or Nx workspace.
+                         Without it, a multi-project workspace also gets a
+                         per-project table
+  -w, --watch            Re-run on every change and show how the score and the
+                         measures moved since the watch started
       --fail-on <grade>  Exit with code 1 if any area is graded <grade> or worse
                          (poor or fair), or with regression if a measure is
                          worse than the baseline (for CI)
@@ -261,6 +311,26 @@ ng-checkup:
     paths: [checkup.md, checkup.html]
 ```
 
+**GitHub code scanning**
+
+`--report ng-checkup.sarif` writes [SARIF](https://sarifweb.azurewebsites.net/), so findings show up as annotations on the changed lines of a pull request and in the Security tab:
+
+```yaml
+permissions:
+  security-events: write
+steps:
+  - uses: actions/checkout@v4
+  - run: npm ci
+  - run: npx ng-checkup --offline --max-examples 1000 --report ng-checkup.sarif
+  - uses: github/codeql-action/upload-sarif@v3
+    if: always()
+    with:
+      sarif_file: ng-checkup.sarif
+      category: ng-checkup
+```
+
+One rule per area, so alerts survive a rerun; a finding about the whole project (the Angular version, a package that blocks the upgrade) is placed on `package.json`. `--max-examples` decides how many locations each finding reports. Code scanning is free on public repositories and needs GitHub Advanced Security on private ones.
+
 On an existing codebase, start with a [baseline](#baseline-adopt-it-on-legacy-code) and `--fail-on regression`. `--fail-on poor` and `--fail-on fair` are for codebases that are already in good shape and want to stay there.
 
 ## Programmatic API
@@ -280,11 +350,11 @@ for (const check of report.checks) {
 await writeFile('checkup.md', renderMarkdown(report));
 ```
 
-`runCheckup` never writes anything. `renderHtml`, `renderMarkdown`, `overallScore`, `topPriorities`, `loadConfig`, `planInit` (what `init` would change, without writing it) and the baseline functions (`createBaseline`, `compareWithBaseline`, `readBaseline`, `serializeBaseline`) are exported too, along with the `Report`, `CheckResult`, `Finding` and `Grade` types. `Report` is also the schema of the JSON output.
+`runCheckup` never writes anything. Its options mirror the flags (`offline`, `plan`, `project`, `ignore`, `maxExamples`), plus `cache` from `createAnalysisCache()` to make repeated runs incremental. `renderHtml`, `renderMarkdown`, `renderSarif`, `overallScore`, `topPriorities`, `loadConfig`, `planInit` (what `init` would change, without writing it) and the baseline functions (`createBaseline`, `compareWithBaseline`, `readBaseline`, `serializeBaseline`) are exported too, along with the `Report`, `CheckResult`, `Finding` and `Grade` types. `Report` is also the schema of the JSON output.
 
 ## What leaves your machine
 
-One request: the latest `@angular/core` version from the npm registry, with a three-second timeout. `--offline` skips it and compares against the newest major this release knows, and the report says so. No source, no file names, no telemetry. The tool reads files and writes only the reports you ask for.
+Package names, and only to the public npm registry: the latest `@angular/core` version (three-second timeout), and for every installed third-party package that depends on Angular, its public metadata, to find the release that supports the next Angular and whether it is deprecated (eight at a time, four-second timeout each). `--offline` skips all of it: the report then compares against the newest major this release knows and says so. No source, no file names, no telemetry. The tool reads files and writes only the reports you ask for.
 
 ## How it works
 
@@ -302,15 +372,19 @@ One request: the latest `@angular/core` version from the npm registry, with a th
 
 **Is "with a spec" my test coverage?** No. It counts components and services with an `x.spec.ts` next to `x.ts`. It needs no test run, which is what keeps the tool fast and usable on a repository it has never seen.
 
-**Does it support Nx?** Yes: it reads `project.json` targets and tsconfig `paths`. A workspace with several apps is reported as one codebase for now.
+**Does it support Nx?** Yes: it reads `project.json` targets and tsconfig `paths`, and reports [each project separately](#monorepos) as well as the whole workspace.
+
+**Does it need RxJS or NgRx?** No. Checks report what they find: an app without RxJS has nothing for the RxJS deprecations to flag, and one without a state library is graded on signals and services. Other libraries (NGXS, Akita, PrimeNG, Kendo, Material) are covered where it matters for an upgrade, through their Angular peer ranges in the third-party check.
+
+**Why is bundle size "info"?** It reads the stats file of your last build instead of running one. `ng build --stats-json` writes it; run the checkup after that.
 
 **Which Angular versions?** Angular 2 and newer (not AngularJS). Checks whose rules changed between versions (standalone, OnPush, zoneless defaults) apply the rules of the version you run.
 
 ## Roadmap
 
-- Per-project reports for Nx and multi-project workspaces
-- Bundle size from the build's esbuild metafile
-- SARIF output for GitHub code scanning
+- Per-project baselines for monorepos
+- Change frequency from git history, to rank large files by how often they change
+- A VS Code extension showing findings inline
 
 Ideas and bug reports are welcome in [issues](https://github.com/stefankuburovic/ng-checkup/issues).
 

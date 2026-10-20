@@ -1,6 +1,6 @@
 import { formatCount, plural } from '../checks/context.js';
 import type { CheckResult, Finding, Grade, Report } from '../types.js';
-import { formatDuration, formatLocation, gradeLabel, kindLabel, overallScore, remainingCount, SCORE_EXPLANATION, severityLabel, topPriorities } from './summary.js';
+import { formatDuration, formatLocation, gradeLabel, kindLabel, overallScore, projectAreas, remainingCount, SCORE_EXPLANATION, severityLabel, topPriorities } from './summary.js';
 
 /**
  * Renders the report as one self-contained HTML file.
@@ -64,6 +64,8 @@ export function renderHtml(report: Report): string {
   </section>`
   }
 
+  ${report.projects ? projectsSection(report) : ''}
+
   ${report.baseline ? baselineSection(report.baseline) : ''}
 
   ${report.plan ? planSection(report.plan) : ''}
@@ -114,6 +116,28 @@ function planSection(plan: NonNullable<Report['plan']>): string {
         )
         .join('\n      ')}
     </ol>
+  </section>`;
+}
+
+/** The per-project table of a monorepo, worst score first, with a pill per poor or fair area. */
+function projectsSection(report: Report): string {
+  const rows = report.projects ?? [];
+  const pills = (titles: string[], grade: Grade): string => titles.map((title) => `<span class="pill grade-${grade}">${escape(title)}</span>`).join(' ');
+  return `<section aria-labelledby="projects-title">
+    <h2 id="projects-title" class="section-title">Projects</h2>
+    <p class="check-summary">${plural(rows.length, 'project')}, worst first. Each is graded on its own code; the Angular version and the third-party packages are shared and graded below.</p>
+    <div class="table-wrap"><table class="projects">
+      <thead><tr><th>Project</th><th>Type</th><th class="num">Score</th><th class="num">Files</th><th class="num">High</th><th>Areas to work on</th></tr></thead>
+      <tbody>
+      ${rows
+        .map((row) => {
+          const { poor, fair } = projectAreas(row, report);
+          const band: Grade = row.score === undefined ? 'info' : row.score >= 80 ? 'good' : row.score >= 50 ? 'fair' : 'poor';
+          return `<tr><td><strong>${escape(row.name)}</strong><br><code>${escape(row.root || '.')}</code></td><td>${escape(row.type)}</td><td class="num"><span class="pill grade-${band}">${row.score ?? '-'}</span></td><td class="num">${formatCount(row.sourceFiles)}</td><td class="num">${row.highFindings}</td><td>${pills(poor, 'poor')} ${pills(fair, 'fair')}</td></tr>`;
+        })
+        .join('\n      ')}
+      </tbody>
+    </table></div>
   </section>`;
 }
 
@@ -227,6 +251,14 @@ h1 { margin: 0 0 8px; font-size: 32px; line-height: 1.15; letter-spacing: -0.01e
 .score figcaption { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
 .score-value { font-size: 30px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .score-unit { color: var(--muted); font-size: 13px; margin-left: 1px; padding-top: 10px; }
+.table-wrap { overflow-x: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; }
+.projects { width: 100%; border-collapse: collapse; font-size: 14px; }
+.projects th, .projects td { text-align: left; vertical-align: top; padding: 10px 14px; border-bottom: 1px solid var(--border); }
+.projects tbody tr:last-child td { border-bottom: 0; }
+.projects th { color: var(--muted); font-weight: 600; font-size: 12.5px; }
+.projects .num { text-align: right; white-space: nowrap; }
+.projects code { color: var(--muted); font-size: 12.5px; }
+.projects .pill { margin: 0 4px 4px 0; }
 .section-title { font-size: 13px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); margin: 36px 0 12px; }
 .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
 .card { display: flex; flex-direction: column; gap: 6px; padding: 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; text-decoration: none; transition: border-color 0.15s; }

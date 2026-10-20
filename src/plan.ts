@@ -1,4 +1,5 @@
 import { ANGULAR_VERSIONS, type AngularVersionInfo } from './angular-versions.js';
+import type { PackageCompatibility } from './compatibility.js';
 import type { CheckResult } from './types.js';
 import { readInstalledVersion, type WorkspaceInfo } from './workspace.js';
 
@@ -64,7 +65,13 @@ export interface UpgradePlan {
  * @returns Undefined when the Angular version is unknown, or already at or
  *   past the target.
  */
-export function buildPlan(workspace: WorkspaceInfo, checks: CheckResult[], target: number, versions: AngularVersionInfo[] = ANGULAR_VERSIONS): UpgradePlan | undefined {
+export function buildPlan(
+  workspace: WorkspaceInfo,
+  checks: CheckResult[],
+  target: number,
+  versions: AngularVersionInfo[] = ANGULAR_VERSIONS,
+  compatibility: PackageCompatibility[] = [],
+): UpgradePlan | undefined {
   const from = workspace.angular.major;
   if (from === undefined || from >= target) return undefined;
 
@@ -92,6 +99,41 @@ export function buildPlan(workspace: WorkspaceInfo, checks: CheckResult[], targe
   if (measure('circular-deps', 'files-in-cycles') > 0) {
     before.push({ title: 'Break the import cycles', detail: 'A cycle that works by luck of load order is the first thing a new compiler or bundler breaks, and the failure looks unrelated to the upgrade.', count: measure('circular-deps', 'files-in-cycles') });
   }
+
+  for (const entry of compatibility.filter((candidate) => !candidate.supportsCurrent)) {
+    const release = entry.releaseFor?.[from];
+    before.push({
+      title: `Fix ${entry.name}: version ${entry.installed} does not accept Angular ${from}`,
+      command: release ? `npm install ${entry.name}@${release.version}` : undefined,
+      detail: release ? `Version ${release.version} does.` : `It declares @angular/core ${entry.angularRange}.`,
+    });
+  }
+
+  /**
+   * The Angular range each third-party package has at the current point of the
+   * plan. A step that falls outside it gets an "update to X" item, and the
+   * range moves to X's, so a later step is only flagged if X stops short too.
+   */
+  const packageRanges = new Map(compatibility.filter((entry) => entry.supportsCurrent && entry.blocksAt !== undefined).map((entry) => [entry.name, entry.angularRange]));
+  const packageItems = (major: number): PlanItem[] => {
+    const items: PlanItem[] = [];
+    for (const entry of compatibility) {
+      const range = packageRanges.get(entry.name);
+      if (range === undefined || satisfies([major, 0, 0], range) || satisfies([major, 99, 99], range)) continue;
+      const release = entry.releaseFor?.[major];
+      if (release) {
+        items.push({ title: `Update ${entry.name} to ${release.version}`, command: `npm install ${entry.name}@${release.version}`, detail: `The installed ${entry.installed} does not support Angular ${major}.` });
+        packageRanges.set(entry.name, release.angularRange);
+      } else {
+        items.push({
+          title: release === null ? `${entry.name} has no release for Angular ${major}` : `${entry.name} does not support Angular ${major}`,
+          detail: release === null ? 'Replace it before this step, or stop the upgrade at the last major it supports.' : 'Run the checkup online to find a release that does, or replace it.',
+        });
+        packageRanges.delete(entry.name);
+      }
+    }
+    return items;
+  };
 
   const steps: UpgradeStep[] = [];
   /** Each project-specific migration is scheduled once, at the first step where it exists. */
@@ -137,6 +179,7 @@ export function buildPlan(workspace: WorkspaceInfo, checks: CheckResult[], targe
     if (info.zoneJs && has('zone.js') && !zoneless) requirements.push(track(requirement('zone.js', info.zoneJs, moved.has('zone.js') ? undefined : current.zoneJs)));
 
     const items: PlanItem[] = [
+      ...packageItems(major),
       ...(unknown ? [{ title: 'Check the requirements for this major', detail: 'It was released after this version of ng-checkup. Node.js and TypeScript ranges: angular.dev/reference/versions.' }] : []),
       ...(ngrx.length > 0 && major >= 8 ? [{ title: `Update NgRx to ${major} in the same step`, command: `ng update ${ngrx.map((name) => `${name}@${major}`).join(' ')}`, detail: 'NgRx versions follow Angular majors. If that major is not released yet, wait for it before this step.' }] : []),
       ...(has('@angular/flex-layout') && major === 16

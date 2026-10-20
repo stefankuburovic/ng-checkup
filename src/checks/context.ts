@@ -1,4 +1,6 @@
+import type { BundleStats } from '../bundle.js';
 import type ts from 'typescript';
+import type { PackageCompatibility } from '../compatibility.js';
 import type { DeprecationIndex } from '../deprecations.js';
 import type { DependencyTangle } from '../graph.js';
 import type { SourceFileFacts, TemplateFact } from '../scan.js';
@@ -19,6 +21,17 @@ export interface AnalysisContext {
   /** Empty when dependencies are not installed. */
   deprecations: DeprecationIndex;
   tangles: DependencyTangle[];
+  /**
+   * Report paths of the files loaded at startup: statically reachable from an
+   * application entry (`main.ts`). Undefined when no build target names an
+   * entry that was analysed, in which case nothing can be said about what
+   * loads lazily.
+   */
+  eagerFiles?: Set<string>;
+  /** Stats of the last `ng build --stats-json` per application. Empty when there is none. */
+  bundles: BundleStats[];
+  /** Installed third-party packages that depend on Angular. Empty without node_modules. */
+  compatibility: PackageCompatibility[];
   /** Newest Angular major, and whether it came from the registry or the tool's bundled fallback. */
   latestAngular: { major: number; source: 'registry' | 'bundled' };
   /** Effective options of the application tsconfig, `extends` resolved. */

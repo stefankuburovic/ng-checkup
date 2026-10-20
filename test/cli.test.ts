@@ -1,9 +1,16 @@
 import { execFileSync, spawnSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
-import { parseCliArguments, shouldFail } from '../src/cli.js';
+import { analysisIgnores, parseCliArguments, shouldFail } from '../src/cli.js';
 import type { Report } from '../src/types.js';
 import { fixture, removeTemp, writeTemp } from './helpers.js';
+
+describe('analysisIgnores', () => {
+  it('adds the report files inside the repository to the ignore patterns, and nothing outside it', () => {
+    expect(analysisIgnores('/repo', { ignore: ['legacy'], reports: ['/repo/checkup.html', '/repo/out/plan.md', '/elsewhere/r.html'] })).toEqual(['legacy', 'checkup.html', 'out/plan.md']);
+    expect(analysisIgnores('/repo', { reports: [] })).toBeUndefined();
+  });
+});
 
 describe('parseCliArguments', () => {
   const parse = (...argv: string[]) => parseCliArguments(argv, {}, true);
@@ -28,9 +35,16 @@ describe('parseCliArguments', () => {
     });
   });
 
+  it('takes --watch, but not together with --json or --fail-on', () => {
+    expect(parse('-w')).toMatchObject({ watch: true });
+    expect(parse()).toMatchObject({ watch: false });
+    expect(() => parse('--watch', '--json')).toThrow('cannot be combined with --json');
+    expect(() => parse('--watch', '--fail-on', 'poor')).toThrow('--fail-on has nothing to fail');
+  });
+
   it('rejects what it cannot act on, with a message for the user', () => {
     expect(() => parse('/definitely/not/here')).toThrow('Not a directory');
-    expect(() => parse('--report', 'out.pdf')).toThrow('use .html, .md or .json');
+    expect(() => parse('--report', 'out.pdf')).toThrow('use .html, .md, .json or .sarif');
     expect(() => parse('--fail-on', 'good')).toThrow('--fail-on takes poor, fair or regression');
     expect(() => parse('--max-examples', 'abc')).toThrow('whole number');
     expect(() => parse('--max-examples', '1.5')).toThrow('whole number');
@@ -76,7 +90,7 @@ describe('the built CLI', () => {
     expect(result.stdout).toContain('Top priorities');
     expect(readFileSync(join(output, 'r.html'), 'utf8')).toContain('<!doctype html>');
     expect(readFileSync(join(output, 'r.md'), 'utf8')).toContain('# Angular checkup: legacy-app');
-    expect((JSON.parse(readFileSync(join(output, 'r.json'), 'utf8')) as Report).checks).toHaveLength(8);
+    expect((JSON.parse(readFileSync(join(output, 'r.json'), 'utf8')) as Report).checks).toHaveLength(12);
   });
 
   it('sets a repository up with init, is a no-op the second time, and writes nothing on --dry-run', () => {

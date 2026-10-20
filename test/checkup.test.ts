@@ -23,12 +23,16 @@ describe('runCheckup on a legacy Angular 15 app', () => {
       version: 'poor',
       // No node_modules in the fixture, so deprecations cannot be read.
       'deprecated-apis': 'info',
+      dependencies: 'info',
       'change-detection': 'fair',
       components: 'poor',
       state: 'fair',
       testing: 'poor',
       'type-safety': 'poor',
       'circular-deps': 'fair',
+      architecture: 'good',
+      security: 'good',
+      bundle: 'info',
     });
   });
 
@@ -73,12 +77,16 @@ describe('runCheckup on a current Angular 22 app', () => {
     expect(grades(report)).toEqual({
       version: 'good',
       'deprecated-apis': 'info',
+      dependencies: 'info',
       'change-detection': 'good',
       components: 'good',
       state: 'good',
       testing: 'good',
       'type-safety': 'good',
       'circular-deps': 'good',
+      architecture: 'good',
+      security: 'good',
+      bundle: 'info',
     });
     const components = report.checks.find((check) => check.id === 'components');
     expect(components?.metrics).toContainEqual({ label: 'Signal inputs', value: '100%', hint: '2 of 2' });

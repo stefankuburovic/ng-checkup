@@ -1,22 +1,30 @@
 import { readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
+import { readBundleStats } from './bundle.js';
+import { bundleCheck } from './checks/bundle.js';
+import { architectureCheck } from './checks/architecture.js';
 import { changeDetectionCheck } from './checks/change-detection.js';
 import { circularDepsCheck } from './checks/circular-deps.js';
 import { componentsCheck } from './checks/components.js';
 import type { AnalysisContext, Check } from './checks/context.js';
 import { deprecatedApisCheck } from './checks/deprecated-apis.js';
+import { dependenciesCheck } from './checks/dependencies.js';
+import { readCompatibility } from './compatibility.js';
+import { securityCheck } from './checks/security.js';
 import { stateCheck } from './checks/state.js';
 import { testingCheck } from './checks/testing.js';
 import { typeSafetyCheck } from './checks/type-safety.js';
 import { versionCheck } from './checks/version.js';
+import { cachedFacts, dependencyStamp } from './cache.js';
 import { buildDeprecationIndex } from './deprecations.js';
 import { ignoreMatcher } from './config.js';
 import { collectFiles } from './files.js';
-import { findTangles, readCompilerOptions } from './graph.js';
+import { buildImportGraph, findTanglesIn, readCompilerOptions, staticallyReachable } from './graph.js';
 import { buildPlan } from './plan.js';
 import { scanSourceFile, scanTemplateFile } from './scan.js';
-import type { CheckupOptions, Report } from './types.js';
-import { asRecord, majorOf, readJson, readWorkspace } from './workspace.js';
+import { overallScore } from './report/summary.js';
+import type { CheckupOptions, ProjectSummary, Report } from './types.js';
+import { applicationEntries, asRecord, majorOf, owningProject, readJson, readWorkspace, restrictToProject, type ProjectInfo } from './workspace.js';
 
 export type * from './types.js';
 // The renderers and the score are public so a script can turn a report from
@@ -24,6 +32,8 @@ export type * from './types.js';
 // as a pull-request comment.
 export { renderHtml } from './report/html.js';
 export { renderMarkdown } from './report/markdown.js';
+export { renderSarif } from './report/sarif.js';
+export { createAnalysisCache, type AnalysisCache } from './cache.js';
 export { overallScore, topPriorities } from './report/summary.js';
 export { CONFIG_FILE, loadConfig, type CheckupConfig } from './config.js';
 export { buildPlan, type PlanItem, type PlanRequirement, type UpgradePlan, type UpgradeStep } from './plan.js';
@@ -52,7 +62,32 @@ export const BUNDLED_LATEST_ANGULAR_MAJOR = 22;
  * The checks in report order: the upgrade blockers first (version,
  * deprecations), then the modernisation areas, then the structural ones.
  */
-export const CHECKS: Check[] = [versionCheck, deprecatedApisCheck, changeDetectionCheck, componentsCheck, stateCheck, testingCheck, typeSafetyCheck, circularDepsCheck];
+export const CHECKS: Check[] = [
+  versionCheck,
+  deprecatedApisCheck,
+  dependenciesCheck,
+  changeDetectionCheck,
+  componentsCheck,
+  stateCheck,
+  architectureCheck,
+  testingCheck,
+  typeSafetyCheck,
+  securityCheck,
+  circularDepsCheck,
+  bundleCheck,
+];
+
+/**
+ * The checks that grade a project's own code, for the per-project breakdown.
+ * `version` and `dependencies` read the root `package.json`, which all
+ * projects of a workspace share.
+ */
+const PROJECT_CHECKS: Check[] = CHECKS.filter((check) => check !== versionCheck && check !== dependenciesCheck);
+
+/** Thrown by `runCheckup` for a `project` option that names no project; the message lists the names. */
+export class ProjectNotFoundError extends Error {
+  override name = 'ProjectNotFoundError';
+}
 
 /** This package's own name and version, read from its package.json at runtime so the two never drift. */
 export const TOOL = readToolInfo();
@@ -60,10 +95,13 @@ export const TOOL = readToolInfo();
 /**
  * Analyses the Angular codebase at `root` and returns the full report.
  *
- * Reads the disk and, unless `offline` is set, makes one request to the npm
- * registry for the latest `@angular/core` version (three-second timeout,
- * falling back to `BUNDLED_LATEST_ANGULAR_MAJOR`). Nothing else leaves the
- * machine: no source, no file names, no telemetry. Never writes anything.
+ * Reads the disk and, unless `offline` is set, asks the npm registry for the
+ * latest `@angular/core` version (three-second timeout, falling back to
+ * `BUNDLED_LATEST_ANGULAR_MAJOR`) and for the metadata of each installed
+ * package that depends on Angular (see `readCompatibility`). Only package
+ * names leave the machine: no source, no file names, no telemetry. Never
+ * writes anything. With `options.cache`, a repeated run re-parses only the
+ * files that changed and repeats no registry request (see `AnalysisCache`).
  */
 export async function runCheckup(root: string, options: CheckupOptions = {}): Promise<Report> {
   const started = Date.now();
@@ -71,7 +109,8 @@ export async function runCheckup(root: string, options: CheckupOptions = {}): Pr
   const context = await buildContext(absoluteRoot, options);
   const checks = CHECKS.map((check) => check(context));
   const application = context.sources.filter((file) => !file.isSpec);
-  const plan = options.plan ? buildPlan(context.workspace, checks, context.latestAngular.major) : undefined;
+  const plan = options.plan ? buildPlan(context.workspace, checks, context.latestAngular.major, undefined, context.compatibility) : undefined;
+  const projects = options.project ? [] : projectBreakdown(context);
 
   return {
     tool: TOOL,
@@ -88,6 +127,59 @@ export async function runCheckup(root: string, options: CheckupOptions = {}): Pr
     checks,
     durationMs: Date.now() - started,
     ...(plan ? { plan } : {}),
+    ...(projects.length >= 2 ? { projects } : {}),
+  };
+}
+
+/**
+ * Runs the code checks once per project on the files it owns (see
+ * `owningProject`), worst score first. Parsing is shared with the
+ * whole-workspace run, so this costs only the checks, not a second scan.
+ *
+ * Import cycles are taken from the workspace graph and kept only when every
+ * file of the cycle belongs to the project; a cycle across two projects is in
+ * the whole-workspace report and in neither row, since neither project can
+ * cut it alone. A project with no file importing `@angular/*` gets no row:
+ * Nx workspaces routinely hold React apps, Node services and Cypress or
+ * Playwright e2e projects, and grading those on OnPush and strictTemplates
+ * would fill the table with noise.
+ */
+function projectBreakdown(context: AnalysisContext): ProjectSummary[] {
+  const { projects } = context.workspace;
+  if (projects.length < 2) return [];
+  const ownerOf = (path: string): ProjectInfo | undefined => owningProject(path, projects);
+  const rows: ProjectSummary[] = [];
+  for (const project of projects) {
+    const sources = context.sources.filter((file) => ownerOf(file.path) === project);
+    if (!sources.some((file) => file.imports.some((fact) => fact.specifier.startsWith('@angular/')))) continue;
+    const projectContext = narrowContext(context, project, ownerOf);
+    const checks = PROJECT_CHECKS.map((check) => check(projectContext));
+    rows.push({
+      name: project.name,
+      root: project.root,
+      type: project.type,
+      sourceFiles: sources.length,
+      linesOfCode: sources.filter((file) => !file.isSpec).reduce((sum, file) => sum + file.linesOfCode, 0),
+      score: overallScore({ checks }),
+      grades: Object.fromEntries(checks.map((check) => [check.id, check.grade])),
+      highFindings: checks.reduce((sum, check) => sum + check.findings.filter((finding) => finding.severity === 'high').length, 0),
+    });
+  }
+  return rows.sort((left, right) => (left.score ?? 101) - (right.score ?? 101) || left.name.localeCompare(right.name));
+}
+
+/** The context of one project: its files, its cycles, its tsconfig. Everything read from the registry or `node_modules` is shared. */
+function narrowContext(context: AnalysisContext, project: ProjectInfo, ownerOf: (path: string) => ProjectInfo | undefined): AnalysisContext {
+  const workspace = restrictToProject(context.workspace, project);
+  return {
+    ...context,
+    workspace,
+    sources: context.sources.filter((file) => ownerOf(file.path) === project),
+    templates: context.templates.filter((template) => ownerOf(template.path) === project),
+    tangles: context.tangles.filter((tangle) => tangle.files.every((path) => ownerOf(path) === project)),
+    bundles: context.bundles.filter((bundle) => bundle.project === project.name),
+    appCompilerOptions: readCompilerOptions(workspace.appTsconfig),
+    angularCompilerOptions: workspace.appTsconfig ? readAngularCompilerOptions(workspace.appTsconfig) : {},
   };
 }
 
@@ -95,21 +187,51 @@ export async function runCheckup(root: string, options: CheckupOptions = {}): Pr
 export async function buildContext(root: string, options: CheckupOptions): Promise<AnalysisContext> {
   const files = collectFiles(root, ignoreMatcher(options.ignore));
   const workspace = readWorkspace(root, files.projectJsons);
-  const sources = files.typescript.map((path) => scanSourceFile(root, path));
-  const templates = [...files.html.map((path) => scanTemplateFile(root, path)), ...sources.flatMap((file) => file.inlineTemplates)];
+  const { cache } = options;
+  const sources = files.typescript.map((path) => cachedFacts(cache, path, () => scanSourceFile(root, path)));
+  const templates = [...files.html.map((path) => cachedFacts(cache, path, () => scanTemplateFile(root, path))), ...sources.flatMap((file) => file.inlineTemplates)];
+  // Drop entries for files that no longer exist, so a deleted file stops counting.
+  if (cache) {
+    const present = new Set([...files.typescript, ...files.html]);
+    for (const path of cache.files.keys()) if (!present.has(path)) cache.files.delete(path);
+  }
   const appCompilerOptions = readCompilerOptions(workspace.appTsconfig);
 
-  return {
+  const stamp = dependencyStamp(root);
+  let dependencies = cache?.dependencies?.stamp === stamp ? cache.dependencies : undefined;
+  if (!dependencies) {
+    const latestAngular: AnalysisContext['latestAngular'] = options.offline ? { major: BUNDLED_LATEST_ANGULAR_MAJOR, source: 'bundled' } : await fetchLatestAngularMajor();
+    dependencies = { stamp, latestAngular, deprecations: buildDeprecationIndex(root), compatibility: await readCompatibility(workspace, latestAngular.major, options.offline ?? false) };
+    if (cache) cache.dependencies = dependencies;
+  }
+  const { latestAngular } = dependencies;
+  const graph = buildImportGraph(sources, readCompilerOptions(workspace.rootTsconfig));
+  const eagerFiles = staticallyReachable(graph, applicationEntries(workspace));
+
+  const context: AnalysisContext = {
     workspace,
     sources,
     templates,
-    deprecations: buildDeprecationIndex(root),
-    tangles: findTangles(sources, readCompilerOptions(workspace.rootTsconfig)),
-    latestAngular: options.offline ? { major: BUNDLED_LATEST_ANGULAR_MAJOR, source: 'bundled' } : await fetchLatestAngularMajor(),
+    deprecations: dependencies.deprecations,
+    tangles: findTanglesIn(graph),
+    ...(eagerFiles.size > 0 ? { eagerFiles } : {}),
+    latestAngular,
+    compatibility: dependencies.compatibility,
+    bundles: readBundleStats(workspace),
     appCompilerOptions,
     angularCompilerOptions: workspace.appTsconfig ? readAngularCompilerOptions(workspace.appTsconfig) : {},
     maxExamples: options.maxExamples ?? 5,
   };
+  if (options.project === undefined) return context;
+  const project = workspace.projects.find((entry) => entry.name === options.project);
+  if (!project) {
+    const names = workspace.projects.map((entry) => entry.name).sort();
+    throw new ProjectNotFoundError(`No project named ${options.project}. ${names.length > 0 ? `Projects: ${names.join(', ')}` : 'This workspace declares no projects (no angular.json or project.json).'}`);
+  }
+  // Narrowed after the whole-workspace graph is built, so an import into
+  // another project still resolves and a cycle through it is recognised as
+  // crossing projects rather than silently broken.
+  return narrowContext(context, project, (path) => owningProject(path, workspace.projects));
 }
 
 /**

@@ -30,6 +30,13 @@ export type DeprecationIndex = Map<string, EntryDeprecations>;
 const INDEXED_SCOPES = ['@angular', '@ngrx'];
 
 /**
+ * Unscoped packages indexed the same way. RxJS marks its deprecations in its
+ * `.d.ts` files too (`pluck`, the `combineLatest` operator, ...), and moving
+ * from RxJS 6 to 7 is a regular part of an Angular upgrade.
+ */
+const INDEXED_PACKAGES = ['rxjs'];
+
+/**
  * Builds the deprecation index from the analysed repository's own `node_modules`.
  *
  * Reading the installed `.d.ts` files rather than shipping a hand-kept list is
@@ -44,16 +51,21 @@ const INDEXED_SCOPES = ['@angular', '@ngrx'];
  */
 export function buildDeprecationIndex(root: string): DeprecationIndex {
   const index: DeprecationIndex = new Map();
+  const packages: Array<[name: string, directory: string]> = [];
   for (const scope of INDEXED_SCOPES) {
     const scopeDirectory = join(root, 'node_modules', scope);
     if (!existsSync(scopeDirectory)) continue;
-    for (const packageName of safeReaddir(scopeDirectory)) {
-      const packageDirectory = join(scopeDirectory, packageName);
-      for (const [entry, typesPath] of typeEntriesOf(packageDirectory)) {
-        const specifier = entry === '.' ? `${scope}/${packageName}` : `${scope}/${packageName}/${entry.slice(2)}`;
-        const deprecations = new DtsReader().exportsOf(typesPath);
-        if (deprecations.symbols.size > 0 || deprecations.members.size > 0) index.set(specifier, deprecations);
-      }
+    for (const packageName of safeReaddir(scopeDirectory)) packages.push([`${scope}/${packageName}`, join(scopeDirectory, packageName)]);
+  }
+  for (const name of INDEXED_PACKAGES) {
+    const directory = join(root, 'node_modules', name);
+    if (existsSync(directory)) packages.push([name, directory]);
+  }
+  for (const [name, packageDirectory] of packages) {
+    for (const [entry, typesPath] of typeEntriesOf(packageDirectory)) {
+      const specifier = entry === '.' ? name : `${name}/${entry.slice(2)}`;
+      const deprecations = new DtsReader().exportsOf(typesPath);
+      if (deprecations.symbols.size > 0 || deprecations.members.size > 0) index.set(specifier, deprecations);
     }
   }
   return index;

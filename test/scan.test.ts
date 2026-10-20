@@ -128,7 +128,7 @@ describe('scanTemplate', () => {
         {{ $any(x).y }}
       `),
       // `@else if` is a branch of the same block, like an `else` template is part of one `*ngIf`.
-    ).toEqual({ ngIf: 2, ngFor: 1, ngSwitch: 1, ifBlocks: 1, forBlocks: 1, switchBlocks: 1, deferBlocks: 1, anyCasts: 1 });
+    ).toEqual({ ngIf: 2, ngFor: 1, ngSwitch: 1, ifBlocks: 1, forBlocks: 1, switchBlocks: 1, deferBlocks: 1, anyCasts: 1, innerHtmlBindings: 0 });
   });
 
   it('reports the line of the first legacy directive of a template file', () => {

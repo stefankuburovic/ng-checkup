@@ -57,7 +57,7 @@ describe('ignoreMatcher', () => {
 });
 
 describe('resolveSettings', () => {
-  const args = (overrides: Partial<CliArguments>): CliArguments => ({ root: '/repo', reports: [], json: false, verbose: false, offline: false, plan: false, color: false, ...overrides });
+  const args = (overrides: Partial<CliArguments>): CliArguments => ({ root: '/repo', reports: [], json: false, verbose: false, offline: false, plan: false, watch: false, color: false, ...overrides });
 
   it('lets every flag win over the config, and the config over the defaults', () => {
     const config = { reports: ['checkup.html'], failOn: 'fair' as const, maxExamples: 2, offline: true, ignore: ['x'] };

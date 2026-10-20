@@ -1,5 +1,6 @@
 import { renderHtml } from '../src/report/html.js';
 import { renderMarkdown } from '../src/report/markdown.js';
+import { renderSarif } from '../src/report/sarif.js';
 import { overallScore, topPriorities } from '../src/report/summary.js';
 import { renderTerminal } from '../src/report/terminal.js';
 import type { CheckResult, Report } from '../src/types.js';
@@ -92,5 +93,30 @@ describe('renderTerminal', () => {
   it('lists low findings and every example file only in verbose mode', () => {
     expect(renderTerminal(report, { color: false, verbose: false })).not.toContain('A low one');
     expect(renderTerminal(report, { color: false, verbose: true })).toContain('A low one');
+  });
+});
+
+describe('renderSarif', () => {
+  const sarif = () => JSON.parse(renderSarif(sampleReport([poorCheck, goodCheck, { ...goodCheck, id: 'state', findings: [{ severity: 'info', message: 'Only a hint' }] }])));
+
+  it('is SARIF 2.1.0 with one rule per check that has something to report', () => {
+    const document = sarif();
+    expect(document.version).toBe('2.1.0');
+    const driver = document.runs[0].tool.driver;
+    expect(driver).toMatchObject({ name: 'ng-checkup', version: '0.0.0-test' });
+    expect(driver.rules.map((rule: { id: string }) => rule.id)).toEqual(['testing', 'version']);
+    expect(driver.rules[0]).toMatchObject({ name: 'Testing', helpUri: expect.stringContaining('checks.md#testing') });
+  });
+
+  it('gives every result a level and a location, falling back to package.json', () => {
+    const results = sarif().runs[0].results;
+    expect(results.map((result: { ruleId: string; level: string }) => [result.ruleId, result.level])).toEqual([
+      ['testing', 'note'],
+      ['testing', 'error'],
+      ['version', 'warning'],
+    ]);
+    expect(results[0].locations[0].physicalLocation).toEqual({ artifactLocation: { uri: 'package.json', uriBaseId: '%SRCROOT%' } });
+    expect(results[1].locations[0].physicalLocation).toEqual({ artifactLocation: { uri: 'src/a.ts', uriBaseId: '%SRCROOT%' }, region: { startLine: 3 } });
+    expect(results[1].message.text).toBe('Uses `<img onerror>` in a message\n\nDetail with `code`.\n\n3 more locations not listed; raise --max-examples to report them all.');
   });
 });
