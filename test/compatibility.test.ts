@@ -81,3 +81,17 @@ describe('third-party packages in the upgrade plan', () => {
     }
   });
 });
+
+describe('end-of-life packages', () => {
+  it('leaves them to the version check, which already reports them for removal', async () => {
+    const root = workspaceWith({ codelyzer: '>=2.3.1 <13.0.0 || ~13.0.0-beta', 'ngx-wide': '>=14.0.0' });
+    try {
+      const report = await runCheckup(root, { offline: true });
+      const check = report.checks.find((entry) => entry.id === 'dependencies')!;
+      expect(check.grade).toBe('good');
+      expect(check.summary).toMatch(/^1 package depends on Angular/);
+    } finally {
+      removeTemp(root);
+    }
+  });
+});

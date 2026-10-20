@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.1 (2026-10-20)
+
+- Third-party compatibility no longer grades end-of-life tooling (`codelyzer`, `tslint`, `protractor`, ...). The version check already reports it for removal, and the upgrade plan removes it in its first step, so it was counted twice and could make the area poor on its own.
+- "1 package depends on Angular", not "depend".
+
 ## 0.5.0 (2026-10-20)
 
 - Four new areas, twelve in all:

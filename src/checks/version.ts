@@ -8,7 +8,7 @@ import { plural, type AnalysisContext } from './context.js';
  * The difference decides the grade: dead runtime code is a liability, dead
  * tooling is friction.
  */
-const END_OF_LIFE_PACKAGES: Array<{ name: string; runtime: boolean; note: string }> = [
+export const END_OF_LIFE_PACKAGES: Array<{ name: string; runtime: boolean; note: string }> = [
   { name: '@angular/http', runtime: true, note: 'Removed in Angular 8. Replaced by `HttpClient` from `@angular/common/http`.' },
   { name: '@angular/flex-layout', runtime: true, note: 'No longer maintained since Angular 15. Replaced by CSS flexbox/grid or a layout utility library.' },
   { name: 'protractor', runtime: false, note: 'End of life since 2023. Replaced by Playwright or Cypress.' },

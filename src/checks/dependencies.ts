@@ -1,6 +1,6 @@
 import { highestSupported } from '../compatibility.js';
 import type { CheckResult, Finding, Grade } from '../types.js';
-import { formatCount, plural, type AnalysisContext } from './context.js';
+import { formatCount, plural, verb, type AnalysisContext } from './context.js';
 
 /**
  * Third-party packages that depend on Angular, and whether they hold the
@@ -73,7 +73,7 @@ export function dependenciesCheck(context: AnalysisContext): CheckResult {
     summary:
       compatibility.length === 0
         ? 'No third-party package depends on Angular.'
-        : `${plural(compatibility.length, 'package')} depend on Angular: ${formatCount(blocking.length)} blocking the upgrade to ${target}, ${formatCount(mismatched.length)} not accepting the current version.`,
+        : `${plural(compatibility.length, 'package')} ${verb(compatibility.length, 'depends', 'depend')} on Angular: ${formatCount(blocking.length)} blocking the upgrade to ${target}, ${formatCount(mismatched.length)} not accepting the current version.`,
     metrics: [
       { label: 'Depend on Angular', value: formatCount(compatibility.length), hint: 'third-party packages' },
       { label: 'Block the upgrade', value: formatCount(blocking.length), hint: `to Angular ${target}` },
