@@ -72,13 +72,17 @@ runs:
         mkdir -p "$out"
         # Inside the ng-checkup repository itself (its own CI), run the fresh
         # build; everywhere else, the npm release this action was tagged with.
+        root="$(cd "$INPUT_PATH" && pwd)"
         if [ -f "$GITHUB_ACTION_PATH/dist/cli.js" ]; then
           cli=(node "$GITHUB_ACTION_PATH/dist/cli.js")
         else
           version="${INPUT_VERSION:-$(node -p "require(process.env.GITHUB_ACTION_PATH + '/package.json').version")}"
           cli=(npx -y "ng-checkup@$version")
         fi
-        args=("$INPUT_PATH" --no-color --report "$out/ng-checkup.html" --report "$out/ng-checkup.md" --report "$out/ng-checkup.json" --report "$out/ng-checkup.comment.md")
+        # npx runs from an empty folder: in a project whose own package.json is
+        # named ng-checkup, it would otherwise pick that project over the release.
+        mkdir -p "$out/.npx" && cd "$out/.npx"
+        args=("$root" --no-color --report "$out/ng-checkup.html" --report "$out/ng-checkup.md" --report "$out/ng-checkup.json" --report "$out/ng-checkup.comment.md")
         [ "$INPUT_SARIF" = "true" ] && args+=(--report "$out/ng-checkup.sarif")
         [ -n "$INPUT_FAIL_ON" ] && args+=(--fail-on "$INPUT_FAIL_ON")
         [ "$INPUT_PLAN" = "true" ] && args+=(--plan)
@@ -93,6 +97,8 @@ runs:
           echo "score=$score" >> "$GITHUB_OUTPUT"
         fi
         # SARIF paths are relative to the checked folder; code scanning wants them relative to the repository.
+        cd "$GITHUB_WORKSPACE"
+        rm -rf "$out/.npx"
         if [ -f "$out/ng-checkup.sarif" ] && [ "$INPUT_PATH" != "." ]; then
           node -e "const fs=require('fs');const [file,prefix]=process.argv.slice(1);const s=JSON.parse(fs.readFileSync(file,'utf8'));for(const r of s.runs[0].results)for(const l of r.locations)l.physicalLocation.artifactLocation.uri=prefix.replace(/\/+$/,'')+'/'+l.physicalLocation.artifactLocation.uri;fs.writeFileSync(file,JSON.stringify(s,null,2))" "$out/ng-checkup.sarif" "${INPUT_PATH#./}"
         fi
