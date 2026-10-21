@@ -164,3 +164,22 @@ describe('webpack builder', () => {
     expect(await webpackCount({ build: '@angular-devkit/build-angular:browser', 'build-legacy': '@angular-devkit/build-angular:browser' })).toBe(1);
   });
 });
+
+describe('generated files', () => {
+  it('leaves them out of the application-code counts but reports how many there were', async () => {
+    const { removeTemp, writeTemp } = await import('./helpers.js');
+    const root = writeTemp({
+      'package.json': JSON.stringify({ dependencies: { '@angular/core': '~22.0.0' } }),
+      'src/app/a.ts': 'export const a: any = 1;\n',
+      'src/app/common/generated-types.ts': Array.from({ length: 600 }, (_, index) => `export type T${index} = any;`).join('\n'),
+    });
+    try {
+      const report = await runCheckup(root, { offline: true });
+      expect(report.project).toMatchObject({ sourceFiles: 2, linesOfCode: 1, generatedFiles: 1 });
+      expect(report.checks.find((check) => check.id === 'type-safety')!.measures).toContainEqual(expect.objectContaining({ id: 'explicit-any', value: 1 }));
+      expect(report.checks.find((check) => check.id === 'architecture')!.measures).toContainEqual(expect.objectContaining({ id: 'very-large-files', value: 0 }));
+    } finally {
+      removeTemp(root);
+    }
+  });
+});

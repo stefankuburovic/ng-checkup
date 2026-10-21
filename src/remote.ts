@@ -41,6 +41,30 @@ export function parseRemote(argument: string): RemoteRepository | undefined {
 }
 
 /**
+ * A label for a local checkout that is safe to print in a report for someone
+ * else: the `origin` remote without credentials, plus the short commit, else
+ * just the folder name. Never the absolute path, which describes the
+ * consultant's disk, not the client's code.
+ */
+export function describeCheckout(root: string): string {
+  const git = (...args: string[]): string | undefined => {
+    try {
+      return execFileSync('git', ['-C', root, ...args], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], env: { ...process.env, GIT_TERMINAL_PROMPT: '0' } }).trim() || undefined;
+    } catch {
+      return undefined;
+    }
+  };
+  const origin = git('remote', 'get-url', 'origin')
+    ?.replace(/^https?:\/\/[^@/]*@/, 'https://') // drop a token or user name
+    .replace(/^https?:\/\//, '')
+    .replace(/^git@([^:]+):/, '$1/')
+    .replace(/\.git$/, '');
+  const commit = git('rev-parse', '--short=7', 'HEAD');
+  const folder = root.split(/[\\/]/).filter(Boolean).pop() ?? root;
+  return `${origin ?? folder}${commit ? ` @ ${commit}` : ''}`;
+}
+
+/**
  * Clones the repository shallow into a fresh temporary directory: only the
  * one commit, so a repository with years of history costs no more than its
  * current files. Nothing is installed and nothing in it is run; the analysis

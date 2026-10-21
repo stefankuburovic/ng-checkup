@@ -8,9 +8,10 @@ import { createAnalysisCache } from './cache.js';
 import { loadConfig, REPORT_FORMATS, type CheckupConfig } from './config.js';
 import { ProjectNotFoundError, runCheckup, TOOL } from './index.js';
 import { planInit, type CiChoice, type InitPlan } from './init.js';
-import { cloneRemote, parseRemote, type RemoteRepository } from './remote.js';
+import { cloneRemote, describeCheckout, parseRemote, type RemoteRepository } from './remote.js';
 import { renderHtml } from './report/html.js';
 import { renderMarkdown } from './report/markdown.js';
+import { notesTemplate } from './report/notes.js';
 import { renderSarif } from './report/sarif.js';
 import { renderTerminal } from './report/terminal.js';
 import type { Grade, Report } from './types.js';
@@ -43,6 +44,14 @@ Options:
   -p, --project <name>   Analyse one project of an Angular CLI or Nx workspace.
                          Without it, a multi-project workspace also gets a
                          per-project table
+      --client <name>    Write the HTML report as a client deliverable: a cover,
+                         a management summary, what to act on and the roadmap,
+                         with the full report as an appendix (implies --plan)
+      --prepared-by <text>
+                         Name on the cover (default: $NG_CHECKUP_PREPARED_BY)
+      --notes <file.md>  Your recommendations, estimates and price, in Markdown,
+                         placed after the roadmap. A missing file is created as
+                         a template prefilled with the upgrade steps
   -w, --watch            Re-run on every change and show how the score and the
                          measures moved since the watch started
       --fail-on <grade>  Exit with code 1 if any area is graded <grade> or worse
@@ -70,6 +79,7 @@ Examples:
   npx ng-checkup --watch
   npx ng-checkup --project admin --report admin.html
   npx ng-checkup github:angular/angular-cli --report checkup.html
+  npx ng-checkup --client "Acme GmbH" --notes acme.md --report acme.html
   npx ng-checkup --fail-on poor --report checkup.md
   npx ng-checkup init
   npx ng-checkup baseline && npx ng-checkup --fail-on regression`;
@@ -94,6 +104,8 @@ export interface CliArguments {
   plan: boolean;
   /** `--project`: one project of the workspace, by name. */
   project?: string;
+  /** `--client`, `--prepared-by`, `--notes`: the client report. */
+  client?: { name: string; preparedBy?: string; notes?: string };
   watch: boolean;
   color: boolean;
   config?: string;
@@ -150,6 +162,9 @@ export function parseCliArguments(argv: string[], environment: NodeJS.ProcessEnv
       plan: { type: 'boolean' },
       watch: { type: 'boolean', short: 'w' },
       project: { type: 'string', short: 'p' },
+      client: { type: 'string' },
+      'prepared-by': { type: 'string' },
+      notes: { type: 'string' },
       config: { type: 'string' },
       'no-color': { type: 'boolean' },
       help: { type: 'boolean', short: 'h' },
@@ -172,6 +187,10 @@ export function parseCliArguments(argv: string[], environment: NodeJS.ProcessEnv
   if (values.watch && values.json) throw new Error('--watch prints a live summary, so it cannot be combined with --json');
   if (values.watch && failOn !== undefined) throw new Error('--watch never exits on its own, so --fail-on has nothing to fail; use it in a normal run');
 
+  if ((values.notes !== undefined || values['prepared-by'] !== undefined) && values.client === undefined) throw new Error('--notes and --prepared-by belong to a client report; add --client "<name>"');
+  if (values.client !== undefined && values.client.trim() === '') throw new Error('--client needs the client name');
+  const preparedBy = values['prepared-by'] ?? environment['NG_CHECKUP_PREPARED_BY'];
+
   let maxExamples: number | undefined;
   if (values['max-examples'] !== undefined) {
     maxExamples = Number(values['max-examples']);
@@ -187,8 +206,10 @@ export function parseCliArguments(argv: string[], environment: NodeJS.ProcessEnv
     failOn,
     maxExamples,
     offline: values.offline ?? false,
-    plan: values.plan ?? false,
+    // The roadmap is the core of a client report.
+    plan: (values.plan ?? false) || values.client !== undefined,
     project: values.project,
+    ...(values.client !== undefined ? { client: { name: values.client.trim(), ...(preparedBy ? { preparedBy } : {}), ...(values.notes !== undefined ? { notes: resolve(values.notes) } : {}) } } : {}),
     watch: values.watch ?? false,
     color: !values['no-color'] && environment['NO_COLOR'] === undefined && isTty,
     config: values.config,
@@ -387,6 +408,22 @@ async function mainCheckup(parsed: CliArguments, rootLabel?: string): Promise<nu
   }
   if (baseline) report.baseline = compareWithBaseline(report, baseline, settings.baselinePath);
   if (rootLabel) report.root = rootLabel;
+  // A client report goes to someone else: no absolute path of this machine in it.
+  else if (parsed.client) report.root = describeCheckout(parsed.root);
+  let notesMessage: string | undefined;
+  if (parsed.client) {
+    const { notes: notesPath, ...client } = parsed.client;
+    let notes: string | undefined;
+    if (notesPath && existsSync(notesPath)) {
+      notes = readFileSync(notesPath, 'utf8');
+    } else if (notesPath) {
+      mkdirSync(dirname(notesPath), { recursive: true });
+      writeFileSync(notesPath, notesTemplate({ ...report, client }));
+      notesMessage = `Notes template written to ${notesPath}: add your summary, estimates and price, then run the same command again.`;
+    }
+    report.client = { ...client, ...(notes !== undefined ? { notes } : {}) };
+    if (!settings.reports.some((target) => /\.html?$/i.test(target))) notesMessage = [notesMessage, 'The client report is an HTML page: add --report <file>.html to write it.'].filter(Boolean).join('\n');
+  }
   writeReports(report, settings.reports);
 
   if (parsed.json) {
@@ -394,6 +431,7 @@ async function mainCheckup(parsed: CliArguments, rootLabel?: string): Promise<nu
   } else {
     process.stdout.write(`${renderTerminal(report, { color: parsed.color, verbose: parsed.verbose })}\n`);
     for (const target of settings.reports) process.stdout.write(`Report written to ${target}\n`);
+    if (notesMessage) process.stdout.write(`${notesMessage}\n`);
   }
   return shouldFail(report, settings.failOn) ? 1 : 0;
 }

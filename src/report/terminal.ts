@@ -37,7 +37,7 @@ export function renderTerminal(report: Report, options: TerminalOptions): string
   const lines: string[] = [];
   const { project } = report;
   lines.push(`${c.bold(report.tool.name)} ${c.dim(report.tool.version)}  ${c.bold(project.name)} ${c.dim(`· ${kindLabel(project.kind)}${project.angularVersion ? ` · Angular ${project.angularVersion}` : ''}`)}`);
-  lines.push(c.dim(`${plural(project.sourceFiles, 'TypeScript file')}, ${plural(project.templateFiles, 'template')}, ${plural(project.linesOfCode, 'line')} of application code, analysed in ${formatDuration(report.durationMs)}`));
+  lines.push(c.dim(`${plural(project.sourceFiles, 'TypeScript file')}, ${plural(project.templateFiles, 'template')}, ${plural(project.linesOfCode, 'line')} of application code${project.generatedFiles ? ` (${plural(project.generatedFiles, 'generated file')} left out)` : ''}, analysed in ${formatDuration(report.durationMs)}`));
   lines.push('');
 
   const titleWidth = Math.max(...report.checks.map((check) => check.title.length));

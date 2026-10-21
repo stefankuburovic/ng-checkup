@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.7.0 (2026-10-21)
+
+- **Client report:** `--client "<name>"` writes the HTML report as a deliverable: a cover, a summary in sentences, the key figures, what to act on, the roadmap per major, then the consultant's recommendations from `--notes` (Markdown), with the full report as an appendix. The first run creates the notes as a template prefilled with the upgrade steps and an empty estimate column. Prints to PDF with the cover, notes and appendix on their own pages. `--prepared-by` (or `NG_CHECKUP_PREPARED_BY`) names the author; the codebase is named by its repository and commit, never a local path.
+- **Generated files** (a leading `@generated` or "do not edit" comment, `generated-types.ts`, `*.generated.ts`, `*.gen.ts`, a `generated` folder) are left out of every count of application code and reported as such. On the corpus this only moved the Vendure storefront: its GraphQL types took explicit `any` from 318 to 66.
+
 ## 0.6.0 (2026-10-21)
 
 - **No `npm install` needed.** Without `node_modules`, exact versions come from the lockfile (`package-lock.json`, `yarn.lock` classic and Berry, `pnpm-lock.yaml` v5 to v9), the `@angular/*`, `@ngrx/*` and `rxjs` typings of those versions are downloaded once from npm (only `package.json` and `.d.ts` files are kept, in `~/.cache/ng-checkup`), and third-party peer ranges come from the registry. Works on a fresh clone and in CI before `npm ci`. `--offline` uses only what is cached.

@@ -108,7 +108,8 @@ export async function runCheckup(root: string, options: CheckupOptions = {}): Pr
   const absoluteRoot = resolve(root);
   const context = await buildContext(absoluteRoot, options);
   const checks = CHECKS.map((check) => check(context));
-  const application = context.sources.filter((file) => !file.isSpec);
+  const application = context.sources.filter((file) => !file.isSpec && !file.isGenerated);
+  const generatedFiles = context.sources.filter((file) => file.isGenerated).length;
   const plan = options.plan ? buildPlan(context.workspace, checks, context.latestAngular.major, undefined, context.compatibility) : undefined;
   const projects = options.project ? [] : projectBreakdown(context);
 
@@ -123,6 +124,7 @@ export async function runCheckup(root: string, options: CheckupOptions = {}): Pr
       sourceFiles: context.sources.length,
       templateFiles: context.templates.filter((template) => !template.inline).length,
       linesOfCode: application.reduce((sum, file) => sum + file.linesOfCode, 0),
+      ...(generatedFiles > 0 ? { generatedFiles } : {}),
     },
     checks,
     durationMs: Date.now() - started,
@@ -159,7 +161,7 @@ function projectBreakdown(context: AnalysisContext): ProjectSummary[] {
       root: project.root,
       type: project.type,
       sourceFiles: sources.length,
-      linesOfCode: sources.filter((file) => !file.isSpec).reduce((sum, file) => sum + file.linesOfCode, 0),
+      linesOfCode: sources.filter((file) => !file.isSpec && !file.isGenerated).reduce((sum, file) => sum + file.linesOfCode, 0),
       score: overallScore({ checks }),
       grades: Object.fromEntries(checks.map((check) => [check.id, check.grade])),
       highFindings: checks.reduce((sum, check) => sum + check.findings.filter((finding) => finding.severity === 'high').length, 0),

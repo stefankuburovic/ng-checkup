@@ -94,9 +94,9 @@ export function verb(count: number, singular: string, pluralForm: string): strin
   return count === 1 ? singular : pluralForm;
 }
 
-/** Non-spec files: application code, as opposed to tests. */
+/** Application code: neither test code nor files a code generator wrote. */
 export function applicationFiles(context: AnalysisContext): SourceFileFacts[] {
-  return context.sources.filter((file) => !file.isSpec);
+  return context.sources.filter((file) => !file.isSpec && !file.isGenerated);
 }
 
 /** Spec files only. */

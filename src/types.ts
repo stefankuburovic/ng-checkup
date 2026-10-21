@@ -92,6 +92,8 @@ export interface Report {
     sourceFiles: number;
     templateFiles: number;
     linesOfCode: number;
+    /** Files written by a code generator, left out of every count of application code. Absent when there are none. */
+    generatedFiles?: number;
   };
   checks: CheckResult[];
   durationMs: number;
@@ -103,6 +105,13 @@ export interface Report {
   baseline?: import('./baseline.js').BaselineComparison;
   /** The upgrade plan to the latest Angular, when asked for (`--plan`) and there is a gap. */
   plan?: import('./plan.js').UpgradePlan;
+  /**
+   * Set for a client report (`--client`): who it is for, who prepared it, and
+   * the consultant's notes in Markdown. The HTML report then opens with a
+   * cover, a management summary and the roadmap, and moves the area-by-area
+   * detail to an appendix.
+   */
+  client?: { name: string; preparedBy?: string; notes?: string };
   /**
    * One row per project that owns source files, worst score first. Present
    * only for a whole-workspace run of a workspace with two or more projects.

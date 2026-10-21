@@ -25,6 +25,7 @@ npx ng-checkup
 - [Watch mode](#watch-mode)
 - [Upgrade plan](#upgrade-plan)
 - [Monorepos](#monorepos)
+- [Client report](#client-report)
 - [What it checks](#what-it-checks)
 - [Reports](#reports)
 - [In CI](#in-ci)
@@ -204,6 +205,21 @@ npx ng-checkup --project admin --report admin.html
 
 The baseline always covers the whole workspace, so `--project` runs do not compare against it.
 
+## Client report
+
+For consultants and tech leads who hand the result to someone else: `--client` turns the HTML report into a deliverable for a paid Health Check or an upgrade proposal.
+
+```bash
+npx ng-checkup github:acme/shop --client "Acme GmbH" --prepared-by "Jane Doe, jane.dev" --notes acme.md --report acme-health-check.html
+```
+
+- **For management, in front:** a cover, a summary in sentences ("Angular 17.1.1, 5 majors behind 22. Of 10 graded areas, 3 are poor…"), the key figures, a table of what to act on with the number of places each touches, and the roadmap one major at a time.
+- **Your recommendations next:** `--notes` is a Markdown file for what the tool cannot know: your summary, estimates and price. The first run creates it as a template, prefilled with one row per upgrade step and an empty estimate column; fill it in and run the same command again. Guidance in the template sits in HTML comments and never reaches the client, and a section left empty is left out.
+- **The full report as an appendix,** for the team.
+- **Print to PDF** from the browser: the cover, the recommendations and the appendix each start on a new page.
+
+The codebase is named by its repository and commit, never by a path on your disk. `NG_CHECKUP_PREPARED_BY` sets the name on the cover for every run. Nothing in the generated part is an estimate; numbers are measurements, and the estimate column is yours.
+
 ## What it checks
 
 | Area | It looks at | Poor when |
@@ -267,6 +283,14 @@ Options:
   -p, --project <name>   Analyse one project of an Angular CLI or Nx workspace.
                          Without it, a multi-project workspace also gets a
                          per-project table
+      --client <name>    Write the HTML report as a client deliverable: a cover,
+                         a management summary, what to act on and the roadmap,
+                         with the full report as an appendix (implies --plan)
+      --prepared-by <text>
+                         Name on the cover (default: $NG_CHECKUP_PREPARED_BY)
+      --notes <file.md>  Your recommendations, estimates and price, in Markdown,
+                         placed after the roadmap. A missing file is created as
+                         a template prefilled with the upgrade steps
   -w, --watch            Re-run on every change and show how the score and the
                          measures moved since the watch started
       --fail-on <grade>  Exit with code 1 if any area is graded <grade> or worse
@@ -372,7 +396,8 @@ Package names and versions, and only to the public npm registry: the latest `@an
 ## How it works
 
 - **Syntax only.** Every `.ts` file is parsed once with the TypeScript compiler API, without a type checker and without building your project. That is why it takes seconds on a large monorepo and works on a repository that does not compile. Identifiers are matched through their imports, so a local helper called `signal` is not counted as Angular's.
-- **Deprecations come from your `node_modules`.** It reads the `@deprecated` tags in the installed `@angular/*` and `@ngrx/*` type definitions, following Angular's re-exports between its bundled `.d.ts` chunks, in both the current package layout and the older one. The report always matches the version you actually run, in Angular's own words.
+- **Deprecations come from the versions you run.** It reads the `@deprecated` tags in the `@angular/*`, `@ngrx/*` and `rxjs` type definitions (installed, or downloaded for the versions your lockfile pins), following Angular's re-exports between its bundled `.d.ts` chunks, in both the current package layout and the older one. The report always matches the version you actually run, in Angular's own words.
+- **Generated code is left out of the counts.** A file a tool wrote (a leading `@generated` or "do not edit" comment, a name like `generated-types.ts` or `api.generated.ts`, a `generated` folder) does not count towards `any`, file sizes or lines of code, since nobody fixes it by hand; it stays in the import graph. The report says how many were left out.
 - **Cycles are counted as groups.** A strongly connected component is one thing to untangle; counting individual cycles grows combinatorially.
 
 ## FAQ
