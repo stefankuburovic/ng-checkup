@@ -4,17 +4,17 @@
   "project": {
     "name": "airgap-wallet",
     "kind": "angular-cli",
-    "angularVersion": "^16.1.1",
+    "angularVersion": "16.1.1",
     "sourceFiles": 361,
     "templateFiles": 88,
     "linesOfCode": 25186
   },
-  "score": 51,
+  "score": 52,
   "checks": [
     {
       "id": "version",
       "grade": "poor",
-      "summary": "Angular ^16.1.1, 6 majors behind 22.",
+      "summary": "Angular 16.1.1, 6 majors behind 22.",
       "measures": {
         "end-of-life-packages": 1,
         "webpack-builders": 1,
@@ -37,27 +37,35 @@
     },
     {
       "id": "deprecated-apis",
-      "grade": "info",
-      "summary": "Dependencies are not installed, so deprecations could not be read from the Angular packages.",
+      "grade": "fair",
+      "summary": "15 `.toPromise()` calls.",
       "measures": {
-        "legacy-template-directives": 399
+        "deprecated-usages": 0,
+        "legacy-template-directives": 399,
+        "to-promise-calls": 15
       },
       "findings": [
         {
-          "severity": "info",
-          "message": "Run `npm install` (or your package manager) and re-run for this check"
+          "severity": "medium",
+          "message": "15 `.toPromise()` calls in 9 files",
+          "files": [
+            "src/app/app.component.ts:202",
+            "src/app/components/current-wallet-group/current-wallet-group.component.ts:33",
+            "src/app/pages/account-activate/account-activate.page.ts:39"
+          ],
+          "count": 9
         }
       ]
     },
     {
       "id": "dependencies",
       "grade": "info",
-      "summary": "Dependencies are not installed, so the packages that depend on Angular could not be read.",
+      "summary": "Dependencies are not installed and the npm registry was not used, so the packages that depend on Angular could not be read.",
       "measures": {},
       "findings": [
         {
           "severity": "info",
-          "message": "Run `npm install` (or your package manager) and re-run for this check"
+          "message": "Install the dependencies, or run without --offline to read each package from the npm registry"
         }
       ]
     },

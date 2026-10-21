@@ -9,7 +9,7 @@
     "templateFiles": 146,
     "linesOfCode": 49422
   },
-  "score": 73,
+  "score": 68,
   "checks": [
     {
       "id": "version",
@@ -24,27 +24,43 @@
     },
     {
       "id": "deprecated-apis",
-      "grade": "info",
-      "summary": "Dependencies are not installed, so deprecations could not be read from the Angular packages.",
+      "grade": "poor",
+      "summary": "7 deprecated symbols in 7 files.",
       "measures": {
-        "legacy-template-directives": 0
+        "deprecated-usages": 13,
+        "legacy-template-directives": 0,
+        "to-promise-calls": 0
       },
       "findings": [
         {
-          "severity": "info",
-          "message": "Run `npm install` (or your package manager) and re-run for this check"
+          "severity": "high",
+          "message": "`provideAnimations`, `provideNoopAnimations` from @angular/platform-browser/animations, used in 6 files",
+          "files": [
+            "apps/workbench-client-testing-app/src/app/app.config.ts:15",
+            "apps/workbench-getting-started-app/src/app/app.config.ts:14",
+            "apps/workbench-testing-app/src/app-with-guard/app.config.ts:14"
+          ],
+          "count": 6
+        },
+        {
+          "severity": "high",
+          "message": "`animate`, `AnimationMetadata`, `style`, `transition`, `trigger` from @angular/animations, used in 1 file",
+          "files": [
+            "projects/scion/workbench/src/lib/dialog/workbench-dialog.component.ts:17"
+          ],
+          "count": 1
         }
       ]
     },
     {
       "id": "dependencies",
       "grade": "info",
-      "summary": "Dependencies are not installed, so the packages that depend on Angular could not be read.",
+      "summary": "Dependencies are not installed and the npm registry was not used, so the packages that depend on Angular could not be read.",
       "measures": {},
       "findings": [
         {
           "severity": "info",
-          "message": "Run `npm install` (or your package manager) and re-run for this check"
+          "message": "Install the dependencies, or run without --offline to read each package from the npm registry"
         }
       ]
     },
@@ -304,9 +320,9 @@
     {
       "name": "@scion/workbench",
       "root": "projects/scion/workbench",
-      "score": 75,
+      "score": 69,
       "grades": {
-        "deprecated-apis": "info",
+        "deprecated-apis": "poor",
         "change-detection": "good",
         "components": "good",
         "state": "good",
@@ -321,9 +337,9 @@
     {
       "name": "workbench-client-testing-app",
       "root": "apps/workbench-client-testing-app",
-      "score": 85,
+      "score": 78,
       "grades": {
-        "deprecated-apis": "info",
+        "deprecated-apis": "poor",
         "change-detection": "fair",
         "components": "good",
         "state": "good",
@@ -338,9 +354,9 @@
     {
       "name": "workbench-testing-app",
       "root": "apps/workbench-testing-app",
-      "score": 85,
+      "score": 78,
       "grades": {
-        "deprecated-apis": "info",
+        "deprecated-apis": "poor",
         "change-detection": "good",
         "components": "good",
         "state": "good",
@@ -353,11 +369,11 @@
       }
     },
     {
-      "name": "workbench-client-testing-app-common",
-      "root": "apps/workbench-client-testing-app-common",
-      "score": 90,
+      "name": "workbench-getting-started-app",
+      "root": "apps/workbench-getting-started-app",
+      "score": 82,
       "grades": {
-        "deprecated-apis": "info",
+        "deprecated-apis": "poor",
         "change-detection": "good",
         "components": "good",
         "state": "good",
@@ -370,11 +386,11 @@
       }
     },
     {
-      "name": "workbench-getting-started-app",
-      "root": "apps/workbench-getting-started-app",
-      "score": 90,
+      "name": "workbench-client-testing-app-common",
+      "root": "apps/workbench-client-testing-app-common",
+      "score": 91,
       "grades": {
-        "deprecated-apis": "info",
+        "deprecated-apis": "good",
         "change-detection": "good",
         "components": "good",
         "state": "good",
@@ -389,9 +405,9 @@
     {
       "name": "workbench-testing-app-common",
       "root": "apps/workbench-testing-app-common",
-      "score": 90,
+      "score": 91,
       "grades": {
-        "deprecated-apis": "info",
+        "deprecated-apis": "good",
         "change-detection": "good",
         "components": "good",
         "state": "good",
@@ -406,9 +422,9 @@
     {
       "name": "e2e-testing",
       "root": "projects/scion/e2e-testing",
-      "score": 92,
+      "score": 93,
       "grades": {
-        "deprecated-apis": "info",
+        "deprecated-apis": "good",
         "change-detection": "good",
         "components": "info",
         "state": "info",

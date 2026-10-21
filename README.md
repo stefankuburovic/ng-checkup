@@ -51,7 +51,16 @@ npx ng-checkup baseline
 npx ng-checkup --fail-on regression
 ```
 
-Install dependencies first (`npm install`) if you can: the deprecated-API check reads the installed Angular packages, and without them it is skipped.
+No `npm install` needed. Without `node_modules`, the exact versions come from the lockfile (npm, yarn or pnpm), and the Angular type definitions the deprecated-API check reads are downloaded once for those versions and cached. So it works on a fresh clone and in a CI job before `npm ci`.
+
+Or check a repository without cloning it yourself:
+
+```bash
+npx ng-checkup github:owner/repo --report checkup.html
+npx ng-checkup https://gitlab.com/group/app#release-2.4
+```
+
+It clones only the one commit into a temporary folder, runs, and deletes it. Nothing from the repository is installed or run.
 
 ## Set it up in a project
 
@@ -236,12 +245,16 @@ Defaults that changed between versions are applied per version: a component with
 <summary>All options</summary>
 
 ```text
-Usage: ng-checkup [path] [options]
+Usage: ng-checkup [path | repository] [options]
        ng-checkup init [path] [init options]
        ng-checkup baseline [path] [--force]
 
 Arguments:
   path                   Repository root (default: current directory)
+  repository             Or a remote repository, cloned shallow into a temporary
+                         folder and removed afterwards: github:owner/repo,
+                         gitlab:owner/repo, a GitHub/GitLab URL, or any .git URL;
+                         #<branch|tag|sha> picks a revision
 
 Options:
   -r, --report <file>    Write the full report; format from the extension:
@@ -354,7 +367,7 @@ await writeFile('checkup.md', renderMarkdown(report));
 
 ## What leaves your machine
 
-Package names, and only to the public npm registry: the latest `@angular/core` version (three-second timeout), and for every installed third-party package that depends on Angular, its public metadata, to find the release that supports the next Angular and whether it is deprecated (eight at a time, four-second timeout each). `--offline` skips all of it: the report then compares against the newest major this release knows and says so. No source, no file names, no telemetry. The tool reads files and writes only the reports you ask for.
+Package names and versions, and only to the public npm registry: the latest `@angular/core` version (three-second timeout); for every third-party package that depends on Angular, its public metadata, to find the release that supports the next Angular and whether it is deprecated (eight at a time, four-second timeout each); and, when `node_modules` is missing, the published tarballs of the `@angular/*`, `@ngrx/*` and `rxjs` versions your code imports, of which only `package.json` and `.d.ts` files are kept, in `~/.cache/ng-checkup` (`NG_CHECKUP_CACHE` moves it). `--offline` skips all of it and uses only what is already cached; the report then compares against the newest major this release knows and says so. A remote repository argument also clones it from its host. No source, no file names, no telemetry. The tool reads files and writes only the reports you ask for.
 
 ## How it works
 
@@ -366,7 +379,7 @@ Package names, and only to the public npm registry: the latest `@angular/core` v
 
 **Does it change my code?** No. It only reads. The fixes it suggests are Angular's own `ng generate` migrations, which you run yourself.
 
-**Why is the deprecated-API check "info"?** Dependencies are not installed. Run `npm install` and run the checkup again.
+**Why is the deprecated-API check "info"?** The Angular type definitions could not be read: dependencies are not installed and the run was `--offline` (or the registry was unreachable) before they were ever cached. Run once online, or `npm install`.
 
 **My app is on Angular 12 and deprecated APIs are "good". Is that right?** Yes, for Angular 12: nothing that *Angular 12* deprecates is in use. Each upgrade step deprecates more, and the version check is where that gap shows.
 

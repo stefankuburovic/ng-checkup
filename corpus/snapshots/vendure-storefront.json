@@ -4,17 +4,17 @@
   "project": {
     "name": "vendure-angular-storefront",
     "kind": "angular-cli",
-    "angularVersion": "^17.1.1",
+    "angularVersion": "17.1.1",
     "sourceFiles": 126,
     "templateFiles": 50,
     "linesOfCode": 8341
   },
-  "score": 51,
+  "score": 52,
   "checks": [
     {
       "id": "version",
       "grade": "poor",
-      "summary": "Angular ^17.1.1, 5 majors behind 22.",
+      "summary": "Angular 17.1.1, 5 majors behind 22.",
       "measures": {
         "end-of-life-packages": 1,
         "webpack-builders": 1,
@@ -37,27 +37,42 @@
     },
     {
       "id": "deprecated-apis",
-      "grade": "info",
-      "summary": "Dependencies are not installed, so deprecations could not be read from the Angular packages.",
+      "grade": "fair",
+      "summary": "2 deprecated symbols in 3 files.",
       "measures": {
-        "legacy-template-directives": 90
+        "deprecated-usages": 3,
+        "legacy-template-directives": 90,
+        "to-promise-calls": 0
       },
       "findings": [
         {
-          "severity": "info",
-          "message": "Run `npm install` (or your package manager) and re-run for this check"
+          "severity": "medium",
+          "message": "`PortalInjector` from @angular/cdk/portal, used in 2 files",
+          "files": [
+            "src/app/core/providers/modal/modal.service.ts:2",
+            "src/app/core/providers/notification/notification.service.ts:2"
+          ],
+          "count": 2
+        },
+        {
+          "severity": "medium",
+          "message": "`ComponentFactoryResolver` from @angular/core, used in 1 file",
+          "files": [
+            "src/app/core/components/modal-dialog/dialog-component-outlet.component.ts:1"
+          ],
+          "count": 1
         }
       ]
     },
     {
       "id": "dependencies",
       "grade": "info",
-      "summary": "Dependencies are not installed, so the packages that depend on Angular could not be read.",
+      "summary": "Dependencies are not installed and the npm registry was not used, so the packages that depend on Angular could not be read.",
       "measures": {},
       "findings": [
         {
           "severity": "info",
-          "message": "Run `npm install` (or your package manager) and re-run for this check"
+          "message": "Install the dependencies, or run without --offline to read each package from the npm registry"
         }
       ]
     },

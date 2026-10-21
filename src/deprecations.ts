@@ -46,11 +46,15 @@ const INDEXED_PACKAGES = ['rxjs'];
  * example, deprecates `ChangeDetectionStrategy.Default` in favour of `Eager`,
  * because OnPush became the default).
  *
- * Returns an empty index when dependencies are not installed; the deprecations
- * check then grades `info` and says why.
+ * Returns an empty index when dependencies are not installed. `runCheckup`
+ * then fills the gap from the registry (see `buildDeprecationIndexFrom`).
  */
 export function buildDeprecationIndex(root: string): DeprecationIndex {
-  const index: DeprecationIndex = new Map();
+  return buildDeprecationIndexFrom(installedIndexedPackages(root));
+}
+
+/** Every indexed package in `node_modules`, name and directory. */
+export function installedIndexedPackages(root: string): Array<[name: string, directory: string]> {
   const packages: Array<[name: string, directory: string]> = [];
   for (const scope of INDEXED_SCOPES) {
     const scopeDirectory = join(root, 'node_modules', scope);
@@ -61,6 +65,22 @@ export function buildDeprecationIndex(root: string): DeprecationIndex {
     const directory = join(root, 'node_modules', name);
     if (existsSync(directory)) packages.push([name, directory]);
   }
+  return packages;
+}
+
+/** True for the packages whose deprecations are indexed: `@angular/*`, `@ngrx/*` and `rxjs`. */
+export function isIndexedPackage(name: string): boolean {
+  return INDEXED_PACKAGES.includes(name) || INDEXED_SCOPES.some((scope) => name.startsWith(`${scope}/`));
+}
+
+/**
+ * The index of the given packages, each a directory laid out like
+ * `node_modules/<name>`: an installed package, or typings downloaded from the
+ * registry into the cache (`packageTypings`), which only hold `package.json`
+ * files and `.d.ts` files, all this reads.
+ */
+export function buildDeprecationIndexFrom(packages: Array<[name: string, directory: string]>): DeprecationIndex {
+  const index: DeprecationIndex = new Map();
   for (const [name, packageDirectory] of packages) {
     for (const [entry, typesPath] of typeEntriesOf(packageDirectory)) {
       const specifier = entry === '.' ? name : `${name}/${entry.slice(2)}`;

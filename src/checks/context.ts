@@ -3,6 +3,7 @@ import type ts from 'typescript';
 import type { PackageCompatibility } from '../compatibility.js';
 import type { DeprecationIndex } from '../deprecations.js';
 import type { DependencyTangle } from '../graph.js';
+import type { TypingsSource } from '../typings.js';
 import type { SourceFileFacts, TemplateFact } from '../scan.js';
 import type { CheckResult, FileRef } from '../types.js';
 import type { WorkspaceInfo } from '../workspace.js';
@@ -18,8 +19,10 @@ export interface AnalysisContext {
   sources: SourceFileFacts[];
   /** External template files and inline `template:` strings. */
   templates: TemplateFact[];
-  /** Empty when dependencies are not installed. */
+  /** Empty when no typings could be read, neither installed nor from the registry. */
   deprecations: DeprecationIndex;
+  /** Where the typings behind `deprecations` came from, and which imported packages had none. */
+  typings: TypingsSource;
   tangles: DependencyTangle[];
   /**
    * Report paths of the files loaded at startup: statically reachable from an

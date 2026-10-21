@@ -1,4 +1,3 @@
-import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { END_OF_LIFE_PACKAGES } from './checks/version.js';
 import { satisfies } from './plan.js';
@@ -58,17 +57,38 @@ export interface PackageCompatibility {
  */
 export async function readCompatibility(workspace: WorkspaceInfo, target: number, offline: boolean): Promise<PackageCompatibility[]> {
   const current = workspace.angular.major;
-  if (current === undefined || !workspace.hasNodeModules) return [];
+  if (current === undefined) return [];
+  // Without node_modules the registry stands in for it, which needs the network.
+  if (!workspace.hasNodeModules && offline) return [];
 
-  const results: PackageCompatibility[] = [];
-  for (const name of Object.keys(workspace.dependencies).sort()) {
-    if (EXCLUDED_NAMES.has(name) || EXCLUDED_PREFIXES.some((prefix) => name.startsWith(prefix))) continue;
-    const packageJsonPath = join(workspace.root, 'node_modules', name, 'package.json');
-    if (!existsSync(packageJsonPath)) continue;
-    const packageJson = readJson(packageJsonPath);
-    const angularRange = asRecord(packageJson?.['peerDependencies'])['@angular/core'];
-    const installed = packageJson?.['version'];
-    if (typeof angularRange !== 'string' || typeof installed !== 'string') continue;
+  // Each packument is fetched at most once per run, whether for the peer
+  // range of the used version or for the release search below.
+  const packuments = new Map<string, Promise<Packument | undefined>>();
+  const packumentOf = (name: string): Promise<Packument | undefined> => {
+    let pending = packuments.get(name);
+    if (!pending) packuments.set(name, (pending = fetchPackument(name)));
+    return pending;
+  };
+
+  const candidates = Object.keys(workspace.dependencies)
+    .sort()
+    .filter((name) => !EXCLUDED_NAMES.has(name) && !EXCLUDED_PREFIXES.some((prefix) => name.startsWith(prefix)));
+  const found = new Map<string, PackageCompatibility>();
+  await inBatches(candidates, 8, async (name) => {
+    let installed: unknown;
+    let angularRange: unknown;
+    if (workspace.hasNodeModules) {
+      const packageJson = readJson(join(workspace.root, 'node_modules', name, 'package.json'));
+      installed = packageJson?.['version'];
+      angularRange = asRecord(packageJson?.['peerDependencies'])['@angular/core'];
+    } else {
+      // The version the lockfile pins (or a fresh install of the range would
+      // get), and the peer range that version declares on the registry.
+      const document = await packumentOf(name);
+      installed = workspace.versions[name] ?? (await resolveVersion(name, workspace.dependencies[name], document));
+      angularRange = typeof installed === 'string' ? document?.versions[installed]?.angularRange : undefined;
+    }
+    if (typeof angularRange !== 'string' || typeof installed !== 'string') return;
     const accepts = (major: number): boolean => satisfies([major, 0, 0], angularRange) || satisfies([major, 99, 99], angularRange);
     let blocksAt: number | undefined;
     for (let major = current + 1; major <= target; major++) {
@@ -77,14 +97,15 @@ export async function readCompatibility(workspace: WorkspaceInfo, target: number
         break;
       }
     }
-    results.push({ name, installed, angularRange, supportsCurrent: accepts(current), blocksAt });
-  }
+    found.set(name, { name, installed, angularRange, supportsCurrent: accepts(current), blocksAt });
+  });
+  const results = candidates.map((name) => found.get(name)).filter((entry): entry is PackageCompatibility => entry !== undefined);
 
   if (!offline) {
     // Every package is looked up for its deprecation status; only blocking ones need the release search.
     const needsLookup = new Set(results.filter((entry) => entry.blocksAt !== undefined || !entry.supportsCurrent));
     await inBatches(results, 8, async (entry) => {
-      const document = await fetchPackument(entry.name);
+      const document = await packumentOf(entry.name);
       if (!document) return;
       entry.latest = document.latest;
       entry.deprecated = document.versions[document.latest]?.deprecated;
@@ -110,7 +131,7 @@ export async function readCompatibility(workspace: WorkspaceInfo, target: number
 }
 
 /** The parts of an npm packument the check reads. */
-interface Packument {
+export interface Packument {
   latest: string;
   versions: Record<string, { angularRange?: string; deprecated?: string }>;
 }
@@ -120,7 +141,7 @@ interface Packument {
  * peer dependencies and deprecation messages but drops readmes). Undefined on
  * any failure: offline, unknown package, private registry, timeout.
  */
-async function fetchPackument(name: string): Promise<Packument | undefined> {
+export async function fetchPackument(name: string): Promise<Packument | undefined> {
   try {
     const response = await fetch(`https://registry.npmjs.org/${name.replace('/', '%2F')}`, {
       headers: { accept: 'application/vnd.npm.install-v1+json' },
@@ -143,8 +164,28 @@ async function fetchPackument(name: string): Promise<Packument | undefined> {
   }
 }
 
+/**
+ * The version a fresh install of `range` would get: the highest stable
+ * release that satisfies it, from the registry. For a repository without a
+ * lockfile, whose `package.json` gives only ranges. Undefined offline, for an
+ * unknown package, or when nothing matches.
+ */
+export async function resolveVersion(name: string, range: string | undefined, packument?: Packument): Promise<string | undefined> {
+  if (!range) return undefined;
+  if (/^\d+\.\d+\.\d+$/.test(range.trim())) return range.trim();
+  const document = packument ?? (await fetchPackument(name));
+  if (!document) return undefined;
+  const latest = parse(document.latest);
+  if (latest && satisfies(latest, range)) return document.latest;
+  return Object.keys(document.versions)
+    .filter((version) => !version.includes('-'))
+    .map((version) => ({ version, parsed: parse(version) }))
+    .filter((entry): entry is { version: string; parsed: [number, number, number] } => entry.parsed !== undefined && satisfies(entry.parsed, range))
+    .sort((left, right) => compare(right.parsed, left.parsed))[0]?.version;
+}
+
 /** Runs `work` over `items`, at most `size` at a time. */
-async function inBatches<T>(items: T[], size: number, work: (item: T) => Promise<void>): Promise<void> {
+export async function inBatches<T>(items: T[], size: number, work: (item: T) => Promise<void>): Promise<void> {
   for (let start = 0; start < items.length; start += size) await Promise.all(items.slice(start, start + size).map(work));
 }
 

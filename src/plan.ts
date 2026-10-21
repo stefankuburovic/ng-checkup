@@ -1,7 +1,7 @@
 import { ANGULAR_VERSIONS, type AngularVersionInfo } from './angular-versions.js';
 import type { PackageCompatibility } from './compatibility.js';
 import type { CheckResult } from './types.js';
-import { readInstalledVersion, type WorkspaceInfo } from './workspace.js';
+import type { WorkspaceInfo } from './workspace.js';
 
 /** One requirement of a step, checked against what the project has now. */
 export interface PlanRequirement {
@@ -83,9 +83,9 @@ export function buildPlan(
   const dependencies = workspace.dependencies;
   const has = (name: string): boolean => name in dependencies;
   const current = {
-    typescript: readInstalledVersion(workspace.root, 'typescript') ?? dependencies['typescript'],
-    rxjs: readInstalledVersion(workspace.root, 'rxjs') ?? dependencies['rxjs'],
-    zoneJs: readInstalledVersion(workspace.root, 'zone.js') ?? dependencies['zone.js'],
+    typescript: workspace.versions['typescript'] ?? dependencies['typescript'],
+    rxjs: workspace.versions['rxjs'] ?? dependencies['rxjs'],
+    zoneJs: workspace.versions['zone.js'] ?? dependencies['zone.js'],
   };
 
   const before: PlanItem[] = [];
@@ -231,6 +231,34 @@ function requirement(name: PlanRequirement['name'], range: string, current: stri
 }
 
 /** `[major, minor, patch]` of `1.2.3`, `^1.2`, `~4.3.5`, `>=5`; undefined for anything without a number. */
+/**
+ * One `||` alternative as plain comparators, in the forms packages really
+ * publish beyond the textbook ones: a space after the operator (`>= 14.x`, as
+ * `@sentry/angular` declares), a partial version with an operator (`<= 21.x`
+ * means below 22, `> 21` means 22 or later), and a hyphen range
+ * (`14 - 21.x`). Misreading `>= 14.x <= 21.x` reported Angular 16 as
+ * unsupported by a package that supports it.
+ */
+function normaliseRange(alternative: string): string[] {
+  let text = alternative.trim().replace(/(>=|<=|>|<|=|\^|~)\s+/g, '$1');
+  const hyphen = /^(\S+)\s+-\s+(\S+)$/.exec(text);
+  if (hyphen) text = `>=${hyphen[1]} <=${hyphen[2]}`;
+  return text
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((comparator) => {
+      const match = /^(<=|>)(\d+)(?:\.(\d+|x|\*))?(?:\.(\d+|x|\*))?$/.exec(comparator);
+      if (!match) return comparator;
+      const parts = [match[2], match[3], match[4]].filter((part) => part !== undefined && part !== 'x' && part !== '*').map(Number);
+      if (parts.length === 3) return comparator;
+      // `<=21.x` is `<22.0.0` and `>21.x` is `>=22.0.0`: bump the last given part.
+      const bumped = [...parts];
+      bumped[bumped.length - 1]! += 1;
+      while (bumped.length < 3) bumped.push(0);
+      return `${match[1] === '<=' ? '<' : '>='}${bumped.join('.')}`;
+    });
+}
+
 function parseVersion(text: string): [number, number, number] | undefined {
   const match = /(\d+)(?:\.(\d+|x|\*))?(?:\.(\d+|x|\*))?/.exec(text);
   if (!match) return undefined;
@@ -256,10 +284,7 @@ function compare(left: [number, number, number], right: [number, number, number]
  */
 export function satisfies(version: [number, number, number], range: string): boolean {
   return range.split('||').some((alternative) =>
-    alternative
-      .trim()
-      .split(/\s+/)
-      .filter(Boolean)
+    normaliseRange(alternative)
       .every((comparator) => {
         const operator = /^(\^|~|>=|<=|>|<|=)?/.exec(comparator)![0];
         const bound = parseVersion(comparator.slice(operator.length));

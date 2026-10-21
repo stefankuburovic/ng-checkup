@@ -9,7 +9,7 @@
     "templateFiles": 14,
     "linesOfCode": 158812
   },
-  "score": 51,
+  "score": 52,
   "checks": [
     {
       "id": "version",
@@ -29,27 +29,131 @@
     },
     {
       "id": "deprecated-apis",
-      "grade": "info",
-      "summary": "Dependencies are not installed, so deprecations could not be read from the Angular packages.",
+      "grade": "fair",
+      "summary": "11 deprecated symbols in 17 files, deprecated control flow in templates.",
       "measures": {
-        "legacy-template-directives": 1
+        "deprecated-usages": 23,
+        "legacy-template-directives": 1,
+        "to-promise-calls": 0
       },
       "findings": [
         {
-          "severity": "info",
-          "message": "Run `npm install` (or your package manager) and re-run for this check"
+          "severity": "medium",
+          "message": "`mapTo` from rxjs/operators, used in 5 files",
+          "files": [
+            "apps/demos/src/app/features/experiments/structural-directives/rx-let-poc/rx-query.component.ts:6",
+            "apps/demos/src/app/rx-angular-pocs/template/directives/let/rx-let.directive.ts:38",
+            "apps/demos/src/app/shared/template-structures/sibling/sibling-progressive.component.ts:3"
+          ],
+          "count": 5
+        },
+        {
+          "severity": "medium",
+          "message": "`NgIf` from @angular/common, used in 3 files",
+          "files": [
+            "apps/demos/src/app/features/experiments/structural-directives/rx-let-poc/rx-let-poc.component.ts:10",
+            "libs/cdk/template/spec/fixtures.ts:1",
+            "libs/template/for/src/lib/tests/fixtures.ts:1"
+          ],
+          "count": 3
+        },
+        {
+          "severity": "medium",
+          "message": "`ConnectableObservable` from rxjs, used in 3 files",
+          "files": [
+            "apps/demos/src/app/rx-angular-pocs/cdk/render-aware/render-aware.ts:3",
+            "apps/demos/src/app/rx-angular-pocs/cdk/utils/rxjs/observable/stateful-observable.ts:1",
+            "libs/state/selections/src/lib/accumulation-observable.ts:1"
+          ],
+          "count": 3
+        },
+        {
+          "severity": "medium",
+          "message": "`publishReplay` from rxjs/operators, used in 3 files",
+          "files": [
+            "apps/demos/src/app/rx-angular-pocs/cdk/render-aware/render-aware.ts:4",
+            "apps/demos/src/app/rx-angular-pocs/cdk/utils/rxjs/observable/stateful-observable.ts:12",
+            "libs/state/selections/src/lib/accumulation-observable.ts:13"
+          ],
+          "count": 3
+        },
+        {
+          "severity": "medium",
+          "message": "`Notification` from rxjs, used in 2 files",
+          "files": [
+            "apps/demos/src/app/rx-angular-pocs/cdk/utils/rxjs/Notification.ts:2",
+            "libs/cdk/notifications/src/lib/rx-materialize.ts:1"
+          ],
+          "count": 2
+        },
+        {
+          "severity": "medium",
+          "message": "`publish` from rxjs/operators, used in 2 files",
+          "files": [
+            "apps/demos/src/app/rx-angular-pocs/cdk/utils/rxjs/observable/stateful-observable.ts:12",
+            "libs/state/selections/src/lib/accumulation-observable.ts:13"
+          ],
+          "count": 2
+        },
+        {
+          "severity": "medium",
+          "message": "`NestedTreeControl` from @angular/cdk/tree, used in 1 file",
+          "files": [
+            "apps/demos/src/app/app-shell/side-nav/side-nav.component.ts:1"
+          ],
+          "count": 1
+        },
+        {
+          "severity": "medium",
+          "message": "`switchMapTo` from rxjs/operators, used in 1 file",
+          "files": [
+            "apps/demos/src/app/features/template/rx-for/list-actions/list-actions.component.ts:31"
+          ],
+          "count": 1
+        },
+        {
+          "severity": "medium",
+          "message": "`merge` from rxjs/operators, used in 1 file",
+          "files": [
+            "apps/demos/src/app/rx-angular-pocs/cdk/render-aware/render-aware.ts:4"
+          ],
+          "count": 1
+        },
+        {
+          "severity": "medium",
+          "message": "`provideAnimations` from @angular/platform-browser/animations, used in 1 file",
+          "files": [
+            "apps/demos/src/main.ts:4"
+          ],
+          "count": 1
+        },
+        {
+          "severity": "medium",
+          "message": "`mergeMapTo` from rxjs/operators, used in 1 file (all in tests)",
+          "files": [
+            "libs/cdk/coalescing/spec/coalesceWith.spec.ts:13"
+          ],
+          "count": 1
+        },
+        {
+          "severity": "medium",
+          "message": "1 use of `*ngIf`, `*ngFor` and `[ngSwitch]` in 1 template",
+          "files": [
+            "apps/demos/src/app/features/experiments/structural-directives/rx-let-poc/rx-let-poc.component.ts:50"
+          ],
+          "count": 1
         }
       ]
     },
     {
       "id": "dependencies",
       "grade": "info",
-      "summary": "Dependencies are not installed, so the packages that depend on Angular could not be read.",
+      "summary": "Dependencies are not installed and the npm registry was not used, so the packages that depend on Angular could not be read.",
       "measures": {},
       "findings": [
         {
           "severity": "info",
-          "message": "Run `npm install` (or your package manager) and re-run for this check"
+          "message": "Install the dependencies, or run without --offline to read each package from the npm registry"
         }
       ]
     },
@@ -113,11 +217,6 @@
           "severity": "medium",
           "message": "243 `@Input()` decorators and 23 `@Output()` decorators left",
           "count": 266
-        },
-        {
-          "severity": "low",
-          "message": "1 use of `*ngIf`, `*ngFor` and `[ngSwitch]`",
-          "count": 1
         }
       ]
     },
@@ -341,7 +440,7 @@
       "root": "apps/demos",
       "score": 60,
       "grades": {
-        "deprecated-apis": "info",
+        "deprecated-apis": "fair",
         "change-detection": "good",
         "components": "fair",
         "state": "good",
@@ -356,9 +455,9 @@
     {
       "name": "ssr",
       "root": "apps/ssr",
-      "score": 66,
+      "score": 70,
       "grades": {
-        "deprecated-apis": "info",
+        "deprecated-apis": "good",
         "change-detection": "poor",
         "components": "good",
         "state": "info",
@@ -373,9 +472,9 @@
     {
       "name": "ssr-hydration",
       "root": "apps/ssr-hydration",
-      "score": 70,
+      "score": 73,
       "grades": {
-        "deprecated-apis": "info",
+        "deprecated-apis": "good",
         "change-detection": "poor",
         "components": "good",
         "state": "good",
@@ -390,9 +489,9 @@
     {
       "name": "template",
       "root": "libs/template",
-      "score": 75,
+      "score": 73,
       "grades": {
-        "deprecated-apis": "info",
+        "deprecated-apis": "fair",
         "change-detection": "good",
         "components": "fair",
         "state": "good",
@@ -405,28 +504,11 @@
       }
     },
     {
-      "name": "rebundle-demo",
-      "root": "apps/rebundle-demo",
-      "score": 77,
-      "grades": {
-        "deprecated-apis": "info",
-        "change-detection": "good",
-        "components": "good",
-        "state": "info",
-        "architecture": "poor",
-        "testing": "poor",
-        "type-safety": "good",
-        "security": "good",
-        "circular-deps": "good",
-        "bundle": "info"
-      }
-    },
-    {
       "name": "cdk",
       "root": "libs/cdk",
-      "score": 80,
+      "score": 78,
       "grades": {
-        "deprecated-apis": "info",
+        "deprecated-apis": "fair",
         "change-detection": "good",
         "components": "fair",
         "state": "good",
@@ -439,11 +521,28 @@
       }
     },
     {
+      "name": "rebundle-demo",
+      "root": "apps/rebundle-demo",
+      "score": 80,
+      "grades": {
+        "deprecated-apis": "good",
+        "change-detection": "good",
+        "components": "good",
+        "state": "info",
+        "architecture": "poor",
+        "testing": "poor",
+        "type-safety": "good",
+        "security": "good",
+        "circular-deps": "good",
+        "bundle": "info"
+      }
+    },
+    {
       "name": "ssr-isr",
       "root": "apps/ssr-isr",
-      "score": 83,
+      "score": 85,
       "grades": {
-        "deprecated-apis": "info",
+        "deprecated-apis": "good",
         "change-detection": "fair",
         "components": "good",
         "state": "info",
@@ -456,34 +555,34 @@
       }
     },
     {
-      "name": "isr",
-      "root": "libs/isr",
-      "score": 93,
-      "grades": {
-        "deprecated-apis": "info",
-        "change-detection": "good",
-        "components": "info",
-        "state": "info",
-        "architecture": "good",
-        "testing": "fair",
-        "type-safety": "good",
-        "security": "good",
-        "circular-deps": "good",
-        "bundle": "info"
-      }
-    },
-    {
       "name": "state",
       "root": "libs/state",
-      "score": 94,
+      "score": 90,
       "grades": {
-        "deprecated-apis": "info",
+        "deprecated-apis": "fair",
         "change-detection": "good",
         "components": "info",
         "state": "good",
         "architecture": "good",
         "testing": "good",
         "type-safety": "fair",
+        "security": "good",
+        "circular-deps": "good",
+        "bundle": "info"
+      }
+    },
+    {
+      "name": "isr",
+      "root": "libs/isr",
+      "score": 94,
+      "grades": {
+        "deprecated-apis": "good",
+        "change-detection": "good",
+        "components": "info",
+        "state": "info",
+        "architecture": "good",
+        "testing": "fair",
+        "type-safety": "good",
         "security": "good",
         "circular-deps": "good",
         "bundle": "info"

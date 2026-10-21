@@ -1,5 +1,5 @@
 import type { CheckResult, Finding, Grade } from '../types.js';
-import { majorOf, readInstalledVersion } from '../workspace.js';
+import { majorOf } from '../workspace.js';
 import { plural, type AnalysisContext } from './context.js';
 
 /**
@@ -73,7 +73,7 @@ export function versionCheck(context: AnalysisContext): CheckResult {
 
   const mismatched = Object.keys(workspace.dependencies)
     .filter((name) => name.startsWith('@angular/') && !OWN_VERSIONING.has(name))
-    .map((name) => ({ name, major: majorOf(readInstalledVersion(workspace.root, name) ?? workspace.dependencies[name]) }))
+    .map((name) => ({ name, major: majorOf(workspace.versions[name] ?? workspace.dependencies[name]) }))
     .filter((entry) => entry.major !== undefined && entry.major !== current);
   if (mismatched.length > 0) {
     findings.push({
@@ -111,7 +111,7 @@ export function versionCheck(context: AnalysisContext): CheckResult {
     grade,
     summary: gap === 0 ? `On the latest major, Angular ${versionLabel}.` : `Angular ${versionLabel}, ${plural(gap, 'major')} behind ${latestAngular.major}.`,
     metrics: [
-      { label: 'Installed', value: versionLabel, hint: workspace.angular.installed ? 'node_modules' : 'package.json range' },
+      { label: 'Installed', value: versionLabel, hint: workspace.angular.source ?? 'package.json range' },
       { label: 'Latest', value: latestAngular.major, hint: latestLabel },
       { label: 'Majors behind', value: gap },
       { label: 'Build system', value: webpackProjects.length > 0 ? 'webpack' : usesApplicationBuilder ? 'esbuild' : 'unknown' },

@@ -24,14 +24,17 @@ export function dependenciesCheck(context: AnalysisContext): CheckResult {
   const id = 'dependencies';
   const title = 'Third-party compatibility';
 
-  if (!workspace.hasNodeModules || current === undefined) {
+  // Without node_modules the peer ranges come from the registry, so only an
+  // offline run (or an unreachable registry) leaves nothing to read.
+  const unreadable = !workspace.hasNodeModules && context.latestAngular.source === 'bundled' && compatibility.length === 0;
+  if (current === undefined || unreadable) {
     return {
       id,
       title,
       grade: 'info',
-      summary: current === undefined ? 'No Angular dependency to check against.' : 'Dependencies are not installed, so the packages that depend on Angular could not be read.',
+      summary: current === undefined ? 'No Angular dependency to check against.' : 'Dependencies are not installed and the npm registry was not used, so the packages that depend on Angular could not be read.',
       metrics: [],
-      findings: current === undefined ? [] : [{ severity: 'info', message: 'Run `npm install` (or your package manager) and re-run for this check' }],
+      findings: current === undefined ? [] : [{ severity: 'info', message: 'Install the dependencies, or run without --offline to read each package from the npm registry' }],
     };
   }
 

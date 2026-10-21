@@ -8,6 +8,7 @@ import { createAnalysisCache } from './cache.js';
 import { loadConfig, REPORT_FORMATS, type CheckupConfig } from './config.js';
 import { ProjectNotFoundError, runCheckup, TOOL } from './index.js';
 import { planInit, type CiChoice, type InitPlan } from './init.js';
+import { cloneRemote, parseRemote, type RemoteRepository } from './remote.js';
 import { renderHtml } from './report/html.js';
 import { renderMarkdown } from './report/markdown.js';
 import { renderSarif } from './report/sarif.js';
@@ -15,7 +16,7 @@ import { renderTerminal } from './report/terminal.js';
 import type { Grade, Report } from './types.js';
 import { describeProgress, watchCheckup } from './watch.js';
 
-const HELP = `Usage: ng-checkup [path] [options]
+const HELP = `Usage: ng-checkup [path | repository] [options]
        ng-checkup init [path] [init options]
        ng-checkup baseline [path] [--force]
 
@@ -26,6 +27,10 @@ registry, to look up the latest Angular and compatible releases (skip it with
 
 Arguments:
   path                   Repository root (default: current directory)
+  repository             Or a remote repository, cloned shallow into a temporary
+                         folder and removed afterwards: github:owner/repo,
+                         gitlab:owner/repo, a GitHub/GitLab URL, or any .git URL;
+                         #<branch|tag|sha> picks a revision
 
 Options:
   -r, --report <file>    Write the full report; format from the extension:
@@ -64,6 +69,7 @@ Examples:
   npx ng-checkup --plan --report plan.md
   npx ng-checkup --watch
   npx ng-checkup --project admin --report admin.html
+  npx ng-checkup github:angular/angular-cli --report checkup.html
   npx ng-checkup --fail-on poor --report checkup.md
   npx ng-checkup init
   npx ng-checkup baseline && npx ng-checkup --fail-on regression`;
@@ -73,7 +79,10 @@ const SEVERITY_ORDER: Grade[] = ['good', 'fair', 'poor'];
 
 /** Parsed and validated arguments of a checkup run, before the config file is applied. */
 export interface CliArguments {
+  /** The local root; for a remote run, the repository argument until `main` has cloned it. */
   root: string;
+  /** Set when the argument names a remote repository instead of a local path. */
+  remote?: RemoteRepository;
   /** Reports named on the command line, resolved against the working directory. Empty when none. */
   reports: string[];
   json: boolean;
@@ -149,7 +158,10 @@ export function parseCliArguments(argv: string[], environment: NodeJS.ProcessEnv
   });
   if (values.help) return 'help';
   if (values.version) return 'version';
-  const root = parseRoot(positionals);
+  const remote = positionals.length === 1 ? parseRemote(positionals[0]!) : undefined;
+  const root = remote ? positionals[0]! : parseRoot(positionals);
+  if (remote && values.watch) throw new Error('--watch needs a local checkout; clone the repository and run it there');
+  if (remote && values.offline) throw new Error('a remote repository has to be cloned, which needs the network, so it cannot be combined with --offline');
 
   const reports = (values.report ?? []).map((report) => resolve(report));
   for (const report of reports) assertReportFormat(report);
@@ -168,6 +180,7 @@ export function parseCliArguments(argv: string[], environment: NodeJS.ProcessEnv
 
   return {
     root,
+    ...(remote ? { remote } : {}),
     reports,
     json: values.json ?? false,
     verbose: values.verbose ?? false,
@@ -316,16 +329,44 @@ async function main(argv: string[]): Promise<number> {
   if (argv[0] === 'baseline') return mainBaseline(argv.slice(1));
 
   let parsed: ReturnType<typeof parseCliArguments>;
-  let settings: RunSettings;
-  let baseline: ReturnType<typeof readBaseline>;
   try {
     parsed = parseCliArguments(argv);
     if (parsed === 'help' || parsed === 'version') {
       process.stdout.write(`${parsed === 'help' ? HELP : TOOL.version}\n`);
       return 0;
     }
+  } catch (error) {
+    return usageError(error);
+  }
+  if (!parsed.remote) return mainCheckup(parsed);
+
+  let clone: ReturnType<typeof cloneRemote>;
+  try {
+    process.stderr.write(`Cloning ${parsed.remote.label}${parsed.remote.ref ? ` at ${parsed.remote.ref}` : ''} (shallow)...\n`);
+    clone = cloneRemote(parsed.remote);
+  } catch (error) {
+    return usageError(error);
+  }
+  try {
+    return await mainCheckup({ ...parsed, root: clone.directory }, `${parsed.remote.label} @ ${clone.commit.slice(0, 7)}`);
+  } finally {
+    clone.remove();
+  }
+}
+
+/**
+ * One checkup run on a local root. `rootLabel` replaces the absolute root in
+ * the report for a remote run, whose temporary folder means nothing to a
+ * reader and is gone by the time they read it.
+ */
+async function mainCheckup(parsed: CliArguments, rootLabel?: string): Promise<number> {
+  let settings: RunSettings;
+  let baseline: ReturnType<typeof readBaseline>;
+  try {
     const { config, directory } = loadConfig(parsed.root, parsed.config);
-    settings = resolveSettings(parsed, config, directory);
+    // A remote repository's own config may name report files; they would be
+    // written into the temporary clone and deleted with it.
+    settings = resolveSettings(parsed, rootLabel ? { ...config, reports: undefined } : config, directory);
     // The baseline records the whole workspace; one project measured against
     // it would show every other project's code as an improvement.
     if (parsed.project !== undefined && settings.failOn === 'regression') throw new Error('--fail-on regression compares the whole workspace with its baseline, so it cannot be combined with --project');
@@ -345,6 +386,7 @@ async function main(argv: string[]): Promise<number> {
     throw error;
   }
   if (baseline) report.baseline = compareWithBaseline(report, baseline, settings.baselinePath);
+  if (rootLabel) report.root = rootLabel;
   writeReports(report, settings.reports);
 
   if (parsed.json) {

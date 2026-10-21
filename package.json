@@ -1,6 +1,6 @@
 {
   "name": "ng-checkup",
-  "version": "0.5.3",
+  "version": "0.6.0",
   "description": "A one-minute modernization report for any Angular codebase: version gap, deprecated APIs, zoneless readiness, signals adoption, test runner, type safety and circular dependencies.",
   "keywords": [
     "angular",

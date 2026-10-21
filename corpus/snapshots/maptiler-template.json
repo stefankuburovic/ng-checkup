@@ -4,17 +4,17 @@
   "project": {
     "name": "angular-template-maplibre-gl-js",
     "kind": "angular-cli",
-    "angularVersion": "~13.0.0",
+    "angularVersion": "13.0.1",
     "sourceFiles": 12,
     "templateFiles": 4,
     "linesOfCode": 168
   },
-  "score": 60,
+  "score": 64,
   "checks": [
     {
       "id": "version",
       "grade": "poor",
-      "summary": "Angular ~13.0.0, 9 majors behind 22.",
+      "summary": "Angular 13.0.1, 9 majors behind 22.",
       "measures": {
         "end-of-life-packages": 0,
         "webpack-builders": 1,
@@ -33,27 +33,24 @@
     },
     {
       "id": "deprecated-apis",
-      "grade": "info",
-      "summary": "Dependencies are not installed, so deprecations could not be read from the Angular packages.",
+      "grade": "good",
+      "summary": "Nothing deprecated as of Angular 13 is in use; APIs deprecated in later versions surface at each upgrade step.",
       "measures": {
-        "legacy-template-directives": 0
+        "deprecated-usages": 0,
+        "legacy-template-directives": 0,
+        "to-promise-calls": 0
       },
-      "findings": [
-        {
-          "severity": "info",
-          "message": "Run `npm install` (or your package manager) and re-run for this check"
-        }
-      ]
+      "findings": []
     },
     {
       "id": "dependencies",
       "grade": "info",
-      "summary": "Dependencies are not installed, so the packages that depend on Angular could not be read.",
+      "summary": "Dependencies are not installed and the npm registry was not used, so the packages that depend on Angular could not be read.",
       "measures": {},
       "findings": [
         {
           "severity": "info",
-          "message": "Run `npm install` (or your package manager) and re-run for this check"
+          "message": "Install the dependencies, or run without --offline to read each package from the npm registry"
         }
       ]
     },

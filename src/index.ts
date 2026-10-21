@@ -16,7 +16,7 @@ import { testingCheck } from './checks/testing.js';
 import { typeSafetyCheck } from './checks/type-safety.js';
 import { versionCheck } from './checks/version.js';
 import { cachedFacts, dependencyStamp } from './cache.js';
-import { buildDeprecationIndex } from './deprecations.js';
+import { loadDeprecationIndex } from './typings.js';
 import { ignoreMatcher } from './config.js';
 import { collectFiles } from './files.js';
 import { buildImportGraph, findTanglesIn, readCompilerOptions, staticallyReachable } from './graph.js';
@@ -201,7 +201,9 @@ export async function buildContext(root: string, options: CheckupOptions): Promi
   let dependencies = cache?.dependencies?.stamp === stamp ? cache.dependencies : undefined;
   if (!dependencies) {
     const latestAngular: AnalysisContext['latestAngular'] = options.offline ? { major: BUNDLED_LATEST_ANGULAR_MAJOR, source: 'bundled' } : await fetchLatestAngularMajor();
-    dependencies = { stamp, latestAngular, deprecations: buildDeprecationIndex(root), compatibility: await readCompatibility(workspace, latestAngular.major, options.offline ?? false) };
+    const offline = options.offline ?? false;
+    const [{ index, typings }, compatibility] = await Promise.all([loadDeprecationIndex(root, workspace, sources, offline), readCompatibility(workspace, latestAngular.major, offline)]);
+    dependencies = { stamp, latestAngular, deprecations: index, typings, compatibility };
     if (cache) cache.dependencies = dependencies;
   }
   const { latestAngular } = dependencies;
@@ -213,6 +215,7 @@ export async function buildContext(root: string, options: CheckupOptions): Promi
     sources,
     templates,
     deprecations: dependencies.deprecations,
+    typings: dependencies.typings,
     tangles: findTanglesIn(graph),
     ...(eagerFiles.size > 0 ? { eagerFiles } : {}),
     latestAngular,

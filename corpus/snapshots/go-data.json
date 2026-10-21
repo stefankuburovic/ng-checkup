@@ -9,7 +9,7 @@
     "templateFiles": 198,
     "linesOfCode": 181196
   },
-  "score": 29,
+  "score": 36,
   "checks": [
     {
       "id": "version",
@@ -37,27 +37,24 @@
     },
     {
       "id": "deprecated-apis",
-      "grade": "info",
-      "summary": "Dependencies are not installed, so deprecations could not be read from the Angular packages.",
+      "grade": "good",
+      "summary": "Nothing deprecated as of Angular 14 is in use; APIs deprecated in later versions surface at each upgrade step.",
       "measures": {
-        "legacy-template-directives": 680
+        "deprecated-usages": 0,
+        "legacy-template-directives": 680,
+        "to-promise-calls": 0
       },
-      "findings": [
-        {
-          "severity": "info",
-          "message": "Run `npm install` (or your package manager) and re-run for this check"
-        }
-      ]
+      "findings": []
     },
     {
       "id": "dependencies",
       "grade": "info",
-      "summary": "Dependencies are not installed, so the packages that depend on Angular could not be read.",
+      "summary": "Dependencies are not installed and the npm registry was not used, so the packages that depend on Angular could not be read.",
       "measures": {},
       "findings": [
         {
           "severity": "info",
-          "message": "Run `npm install` (or your package manager) and re-run for this check"
+          "message": "Install the dependencies, or run without --offline to read each package from the npm registry"
         }
       ]
     },

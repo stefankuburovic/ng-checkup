@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { basename, dirname, join, relative, resolve } from 'node:path';
 import ts from 'typescript';
+import { readLockedVersions } from './lockfile.js';
 import type { WorkspaceKind } from './types.js';
 
 /** One build/test/e2e target of one project, as `angular.json` or a `project.json` declares it. */
@@ -40,11 +41,19 @@ export interface WorkspaceInfo {
   dependencies: Record<string, string>;
   /** Whether `node_modules/@angular/core` exists, which the deprecation index needs. */
   hasNodeModules: boolean;
+  /**
+   * Exact versions of the dependencies and of `typescript`, `rxjs` and
+   * `zone.js`: from `node_modules` when installed, else from the lockfile.
+   * Absent for a package neither pins.
+   */
+  versions: Record<string, string>;
   angular: {
     /** The range `package.json` asks for, such as `^17.3.0`. */
     declared?: string;
-    /** The exact version in `node_modules`, when dependencies are installed. */
+    /** The exact version: installed in `node_modules`, else pinned by the lockfile. */
     installed?: string;
+    /** Where `installed` came from, for the report. Undefined when neither has it. */
+    source?: 'node_modules' | 'package-lock.json' | 'yarn.lock' | 'pnpm-lock.yaml';
     /** From `installed` when present, else from `declared`. Absent when Angular is not a dependency. */
     major?: number;
   };
@@ -92,17 +101,29 @@ export function readWorkspace(root: string, projectJsons: string[]): WorkspaceIn
 
   const targets = angularJson ? readAngularJsonTargets(root, angularJson) : readProjectJsonTargets(projectJsons);
   const projects = angularJson ? readAngularJsonProjects(root, angularJson, targets) : readProjectJsonProjects(root, projectJsons, targets);
-  const installed = readInstalledVersion(root, '@angular/core');
+  const installedCore = readInstalledVersion(root, '@angular/core');
   const declared = dependencies['@angular/core'];
+  // One lookup per dependency: node_modules first, the lockfile for the rest.
+  const names = [...new Set([...Object.keys(dependencies), 'typescript', 'rxjs', 'zone.js'])];
+  const locked = readLockedVersions(root, names, dependencies);
+  const versions: Record<string, string> = {};
+  for (const name of names) {
+    const version = readInstalledVersion(root, name) ?? locked.versions[name];
+    if (version) versions[name] = version;
+  }
+  const installed = versions['@angular/core'];
+  const lockfileName = { npm: 'package-lock.json', yarn: 'yarn.lock', pnpm: 'pnpm-lock.yaml' } as const;
+  const source = installedCore ? 'node_modules' : installed && locked.kind ? lockfileName[locked.kind] : undefined;
 
   return {
     root,
     name: typeof packageJson?.['name'] === 'string' ? packageJson['name'] : basename(root),
     kind,
     dependencies,
-    hasNodeModules: installed !== undefined,
-    angular: { declared, installed, major: majorOf(installed ?? declared) },
-    typescriptMajor: majorOf(readInstalledVersion(root, 'typescript') ?? dependencies['typescript']),
+    hasNodeModules: installedCore !== undefined,
+    versions,
+    angular: { declared, installed, ...(source ? { source } : {}), major: majorOf(installed ?? declared) },
+    typescriptMajor: majorOf(versions['typescript'] ?? dependencies['typescript']),
     targets,
     projects,
     polyfills: targets.flatMap((target) => polyfillsOf(target.options)),

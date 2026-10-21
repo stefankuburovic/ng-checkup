@@ -33,7 +33,7 @@ describe('buildPlan', () => {
   it('still plans a major newer than the snapshot, without requirements', async () => {
     const report = await runCheckup(fixture('legacy-app'), { offline: true });
     const versions: AngularVersionInfo[] = [{ major: 16, version: '16.2.12', node: '^16.14.0 || >=18.10.0', typescript: '>=4.9.3 <5.2', rxjs: null, zoneJs: null }];
-    const workspace = { root: fixture('legacy-app'), name: 'x', kind: 'angular-cli' as const, dependencies: {}, hasNodeModules: false, angular: { major: 15 }, targets: [], projects: [], polyfills: [] };
+    const workspace = { root: fixture('legacy-app'), name: 'x', kind: 'angular-cli' as const, dependencies: {}, versions: {}, hasNodeModules: false, angular: { major: 15 }, targets: [], projects: [], polyfills: [] };
     const plan = buildPlan(workspace, report.checks, 17, versions)!;
     expect(plan.steps.map((step) => [step.to, step.requirements.length])).toEqual([[16, 2], [17, 0]]);
     expect(plan.steps[1]!.items[0]!.title).toBe('Check the requirements for this major');
@@ -45,6 +45,14 @@ describe('satisfies', () => {
     expect(satisfies([4, 3, 5], '>=4.4.2 <4.7')).toBe(false);
     expect(satisfies([4, 6, 4], '>=4.4.2 <4.7')).toBe(true);
     expect(satisfies([16, 20, 0], '^14.20.0 || ^16.13.0 || >=18.10.0')).toBe(true);
+    // As packages really publish them: spaces after operators, partial versions, hyphen ranges.
+    expect(satisfies([16, 1, 1], '>= 14.x <= 21.x')).toBe(true);
+    expect(satisfies([21, 9, 0], '>= 14.x <= 21.x')).toBe(true);
+    expect(satisfies([22, 0, 0], '>= 14.x <= 21.x')).toBe(false);
+    expect(satisfies([22, 0, 0], '>21')).toBe(true);
+    expect(satisfies([21, 5, 0], '>21')).toBe(false);
+    expect(satisfies([17, 0, 0], '14 - 17.x')).toBe(true);
+    expect(satisfies([18, 0, 0], '14 - 17.x')).toBe(false);
     expect(satisfies([15, 0, 0], '^14.20.0 || ^16.13.0 || >=18.10.0')).toBe(false);
     expect(satisfies([0, 11, 8], '~0.13.0')).toBe(false);
     expect(satisfies([0, 13, 3], '~0.11.4 || ~0.12.0 || ~0.13.0')).toBe(true);

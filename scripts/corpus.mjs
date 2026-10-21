@@ -29,8 +29,15 @@ import { fileURLToPath } from 'node:url';
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const CACHE = join(ROOT, '.corpus');
 const SNAPSHOTS = join(ROOT, 'corpus', 'snapshots');
+// Typings of the locked versions live in the corpus cache, not the user's:
+// a run must see the same typings on every machine, and only these.
+process.env.NG_CHECKUP_CACHE = join(CACHE, '.typings');
 
 const { runCheckup, overallScore } = await import(join(ROOT, 'dist', 'index.js'));
+const { loadDeprecationIndex } = await import(join(ROOT, 'dist', 'typings.js'));
+const { readWorkspace } = await import(join(ROOT, 'dist', 'workspace.js'));
+const { collectFiles } = await import(join(ROOT, 'dist', 'files.js'));
+const { scanSourceFile } = await import(join(ROOT, 'dist', 'scan.js'));
 const { repos } = JSON.parse(readFileSync(join(ROOT, 'corpus', 'repos.json'), 'utf8'));
 
 const args = process.argv.slice(2);
@@ -42,6 +49,7 @@ let changed = 0;
 for (const entry of repos) {
   if (only && !only.has(entry.name)) continue;
   const directory = checkout(entry);
+  await prefetchTypings(directory);
   const started = Date.now();
   const report = await runCheckup(directory, { offline: true, plan: true, maxExamples: 3 });
   const snapshot = `${JSON.stringify(normalise(entry, report), null, 2)}\n`;
@@ -87,6 +95,19 @@ function checkout({ name, repo, commit }) {
   git('fetch', '-q', '--depth', '1', 'origin', commit);
   git('checkout', '-q', '--force', 'FETCH_HEAD');
   return directory;
+}
+
+/**
+ * Downloads the typings of the versions the repository's lockfile pins, once.
+ * A published version never changes, so this is the one network access that
+ * keeps the run reproducible; the checkup itself then runs offline, which
+ * leaves out the registry lookups whose answers change with every release.
+ */
+async function prefetchTypings(directory) {
+  const files = collectFiles(directory);
+  const workspace = readWorkspace(directory, files.projectJsons);
+  const sources = files.typescript.map((path) => scanSourceFile(directory, path));
+  await loadDeprecationIndex(directory, workspace, sources, false);
 }
 
 /**

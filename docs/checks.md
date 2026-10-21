@@ -43,7 +43,7 @@ Angular releases a major roughly every six months and supports each for 18 month
 
 ## Deprecated APIs (`deprecated-apis`) <a id="deprecated-apis"></a>
 
-**What it reads:** the `@deprecated` tags in the installed `@angular/*`, `@ngrx/*` and `rxjs` type definitions, matched against every symbol your code imports from those packages, plus enum members such as `ChangeDetectionStrategy.Default`. Templates are scanned for `*ngIf`, `*ngFor` and `[ngSwitch]`, which no import reveals. On RxJS 7 and later, `.toPromise()` calls are counted too: an instance method no import shows, removed in RxJS 8 in favour of `firstValueFrom` / `lastValueFrom`.
+**What it reads:** the `@deprecated` tags in the `@angular/*`, `@ngrx/*` and `rxjs` type definitions of the versions the project uses (installed in `node_modules`, else the versions the lockfile pins, downloaded once from npm and cached), matched against every symbol your code imports from those packages, plus enum members such as `ChangeDetectionStrategy.Default`. Templates are scanned for `*ngIf`, `*ngFor` and `[ngSwitch]`, which no import reveals. On RxJS 7 and later, `.toPromise()` calls are counted too: an instance method no import shows, removed in RxJS 8 in favour of `firstValueFrom` / `lastValueFrom`.
 
 An app that does not use RxJS or NgRx simply has nothing from them to report. The "deprecated two majors ago" rule applies to Angular and NgRx only, whose majors move together; RxJS deprecations are reported but never make the area poor on their own.
 
@@ -66,7 +66,7 @@ On an old version this check only knows what *that* version deprecates. APIs dep
 
 ## Third-party compatibility (`dependencies`) <a id="dependencies"></a>
 
-**What it reads:** the `peerDependencies['@angular/core']` range of every installed package, so any UI kit, state library or utility is covered without a list of known names. Angular's own packages, NgRx and Nx are left out, since `ng update` and `nx migrate` move them. Online, it asks the npm registry for each package's releases: the first one that supports each next Angular major, and whether the package is deprecated.
+**What it reads:** the `peerDependencies['@angular/core']` range of every dependency (from `node_modules`, else from the npm registry for the version the lockfile pins), so any UI kit, state library or utility is covered without a list of known names. Angular's own packages, NgRx and Nx are left out, since `ng update` and `nx migrate` move them. Online, it asks the npm registry for each package's releases: the first one that supports each next Angular major, and whether the package is deprecated.
 
 **Grading**
 

@@ -4,17 +4,17 @@
   "project": {
     "name": "beaconchain-dashboard",
     "kind": "angular-cli",
-    "angularVersion": "~16.2.5",
+    "angularVersion": "16.2.12",
     "sourceFiles": 150,
     "templateFiles": 29,
     "linesOfCode": 13528
   },
-  "score": 40,
+  "score": 42,
   "checks": [
     {
       "id": "version",
       "grade": "poor",
-      "summary": "Angular ~16.2.5, 6 majors behind 22.",
+      "summary": "Angular 16.2.12, 6 majors behind 22.",
       "measures": {
         "end-of-life-packages": 3,
         "webpack-builders": 1,
@@ -45,27 +45,35 @@
     },
     {
       "id": "deprecated-apis",
-      "grade": "info",
-      "summary": "Dependencies are not installed, so deprecations could not be read from the Angular packages.",
+      "grade": "fair",
+      "summary": "1 deprecated symbol in 20 files.",
       "measures": {
-        "legacy-template-directives": 227
+        "deprecated-usages": 20,
+        "legacy-template-directives": 227,
+        "to-promise-calls": 0
       },
       "findings": [
         {
-          "severity": "info",
-          "message": "Run `npm install` (or your package manager) and re-run for this check"
+          "severity": "medium",
+          "message": "`async` from @angular/core/testing, used in 20 files (all in tests)",
+          "files": [
+            "src/app/components/ad/ad.component.spec.ts:1",
+            "src/app/components/clientupdate/clientupdate.component.spec.ts:21",
+            "src/app/components/dashboard/dashboard.spec.ts:21"
+          ],
+          "count": 20
         }
       ]
     },
     {
       "id": "dependencies",
       "grade": "info",
-      "summary": "Dependencies are not installed, so the packages that depend on Angular could not be read.",
+      "summary": "Dependencies are not installed and the npm registry was not used, so the packages that depend on Angular could not be read.",
       "measures": {},
       "findings": [
         {
           "severity": "info",
-          "message": "Run `npm install` (or your package manager) and re-run for this check"
+          "message": "Install the dependencies, or run without --offline to read each package from the npm registry"
         }
       ]
     },

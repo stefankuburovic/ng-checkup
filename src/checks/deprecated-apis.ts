@@ -1,6 +1,6 @@
 import type { DeprecationInfo } from '../deprecations.js';
 import { isSpecFile } from '../files.js';
-import { majorOf, readInstalledVersion } from '../workspace.js';
+import { majorOf } from '../workspace.js';
 import type { CheckResult, FileRef, Finding, Grade } from '../types.js';
 import { formatCount, plural, type AnalysisContext } from './context.js';
 
@@ -34,13 +34,13 @@ export function deprecatedApisCheck(context: AnalysisContext): CheckResult {
       id: 'deprecated-apis',
       title: 'Deprecated APIs',
       grade: 'info',
-      summary: 'Dependencies are not installed, so deprecations could not be read from the Angular packages.',
+      summary: 'The Angular type definitions could not be read, neither installed nor from the npm registry, so deprecations are not checked.',
       metrics: [{ label: 'Legacy template directives', value: formatCount(legacyUses) }],
       findings: [
         {
           severity: 'info',
-          message: 'Run `npm install` (or your package manager) and re-run for this check',
-          detail: 'Deprecations are read from the `@deprecated` tags of the installed `@angular/*` and `@ngrx/*` type definitions, so they always match the version the project actually uses.',
+          message: 'Install the dependencies, or run without --offline so the typings of the exact versions can be downloaded',
+          detail: `Deprecations are read from the \`@deprecated\` tags of the \`@angular/*\`, \`@ngrx/*\` and \`rxjs\` type definitions of the versions the project uses: installed in \`node_modules\`, else the versions the lockfile pins, downloaded once into the cache.${context.typings.missing.length > 0 ? ` Not available: ${context.typings.missing.join(', ')}.` : ''}`,
         },
       ],
       measures: [{ id: 'legacy-template-directives', label: '*ngIf / *ngFor / [ngSwitch] uses', value: legacyUses }],
@@ -102,7 +102,7 @@ export function deprecatedApisCheck(context: AnalysisContext): CheckResult {
   }
 
   // `.toPromise()`: deprecated in RxJS 7 and removed in 8, so it only counts from 7 on.
-  const rxjsMajor = majorOf(readInstalledVersion(workspace.root, 'rxjs') ?? workspace.dependencies['rxjs']);
+  const rxjsMajor = majorOf(workspace.versions['rxjs'] ?? workspace.dependencies['rxjs']);
   const toPromiseFiles = context.sources.filter((file) => file.toPromiseLines.length > 0);
   const toPromiseCalls = toPromiseFiles.reduce((sum, file) => sum + file.toPromiseLines.length, 0);
   if (rxjsMajor !== undefined && rxjsMajor >= 7 && toPromiseCalls > 0) {
@@ -127,7 +127,14 @@ export function deprecatedApisCheck(context: AnalysisContext): CheckResult {
         ? current !== undefined && current < context.latestAngular.major
           ? `Nothing deprecated as of Angular ${current} is in use; APIs deprecated in later versions surface at each upgrade step.`
           : 'No deprecated Angular or NgRx API in use.'
-        : `${plural(usages.size, 'deprecated symbol')} in ${plural(affectedFiles.size, 'file')}${ngIf && legacyUses > 0 ? ', plus deprecated control flow in templates' : ''}.`,
+        : `${[
+            usages.size > 0 ? `${plural(usages.size, 'deprecated symbol')} in ${plural(affectedFiles.size, 'file')}` : undefined,
+            rxjsMajor !== undefined && rxjsMajor >= 7 && toPromiseCalls > 0 ? plural(toPromiseCalls, '`.toPromise()` call') : undefined,
+            ngIf && legacyUses > 0 ? 'deprecated control flow in templates' : undefined,
+          ]
+            .filter(Boolean)
+            .join(', ')
+            .replace(/^./, (first) => first.toUpperCase())}.`,
     metrics: [
       { label: 'Deprecated symbols', value: usages.size },
       { label: 'Files affected', value: formatCount(affectedFiles.size) },

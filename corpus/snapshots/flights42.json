@@ -4,17 +4,17 @@
   "project": {
     "name": "flights42",
     "kind": "angular-cli",
-    "angularVersion": "^22.1.0",
+    "angularVersion": "22.1.0",
     "sourceFiles": 160,
     "templateFiles": 34,
     "linesOfCode": 5615
   },
-  "score": 91,
+  "score": 92,
   "checks": [
     {
       "id": "version",
       "grade": "good",
-      "summary": "On the latest major, Angular ^22.1.0.",
+      "summary": "On the latest major, Angular 22.1.0.",
       "measures": {
         "end-of-life-packages": 0,
         "webpack-builders": 0,
@@ -24,27 +24,24 @@
     },
     {
       "id": "deprecated-apis",
-      "grade": "info",
-      "summary": "Dependencies are not installed, so deprecations could not be read from the Angular packages.",
+      "grade": "good",
+      "summary": "No deprecated Angular or NgRx API in use.",
       "measures": {
-        "legacy-template-directives": 0
+        "deprecated-usages": 0,
+        "legacy-template-directives": 0,
+        "to-promise-calls": 0
       },
-      "findings": [
-        {
-          "severity": "info",
-          "message": "Run `npm install` (or your package manager) and re-run for this check"
-        }
-      ]
+      "findings": []
     },
     {
       "id": "dependencies",
       "grade": "info",
-      "summary": "Dependencies are not installed, so the packages that depend on Angular could not be read.",
+      "summary": "Dependencies are not installed and the npm registry was not used, so the packages that depend on Angular could not be read.",
       "measures": {},
       "findings": [
         {
           "severity": "info",
-          "message": "Run `npm install` (or your package manager) and re-run for this check"
+          "message": "Install the dependencies, or run without --offline to read each package from the npm registry"
         }
       ]
     },
@@ -200,9 +197,9 @@
     {
       "name": "miles",
       "root": "projects/miles",
-      "score": 89,
+      "score": 90,
       "grades": {
-        "deprecated-apis": "info",
+        "deprecated-apis": "good",
         "change-detection": "good",
         "components": "good",
         "state": "info",
@@ -217,9 +214,9 @@
     {
       "name": "flights",
       "root": "",
-      "score": 90,
+      "score": 91,
       "grades": {
-        "deprecated-apis": "info",
+        "deprecated-apis": "good",
         "change-detection": "good",
         "components": "good",
         "state": "good",
@@ -234,9 +231,9 @@
     {
       "name": "ui-common",
       "root": "projects/ui-common",
-      "score": 90,
+      "score": 91,
       "grades": {
-        "deprecated-apis": "info",
+        "deprecated-apis": "good",
         "change-detection": "good",
         "components": "good",
         "state": "good",

@@ -21,6 +21,7 @@ export interface AnalysisCache {
   dependencies?: {
     stamp: string;
     deprecations: DeprecationIndex;
+    typings: import('./typings.js').TypingsSource;
     compatibility: PackageCompatibility[];
     latestAngular: { major: number; source: 'registry' | 'bundled' };
   };

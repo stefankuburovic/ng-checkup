@@ -4,17 +4,17 @@
   "project": {
     "name": "ionic-angular-conference-app",
     "kind": "angular-cli",
-    "angularVersion": "^22.0.2",
+    "angularVersion": "22.1.4",
     "sourceFiles": 35,
     "templateFiles": 15,
     "linesOfCode": 1960
   },
-  "score": 87,
+  "score": 84,
   "checks": [
     {
       "id": "version",
       "grade": "good",
-      "summary": "On the latest major, Angular ^22.0.2.",
+      "summary": "On the latest major, Angular 22.1.4.",
       "measures": {
         "end-of-life-packages": 0,
         "webpack-builders": 0,
@@ -24,27 +24,41 @@
     },
     {
       "id": "deprecated-apis",
-      "grade": "info",
-      "summary": "Dependencies are not installed, so deprecations could not be read from the Angular packages.",
+      "grade": "fair",
+      "summary": "2 deprecated symbols in 1 file.",
       "measures": {
-        "legacy-template-directives": 0
+        "deprecated-usages": 2,
+        "legacy-template-directives": 0,
+        "to-promise-calls": 0
       },
       "findings": [
         {
-          "severity": "info",
-          "message": "Run `npm install` (or your package manager) and re-run for this check"
+          "severity": "medium",
+          "message": "`BrowserDynamicTestingModule` from @angular/platform-browser-dynamic/testing, used in 1 file",
+          "files": [
+            "src/test.ts:4"
+          ],
+          "count": 1
+        },
+        {
+          "severity": "medium",
+          "message": "`platformBrowserDynamicTesting` from @angular/platform-browser-dynamic/testing, used in 1 file",
+          "files": [
+            "src/test.ts:4"
+          ],
+          "count": 1
         }
       ]
     },
     {
       "id": "dependencies",
       "grade": "info",
-      "summary": "Dependencies are not installed, so the packages that depend on Angular could not be read.",
+      "summary": "Dependencies are not installed and the npm registry was not used, so the packages that depend on Angular could not be read.",
       "measures": {},
       "findings": [
         {
           "severity": "info",
-          "message": "Run `npm install` (or your package manager) and re-run for this check"
+          "message": "Install the dependencies, or run without --offline to read each package from the npm registry"
         }
       ]
     },

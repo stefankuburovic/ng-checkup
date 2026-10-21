@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.6.0 (2026-10-21)
+
+- **No `npm install` needed.** Without `node_modules`, exact versions come from the lockfile (`package-lock.json`, `yarn.lock` classic and Berry, `pnpm-lock.yaml` v5 to v9), the `@angular/*`, `@ngrx/*` and `rxjs` typings of those versions are downloaded once from npm (only `package.json` and `.d.ts` files are kept, in `~/.cache/ng-checkup`), and third-party peer ranges come from the registry. Works on a fresh clone and in CI before `npm ci`. `--offline` uses only what is cached.
+- **Remote repositories:** `npx ng-checkup github:owner/repo`, `gitlab:group/app#ref`, a GitHub or GitLab URL, or any `.git` URL. One commit is cloned into a temporary folder, checked and deleted; the report names the repository and commit.
+- Peer ranges are read as packages really publish them: `>= 14.x <= 21.x` (with spaces and partial versions) and hyphen ranges. `@sentry/angular` was reported as not accepting the Angular version it supports.
+- The deprecated-API summary counts `.toPromise()` calls when they are the only finding.
+- The version metric says where the version came from: `node_modules`, the lockfile, or the `package.json` range.
+- The corpus prefetches typings into `.corpus/.typings`, so its snapshots now cover deprecations and stay reproducible offline.
+
 ## 0.5.3 (2026-10-21)
 
 - Circular dependencies: an import the file uses only as types is no longer an edge. TypeScript erases it even without `import type` (a class used as `store: Store`, a name that is `export type`, directly or through a barrel), so it cannot form a runtime cycle. Constructor parameters of decorated classes still count, since Angular turns them into DI tokens. On the corpus this took one library from a 123-file group to real cycles of 40 and 20 files, and an app with 13 files in cycles to none.
