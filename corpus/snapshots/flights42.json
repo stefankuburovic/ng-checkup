@@ -1,0 +1,252 @@
+{
+  "repo": "angular-architects/flights42",
+  "commit": "35de6b6d4a8043a47ade10a1e3eef1271c0c0b21",
+  "project": {
+    "name": "flights42",
+    "kind": "angular-cli",
+    "angularVersion": "^22.1.0",
+    "sourceFiles": 160,
+    "templateFiles": 34,
+    "linesOfCode": 5615
+  },
+  "score": 91,
+  "checks": [
+    {
+      "id": "version",
+      "grade": "good",
+      "summary": "On the latest major, Angular ^22.1.0.",
+      "measures": {
+        "end-of-life-packages": 0,
+        "webpack-builders": 0,
+        "mismatched-angular-packages": 0
+      },
+      "findings": []
+    },
+    {
+      "id": "deprecated-apis",
+      "grade": "info",
+      "summary": "Dependencies are not installed, so deprecations could not be read from the Angular packages.",
+      "measures": {
+        "legacy-template-directives": 0
+      },
+      "findings": [
+        {
+          "severity": "info",
+          "message": "Run `npm install` (or your package manager) and re-run for this check"
+        }
+      ]
+    },
+    {
+      "id": "dependencies",
+      "grade": "info",
+      "summary": "Dependencies are not installed, so the packages that depend on Angular could not be read.",
+      "measures": {},
+      "findings": [
+        {
+          "severity": "info",
+          "message": "Run `npm install` (or your package manager) and re-run for this check"
+        }
+      ]
+    },
+    {
+      "id": "change-detection",
+      "grade": "good",
+      "summary": "Zoneless, with 40% of components on OnPush.",
+      "measures": {
+        "eager-components": 31,
+        "ngzone-files": 0,
+        "zone-test-helpers": 0
+      },
+      "findings": [
+        {
+          "severity": "medium",
+          "message": "31 components use eager change detection (60%)",
+          "files": [
+            "projects/miles/src/app/app.ts:4",
+            "projects/miles/src/app/miles-overview.ts:4",
+            "projects/miles/src/app/next-leve-page.ts:3"
+          ],
+          "count": 31
+        }
+      ]
+    },
+    {
+      "id": "components",
+      "grade": "good",
+      "summary": "52 components: 98% standalone, 100% signal inputs, 100% built-in control flow.",
+      "measures": {
+        "module-components": 1,
+        "decorator-inputs-outputs": 0,
+        "legacy-control-flow": 0
+      },
+      "findings": [
+        {
+          "severity": "low",
+          "message": "1 component still declared in NgModules (1 NgModule in total)",
+          "files": [
+            "src/app/domains/ticketing/feature-next-flights/next-flights-overview/next-flights-overview.ts:7"
+          ],
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "state",
+      "grade": "good",
+      "summary": "No classic NgRx, 89 signal()/computed() calls, 8 signal-store files.",
+      "measures": {
+        "classic-ngrx-files": 0,
+        "behaviorsubject-services": 0,
+        "effect-decorators": 0
+      },
+      "findings": []
+    },
+    {
+      "id": "architecture",
+      "grade": "good",
+      "summary": "80% of 20 routes lazy, 0 files over 500 lines, 0 classes with constructor injection.",
+      "measures": {
+        "eager-routes": 4,
+        "very-large-files": 0,
+        "constructor-injection": 0,
+        "class-guards": 0
+      },
+      "findings": []
+    },
+    {
+      "id": "testing",
+      "grade": "fair",
+      "summary": "Vitest, 5 spec files, 6% of components and services with a spec.",
+      "measures": {
+        "untested-files": 49
+      },
+      "findings": [
+        {
+          "severity": "medium",
+          "message": "94% of components and services have no spec file next to them",
+          "files": [
+            "projects/miles/src/app/app.ts",
+            "projects/miles/src/app/miles-overview.ts",
+            "projects/miles/src/app/next-leve-page.ts"
+          ],
+          "count": 49
+        },
+        {
+          "severity": "info",
+          "message": "No end-to-end test setup found"
+        }
+      ]
+    },
+    {
+      "id": "type-safety",
+      "grade": "good",
+      "summary": "strictNullChecks on, strictTemplates on, 0 explicit any.",
+      "measures": {
+        "strict-flags-off": 0,
+        "explicit-any": 0,
+        "non-null-assertions": 0,
+        "ts-suppressions": 0,
+        "template-any-casts": 0,
+        "untyped-form-files": 0
+      },
+      "findings": []
+    },
+    {
+      "id": "security",
+      "grade": "good",
+      "summary": "No sanitizer bypasses, direct DOM HTML writes or eval in 155 files.",
+      "measures": {
+        "unsafe-dom-writes": 0,
+        "dynamic-code": 0,
+        "sanitizer-bypasses": 0,
+        "inner-html-bindings": 0
+      },
+      "findings": []
+    },
+    {
+      "id": "circular-deps",
+      "grade": "fair",
+      "summary": "1 group of files importing each other in a loop, 3 files in total.",
+      "measures": {
+        "files-in-cycles": 3
+      },
+      "findings": [
+        {
+          "severity": "medium",
+          "message": "3 files import each other in a loop",
+          "files": [
+            "src/app/domains/shared/ui-common/dialog/dialog-outlet-service.ts",
+            "src/app/domains/shared/ui-common/dialog/dialog-outlet.ts",
+            "src/app/domains/shared/ui-common/dialog/dialog.service.ts"
+          ],
+          "count": 3
+        }
+      ]
+    },
+    {
+      "id": "bundle",
+      "grade": "info",
+      "summary": "No build stats found, so the bundle size is not part of this report.",
+      "measures": {},
+      "findings": [
+        {
+          "severity": "info",
+          "message": "Run `ng build --stats-json` (or `nx build <app> --stats-json`) and re-run to include the bundle size"
+        }
+      ]
+    }
+  ],
+  "projects": [
+    {
+      "name": "miles",
+      "root": "projects/miles",
+      "score": 89,
+      "grades": {
+        "deprecated-apis": "info",
+        "change-detection": "good",
+        "components": "good",
+        "state": "info",
+        "architecture": "good",
+        "testing": "poor",
+        "type-safety": "good",
+        "security": "good",
+        "circular-deps": "good",
+        "bundle": "info"
+      }
+    },
+    {
+      "name": "flights",
+      "root": "",
+      "score": 90,
+      "grades": {
+        "deprecated-apis": "info",
+        "change-detection": "good",
+        "components": "good",
+        "state": "good",
+        "architecture": "good",
+        "testing": "fair",
+        "type-safety": "good",
+        "security": "good",
+        "circular-deps": "fair",
+        "bundle": "info"
+      }
+    },
+    {
+      "name": "ui-common",
+      "root": "projects/ui-common",
+      "score": 90,
+      "grades": {
+        "deprecated-apis": "info",
+        "change-detection": "good",
+        "components": "good",
+        "state": "good",
+        "architecture": "good",
+        "testing": "poor",
+        "type-safety": "good",
+        "security": "good",
+        "circular-deps": "good",
+        "bundle": "info"
+      }
+    }
+  ]
+}

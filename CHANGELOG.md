@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.3 (2026-10-21)
+
+- Circular dependencies: an import the file uses only as types is no longer an edge. TypeScript erases it even without `import type` (a class used as `store: Store`, a name that is `export type`, directly or through a barrel), so it cannot form a runtime cycle. Constructor parameters of decorated classes still count, since Angular turns them into DI tokens. On the corpus this took one library from a 123-file group to real cycles of 40 and 20 files, and an app with 13 files in cycles to none.
+- Version: a project counts as "built with the webpack builder" only when it has no esbuild build; an extra webpack target kept on purpose beside one no longer does.
+- `npm run corpus`: 13 public Angular repositories at pinned commits, compared with committed snapshots in CI.
+
 ## 0.5.2 (2026-10-20)
 
 - Security: HTML the code writes itself is no longer flagged. `el.innerHTML = ''` (clearing an element) and fixed markup carry no input; only values that are not constant strings count as direct DOM writes.

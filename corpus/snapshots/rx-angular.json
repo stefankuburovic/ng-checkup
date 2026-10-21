@@ -1,0 +1,510 @@
+{
+  "repo": "rx-angular/rx-angular",
+  "commit": "d01287aadb49ea19b044015d15aeec7204415034",
+  "project": {
+    "name": "rx-angular",
+    "kind": "nx",
+    "angularVersion": "21.0.6",
+    "sourceFiles": 4374,
+    "templateFiles": 14,
+    "linesOfCode": 158812
+  },
+  "score": 51,
+  "checks": [
+    {
+      "id": "version",
+      "grade": "good",
+      "summary": "Angular 21.0.6, 1 major behind 22.",
+      "measures": {
+        "end-of-life-packages": 0,
+        "webpack-builders": 0,
+        "mismatched-angular-packages": 0
+      },
+      "findings": [
+        {
+          "severity": "low",
+          "message": "One major behind (21 → 22)"
+        }
+      ]
+    },
+    {
+      "id": "deprecated-apis",
+      "grade": "info",
+      "summary": "Dependencies are not installed, so deprecations could not be read from the Angular packages.",
+      "measures": {
+        "legacy-template-directives": 1
+      },
+      "findings": [
+        {
+          "severity": "info",
+          "message": "Run `npm install` (or your package manager) and re-run for this check"
+        }
+      ]
+    },
+    {
+      "id": "dependencies",
+      "grade": "info",
+      "summary": "Dependencies are not installed, so the packages that depend on Angular could not be read.",
+      "measures": {},
+      "findings": [
+        {
+          "severity": "info",
+          "message": "Run `npm install` (or your package manager) and re-run for this check"
+        }
+      ]
+    },
+    {
+      "id": "change-detection",
+      "grade": "poor",
+      "summary": "Runs on zone.js; 12% of 1 095 components use OnPush.",
+      "measures": {
+        "eager-components": 964,
+        "ngzone-files": 21,
+        "zone-test-helpers": 198
+      },
+      "findings": [
+        {
+          "severity": "medium",
+          "message": "Change detection still runs on zone.js"
+        },
+        {
+          "severity": "medium",
+          "message": "964 components use eager change detection (88%)",
+          "files": [
+            "apps/demos/src/app/app-component/app.component.ts:18",
+            "apps/demos/src/app/features/concepts/global-order/shared/value-display.component.ts:5",
+            "apps/demos/src/app/features/concepts/nested-vs-injected/injected/detect-changes.injected.component.ts:6"
+          ],
+          "count": 964
+        },
+        {
+          "severity": "low",
+          "message": "198 zone-based test helper calls (`fakeAsync`, `tick`, `waitForAsync`)",
+          "files": [
+            "libs/state/spec/rx-state.service.spec.ts:724",
+            "libs/state/spec/rx-state.spec.ts:269",
+            "libs/template/for/src/lib/tests/for.directive.observable.spec.ts:66"
+          ],
+          "count": 15
+        },
+        {
+          "severity": "low",
+          "message": "21 files inject `NgZone`",
+          "files": [
+            "apps/demos/src/app/app-config.service.ts:1",
+            "apps/demos/src/app/features/template/rx-for/list-actions/list-actions.component.ts:1",
+            "apps/demos/src/app/rx-angular-pocs/template/directives/for/rx-for.directive.ts:2"
+          ],
+          "count": 21
+        }
+      ]
+    },
+    {
+      "id": "components",
+      "grade": "fair",
+      "summary": "1 095 components: 100% standalone, 13% signal inputs, 100% built-in control flow.",
+      "measures": {
+        "module-components": 0,
+        "decorator-inputs-outputs": 266,
+        "legacy-control-flow": 1
+      },
+      "findings": [
+        {
+          "severity": "medium",
+          "message": "243 `@Input()` decorators and 23 `@Output()` decorators left",
+          "count": 266
+        },
+        {
+          "severity": "low",
+          "message": "1 use of `*ngIf`, `*ngFor` and `[ngSwitch]`",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "state",
+      "grade": "good",
+      "summary": "No classic NgRx, 67 signal()/computed() calls, 0 signal-store files.",
+      "measures": {
+        "classic-ngrx-files": 0,
+        "behaviorsubject-services": 4,
+        "effect-decorators": 0
+      },
+      "findings": [
+        {
+          "severity": "low",
+          "message": "4 services hold state in a `BehaviorSubject`",
+          "files": [
+            "apps/demos/src/app/features/tutorials/basics/data-access/list-resource/list.service.ts:17",
+            "apps/demos/src/app/shared/theme.service.ts:20",
+            "libs/cdk/render-strategies/src/lib/strategy-provider.service.ts:62"
+          ],
+          "count": 4
+        }
+      ]
+    },
+    {
+      "id": "architecture",
+      "grade": "poor",
+      "summary": "99% of 999 routes lazy, 24 files over 500 lines, 109 classes with constructor injection.",
+      "measures": {
+        "eager-routes": 6,
+        "very-large-files": 8,
+        "constructor-injection": 109,
+        "class-guards": 1
+      },
+      "findings": [
+        {
+          "severity": "medium",
+          "message": "24 files over 500 lines, 8 over 1 000",
+          "files": [
+            "apps/demos/src/app/features/template/rx-virtual-for/virtual-rendering/messages/message-data.ts",
+            "apps/rebundle-demo/src/shared/chunkers-3MB-500constants-0components/root-chunker.component.ts",
+            "apps/rebundle-demo/src/shared/chunkers-3MB-500constants-100components/root-chunker.component.ts"
+          ],
+          "count": 24
+        },
+        {
+          "severity": "low",
+          "message": "1 class-based guard or interceptor",
+          "files": [
+            "libs/isr/server/src/http-errors.interceptor.ts:28"
+          ],
+          "count": 1
+        },
+        {
+          "severity": "low",
+          "message": "109 classes inject through the constructor",
+          "files": [
+            "apps/demos/src/app/app-component/app-presenter.service.ts:15",
+            "apps/demos/src/app/app-component/app.component.ts:36",
+            "apps/demos/src/app/app-config.service.ts:24"
+          ],
+          "count": 109
+        }
+      ]
+    },
+    {
+      "id": "testing",
+      "grade": "fair",
+      "summary": "Jest, 116 spec files, 0% of components and services with a spec.",
+      "measures": {
+        "untested-files": 1124
+      },
+      "findings": [
+        {
+          "severity": "medium",
+          "message": "100% of components and services have no spec file next to them",
+          "files": [
+            "apps/demos/src/app/app-component/app-presenter.service.ts",
+            "apps/demos/src/app/app-component/app.component.ts",
+            "apps/demos/src/app/app-config.service.ts"
+          ],
+          "count": 1124
+        }
+      ]
+    },
+    {
+      "id": "type-safety",
+      "grade": "poor",
+      "summary": "strictNullChecks off, strictTemplates off, 406 explicit any.",
+      "measures": {
+        "strict-flags-off": 3,
+        "explicit-any": 406,
+        "non-null-assertions": 80,
+        "ts-suppressions": 33,
+        "template-any-casts": 9,
+        "untyped-form-files": 4
+      },
+      "findings": [
+        {
+          "severity": "high",
+          "message": "`strictNullChecks` is off"
+        },
+        {
+          "severity": "high",
+          "message": "`strictTemplates` is off"
+        },
+        {
+          "severity": "medium",
+          "message": "`noImplicitAny` is off"
+        },
+        {
+          "severity": "medium",
+          "message": "406 explicit `any` in application code (2.6 per 1 000 lines)",
+          "files": [
+            "libs/test-helpers/src/lib/rx-marbles/observableMatcher.ts:3",
+            "apps/demos/src/app/rx-angular-pocs/cdk/utils/zone-agnostic/rxjs/operators/fromEvent.ts:14",
+            "libs/state/selections/src/lib/utils/guards.ts:7"
+          ],
+          "count": 162
+        },
+        {
+          "severity": "low",
+          "message": "80 non-null assertions (`x!`) in application code"
+        },
+        {
+          "severity": "low",
+          "message": "33 `@ts-ignore` / `@ts-expect-error` comments"
+        },
+        {
+          "severity": "low",
+          "message": "9 `$any()` casts in templates"
+        },
+        {
+          "severity": "low",
+          "message": "4 files import `UntypedForm*` classes",
+          "files": [
+            "apps/demos/src/app/features/concepts/global-order/rx-form-v/v4-b.component.ts",
+            "apps/demos/src/app/features/experiments/state/selections/child.component.ts",
+            "apps/demos/src/app/features/integrations/dynamic-counter/rx-state-and-reactive-forms/rx-state-and-reactive-forms.component.ts"
+          ],
+          "count": 4
+        }
+      ]
+    },
+    {
+      "id": "security",
+      "grade": "poor",
+      "summary": "2 direct DOM HTML writes, 0 evals, 3 sanitizer bypasses.",
+      "measures": {
+        "unsafe-dom-writes": 2,
+        "dynamic-code": 0,
+        "sanitizer-bypasses": 3,
+        "inner-html-bindings": 1
+      },
+      "findings": [
+        {
+          "severity": "high",
+          "message": "HTML is written into the DOM past Angular's sanitizer in 2 places",
+          "files": [
+            "apps/demos/src/app/shared/debug-helper/dirty-checks/dirty-checks-work.component.ts:91",
+            "apps/demos/src/app/shared/debug-helper/ripple/ripple.component.ts:86"
+          ],
+          "count": 2
+        },
+        {
+          "severity": "medium",
+          "message": "Angular's sanitization is bypassed in 3 places (`bypassSecurityTrust*`)",
+          "files": [
+            "apps/demos/src/app/features/template/rx-let/preloading-images.component.ts:65",
+            "apps/demos/src/app/shared/code-highlight/code-highlight.component.ts:146",
+            "apps/demos/src/app/shared/code-highlight/code-highlight.component.ts:157"
+          ],
+          "count": 3
+        },
+        {
+          "severity": "low",
+          "message": "1 `[innerHTML]` binding in 1 template",
+          "files": [
+            "apps/demos/src/app/shared/code-highlight/code-highlight.component.ts"
+          ],
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "circular-deps",
+      "grade": "fair",
+      "summary": "1 group of files importing each other in a loop, 2 files in total.",
+      "measures": {
+        "files-in-cycles": 2
+      },
+      "findings": [
+        {
+          "severity": "medium",
+          "message": "2 files import each other in a loop",
+          "files": [
+            "libs/template/for/src/lib/for.config.ts",
+            "libs/template/for/src/lib/provide-legacy-reconciler.ts"
+          ],
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "bundle",
+      "grade": "info",
+      "summary": "No build stats found, so the bundle size is not part of this report.",
+      "measures": {},
+      "findings": [
+        {
+          "severity": "info",
+          "message": "Run `ng build --stats-json` (or `nx build <app> --stats-json`) and re-run to include the bundle size"
+        }
+      ]
+    }
+  ],
+  "projects": [
+    {
+      "name": "demos",
+      "root": "apps/demos",
+      "score": 60,
+      "grades": {
+        "deprecated-apis": "info",
+        "change-detection": "good",
+        "components": "fair",
+        "state": "good",
+        "architecture": "fair",
+        "testing": "poor",
+        "type-safety": "poor",
+        "security": "poor",
+        "circular-deps": "good",
+        "bundle": "info"
+      }
+    },
+    {
+      "name": "ssr",
+      "root": "apps/ssr",
+      "score": 66,
+      "grades": {
+        "deprecated-apis": "info",
+        "change-detection": "poor",
+        "components": "good",
+        "state": "info",
+        "architecture": "good",
+        "testing": "poor",
+        "type-safety": "poor",
+        "security": "good",
+        "circular-deps": "good",
+        "bundle": "info"
+      }
+    },
+    {
+      "name": "ssr-hydration",
+      "root": "apps/ssr-hydration",
+      "score": 70,
+      "grades": {
+        "deprecated-apis": "info",
+        "change-detection": "poor",
+        "components": "good",
+        "state": "good",
+        "architecture": "fair",
+        "testing": "poor",
+        "type-safety": "fair",
+        "security": "good",
+        "circular-deps": "good",
+        "bundle": "info"
+      }
+    },
+    {
+      "name": "template",
+      "root": "libs/template",
+      "score": 75,
+      "grades": {
+        "deprecated-apis": "info",
+        "change-detection": "good",
+        "components": "fair",
+        "state": "good",
+        "architecture": "good",
+        "testing": "fair",
+        "type-safety": "poor",
+        "security": "good",
+        "circular-deps": "fair",
+        "bundle": "info"
+      }
+    },
+    {
+      "name": "rebundle-demo",
+      "root": "apps/rebundle-demo",
+      "score": 77,
+      "grades": {
+        "deprecated-apis": "info",
+        "change-detection": "good",
+        "components": "good",
+        "state": "info",
+        "architecture": "poor",
+        "testing": "poor",
+        "type-safety": "good",
+        "security": "good",
+        "circular-deps": "good",
+        "bundle": "info"
+      }
+    },
+    {
+      "name": "cdk",
+      "root": "libs/cdk",
+      "score": 80,
+      "grades": {
+        "deprecated-apis": "info",
+        "change-detection": "good",
+        "components": "fair",
+        "state": "good",
+        "architecture": "good",
+        "testing": "fair",
+        "type-safety": "poor",
+        "security": "good",
+        "circular-deps": "good",
+        "bundle": "info"
+      }
+    },
+    {
+      "name": "ssr-isr",
+      "root": "apps/ssr-isr",
+      "score": 83,
+      "grades": {
+        "deprecated-apis": "info",
+        "change-detection": "fair",
+        "components": "good",
+        "state": "info",
+        "architecture": "good",
+        "testing": "poor",
+        "type-safety": "good",
+        "security": "good",
+        "circular-deps": "good",
+        "bundle": "info"
+      }
+    },
+    {
+      "name": "isr",
+      "root": "libs/isr",
+      "score": 93,
+      "grades": {
+        "deprecated-apis": "info",
+        "change-detection": "good",
+        "components": "info",
+        "state": "info",
+        "architecture": "good",
+        "testing": "fair",
+        "type-safety": "good",
+        "security": "good",
+        "circular-deps": "good",
+        "bundle": "info"
+      }
+    },
+    {
+      "name": "state",
+      "root": "libs/state",
+      "score": 94,
+      "grades": {
+        "deprecated-apis": "info",
+        "change-detection": "good",
+        "components": "info",
+        "state": "good",
+        "architecture": "good",
+        "testing": "good",
+        "type-safety": "fair",
+        "security": "good",
+        "circular-deps": "good",
+        "bundle": "info"
+      }
+    }
+  ],
+  "plan": {
+    "from": 21,
+    "to": 22,
+    "before": [
+      "Break the import cycles (2)"
+    ],
+    "steps": [
+      {
+        "to": 22,
+        "items": [
+          "Move templates to built-in control flow (1)",
+          "Convert @Input() and @Output() to signal inputs and outputs (266)",
+          "Prepare for zoneless: move components to OnPush, then drop zone.js (964)"
+        ]
+      }
+    ]
+  }
+}

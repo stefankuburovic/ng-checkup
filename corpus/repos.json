@@ -1,0 +1,18 @@
+{
+  "$comment": "Public Angular repositories the corpus check runs ng-checkup on, each pinned to one commit so a snapshot only changes when ng-checkup does. Chosen for spread: Angular 12 to 22, CLI and Nx workspaces, Ionic, small templates and a 180 000-line app. Move a commit only on purpose, in its own change, and update the snapshot with it.",
+  "repos": [
+    { "name": "realworld", "repo": "gothinkster/angular-realworld-example-app", "commit": "57eeb6a4ca2ab1790cc768fcbe37a3afc2a6a82e", "why": "Angular 12 app, the example report on the offer page" },
+    { "name": "ngx-admin", "repo": "akveo/ngx-admin", "commit": "dc6a442704bfef34b776b5eb15faf852d9e2f75c", "why": "popular legacy admin template, Nebular" },
+    { "name": "maptiler-template", "repo": "maptiler/angular-template-maplibre-gl-js", "commit": "6f29ffd68c7e06201d63378a0d5e9cb4692ad795", "why": "tiny Angular 13 template with strict typing on" },
+    { "name": "go-data", "repo": "WorldHealthOrganization/GoDataSource-FrontEnd", "commit": "420a2c395e898493997c1df98810350e204e7d98", "why": "180 000 lines, Angular 14, Material, flex-layout, large import cycles" },
+    { "name": "esp-app-market", "repo": "ThingPulse/esp-app-market", "commit": "664e1d856653bc8508ed5d83688825b7032f6253", "why": "Angular 15 with legacy Material" },
+    { "name": "airgap-wallet", "repo": "airgap-it/airgap-wallet", "commit": "8e4ce4158a21ae7d6ef61a04fc55671a634ae526", "why": "Ionic + Angular 16, classic NgRx, test-config mocks" },
+    { "name": "beaconchain-app", "repo": "gobitfly/eth2-beaconchain-explorer-app", "commit": "0c3e95b0f0bdd6fb5a4ea474eb5be4e33871232c", "why": "Ionic + Angular 16, TSLint, constant innerHTML" },
+    { "name": "vendure-storefront", "repo": "vendurehq/storefront-angular-starter", "commit": "45b2f4e0cbfca2c86bdea632bbffc33bdf948de8", "why": "Angular 17, mostly OnPush, codelyzer left over beside angular-eslint" },
+    { "name": "nx-examples", "repo": "nrwl/nx-examples", "commit": "16f15e16dc25c1f4c38949e54ebf5f9e7fdf2d05", "why": "Nx monorepo with Angular, React and e2e projects" },
+    { "name": "rx-angular", "repo": "rx-angular/rx-angular", "commit": "d01287aadb49ea19b044015d15aeec7204415034", "why": "Nx library monorepo, Angular 21" },
+    { "name": "scion-workbench", "repo": "SchweizerischeBundesbahnen/scion-workbench", "commit": "cd4543cd61478c2c2f6666de46944d628639c702", "why": "Angular 22 libraries and apps, CLI multi-project" },
+    { "name": "flights42", "repo": "angular-architects/flights42", "commit": "35de6b6d4a8043a47ade10a1e3eef1271c0c0b21", "why": "current Angular, standalone and signals throughout" },
+    { "name": "ionic-conference-app", "repo": "ionic-team/ionic-conference-app", "commit": "6b4996ea22b81fc98e03447784f4dc366801e045", "why": "Ionic reference app on current Angular" }
+  ]
+}

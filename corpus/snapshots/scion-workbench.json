@@ -1,0 +1,424 @@
+{
+  "repo": "SchweizerischeBundesbahnen/scion-workbench",
+  "commit": "cd4543cd61478c2c2f6666de46944d628639c702",
+  "project": {
+    "name": "scion-workbench",
+    "kind": "angular-cli",
+    "angularVersion": "22.0.1",
+    "sourceFiles": 898,
+    "templateFiles": 146,
+    "linesOfCode": 49422
+  },
+  "score": 73,
+  "checks": [
+    {
+      "id": "version",
+      "grade": "good",
+      "summary": "On the latest major, Angular 22.0.1.",
+      "measures": {
+        "end-of-life-packages": 0,
+        "webpack-builders": 0,
+        "mismatched-angular-packages": 0
+      },
+      "findings": []
+    },
+    {
+      "id": "deprecated-apis",
+      "grade": "info",
+      "summary": "Dependencies are not installed, so deprecations could not be read from the Angular packages.",
+      "measures": {
+        "legacy-template-directives": 0
+      },
+      "findings": [
+        {
+          "severity": "info",
+          "message": "Run `npm install` (or your package manager) and re-run for this check"
+        }
+      ]
+    },
+    {
+      "id": "dependencies",
+      "grade": "info",
+      "summary": "Dependencies are not installed, so the packages that depend on Angular could not be read.",
+      "measures": {},
+      "findings": [
+        {
+          "severity": "info",
+          "message": "Run `npm install` (or your package manager) and re-run for this check"
+        }
+      ]
+    },
+    {
+      "id": "change-detection",
+      "grade": "fair",
+      "summary": "Runs on zone.js; 80% of 168 components use OnPush.",
+      "measures": {
+        "eager-components": 34,
+        "ngzone-files": 22,
+        "zone-test-helpers": 0
+      },
+      "findings": [
+        {
+          "severity": "medium",
+          "message": "Change detection still runs on zone.js"
+        },
+        {
+          "severity": "low",
+          "message": "34 components use eager change detection (20%)",
+          "files": [
+            "apps/workbench-client-testing-app/src/app/app.component.ts:21",
+            "apps/workbench-client-testing-app/src/app/test-pages/angular-zone-test-page/angular-zone-test-page.component.ts:22",
+            "projects/scion/workbench/src/lib/activity/activity-panel/activity-panel.component.ts:23"
+          ],
+          "count": 34
+        },
+        {
+          "severity": "low",
+          "message": "22 files inject `NgZone`",
+          "files": [
+            "apps/workbench-client-testing-app/src/app/test-pages/angular-zone-test-page/angular-zone-test-page.component.ts:10",
+            "apps/workbench-client-testing-app/src/app/workbench-client/ng-zone-observable-decorator.ts:12",
+            "apps/workbench-client-testing-app/src/app/workbench-client/workbench-client.provider.ts:11"
+          ],
+          "count": 22
+        }
+      ]
+    },
+    {
+      "id": "components",
+      "grade": "good",
+      "summary": "168 components: 99% standalone, 100% signal inputs, 100% built-in control flow.",
+      "measures": {
+        "module-components": 1,
+        "decorator-inputs-outputs": 0,
+        "legacy-control-flow": 0
+      },
+      "findings": [
+        {
+          "severity": "low",
+          "message": "1 component still declared in NgModules (5 NgModules in total)",
+          "files": [
+            "apps/workbench-testing-app/src/app/test-pages/non-standalone-view-test-page/non-standalone-view-test-page.component.ts:14"
+          ],
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "state",
+      "grade": "good",
+      "summary": "No classic NgRx, 318 signal()/computed() calls, 0 signal-store files.",
+      "measures": {
+        "classic-ngrx-files": 0,
+        "behaviorsubject-services": 1,
+        "effect-decorators": 0
+      },
+      "findings": [
+        {
+          "severity": "low",
+          "message": "1 service holds state in a `BehaviorSubject`",
+          "files": [
+            "projects/scion/workbench/src/lib/view-dnd/view-drag.service.ts:43"
+          ],
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "architecture",
+      "grade": "fair",
+      "summary": "93% of 149 routes lazy, 5 files over 500 lines, 0 classes with constructor injection.",
+      "measures": {
+        "eager-routes": 11,
+        "very-large-files": 1,
+        "constructor-injection": 0,
+        "class-guards": 0
+      },
+      "findings": [
+        {
+          "severity": "medium",
+          "message": "5 files over 500 lines, 1 over 1 000",
+          "files": [
+            "projects/scion/workbench/src/lib/layout/ɵworkbench-layout.ts",
+            "projects/scion/e2e-testing/src/matcher/to-equal-workbench-layout.matcher.ts",
+            "projects/scion/workbench/src/lib/testing/jasmine/matcher/to-equal-workbench-layout.matcher.ts"
+          ],
+          "count": 5
+        }
+      ]
+    },
+    {
+      "id": "testing",
+      "grade": "poor",
+      "summary": "Karma, 62 spec files, 4% of components and services with a spec.",
+      "measures": {
+        "untested-files": 246
+      },
+      "findings": [
+        {
+          "severity": "high",
+          "message": "Unit tests run on Karma, which is deprecated"
+        },
+        {
+          "severity": "medium",
+          "message": "96% of components and services have no spec file next to them",
+          "files": [
+            "apps/workbench-client-testing-app-common/src/lib/dialog-opener-page/dialog-opener-page.component.ts",
+            "apps/workbench-client-testing-app-common/src/lib/message-box-opener-page/message-box-opener-page.component.ts",
+            "apps/workbench-client-testing-app-common/src/lib/messaging-page/messaging-page.component.ts"
+          ],
+          "count": 246
+        }
+      ]
+    },
+    {
+      "id": "type-safety",
+      "grade": "good",
+      "summary": "strictNullChecks on, strictTemplates on, 43 explicit any.",
+      "measures": {
+        "strict-flags-off": 0,
+        "explicit-any": 43,
+        "non-null-assertions": 385,
+        "ts-suppressions": 0,
+        "template-any-casts": 5,
+        "untyped-form-files": 0
+      },
+      "findings": [
+        {
+          "severity": "low",
+          "message": "43 explicit `any` in application code (0.9 per 1 000 lines)",
+          "files": [
+            "projects/scion/workbench/src/lib/logging/logger.ts:47",
+            "projects/scion/workbench/src/lib/testing/jasmine/matcher/custom-matchers.definition.ts:20",
+            "projects/scion/workbench/src/lib/logging/ɵlogger.ts:38"
+          ],
+          "count": 18
+        },
+        {
+          "severity": "low",
+          "message": "385 non-null assertions (`x!`) in application code"
+        },
+        {
+          "severity": "low",
+          "message": "5 `$any()` casts in templates"
+        }
+      ]
+    },
+    {
+      "id": "security",
+      "grade": "good",
+      "summary": "No sanitizer bypasses, direct DOM HTML writes or eval in 629 files; 4 sanitized [innerHTML] bindings.",
+      "measures": {
+        "unsafe-dom-writes": 0,
+        "dynamic-code": 0,
+        "sanitizer-bypasses": 0,
+        "inner-html-bindings": 4
+      },
+      "findings": [
+        {
+          "severity": "low",
+          "message": "4 `[innerHTML]` bindings in 2 templates",
+          "files": [
+            "projects/scion/workbench/src/lib/null-content/null-content.component.html",
+            "projects/scion/workbench/src/lib/page-not-found/page-not-found.component.html"
+          ],
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "circular-deps",
+      "grade": "poor",
+      "summary": "6 groups of files importing each other in a loop, 68 files in total.",
+      "measures": {
+        "files-in-cycles": 68
+      },
+      "findings": [
+        {
+          "severity": "high",
+          "message": "40 files import each other in a loop",
+          "files": [
+            "projects/scion/workbench/src/lib/dialog/dialog-footer/dialog-footer.component.ts",
+            "projects/scion/workbench/src/lib/dialog/dialog-footer/workbench-dialog-footer.directive.ts",
+            "projects/scion/workbench/src/lib/dialog/dialog-header/dialog-header.component.ts"
+          ],
+          "count": 40
+        },
+        {
+          "severity": "high",
+          "message": "20 files import each other in a loop",
+          "files": [
+            "projects/scion/workbench/src/lib/layout/migration/workbench-grid-migration-v3.service.ts",
+            "projects/scion/workbench/src/lib/layout/migration/workbench-layout-migration-v5.service.ts",
+            "projects/scion/workbench/src/lib/layout/migration/workbench-layout-migration-v6.service.ts"
+          ],
+          "count": 20
+        },
+        {
+          "severity": "medium",
+          "message": "2 files import each other in a loop",
+          "files": [
+            "apps/workbench-testing-app/src/app/dialog-opener-page/dialog-opener-page.component.ts",
+            "apps/workbench-testing-app/src/app/popup-opener-page/popup-opener-page.component.ts"
+          ],
+          "count": 2
+        },
+        {
+          "severity": "medium",
+          "message": "2 files import each other in a loop",
+          "files": [
+            "projects/scion/workbench/src/lib/desktop/desktop-slot/desktop-slot.component.ts",
+            "projects/scion/workbench/src/lib/desktop/workbench-desktop.model.ts"
+          ],
+          "count": 2
+        },
+        {
+          "severity": "medium",
+          "message": "2 files import each other in a loop",
+          "files": [
+            "projects/scion/workbench/src/lib/microfrontend-platform/microfrontend-view/microfrontend-view-routes.ts",
+            "projects/scion/workbench/src/lib/microfrontend-platform/microfrontend-view/microfrontend-view.component.ts"
+          ],
+          "count": 2
+        },
+        {
+          "severity": "medium",
+          "message": "1 more tangle with 2 files"
+        }
+      ]
+    },
+    {
+      "id": "bundle",
+      "grade": "info",
+      "summary": "No build stats found, so the bundle size is not part of this report.",
+      "measures": {},
+      "findings": [
+        {
+          "severity": "info",
+          "message": "Run `ng build --stats-json` (or `nx build <app> --stats-json`) and re-run to include the bundle size"
+        }
+      ]
+    }
+  ],
+  "projects": [
+    {
+      "name": "@scion/workbench",
+      "root": "projects/scion/workbench",
+      "score": 75,
+      "grades": {
+        "deprecated-apis": "info",
+        "change-detection": "good",
+        "components": "good",
+        "state": "good",
+        "architecture": "fair",
+        "testing": "poor",
+        "type-safety": "good",
+        "security": "good",
+        "circular-deps": "poor",
+        "bundle": "info"
+      }
+    },
+    {
+      "name": "workbench-client-testing-app",
+      "root": "apps/workbench-client-testing-app",
+      "score": 85,
+      "grades": {
+        "deprecated-apis": "info",
+        "change-detection": "fair",
+        "components": "good",
+        "state": "good",
+        "architecture": "good",
+        "testing": "poor",
+        "type-safety": "good",
+        "security": "good",
+        "circular-deps": "good",
+        "bundle": "info"
+      }
+    },
+    {
+      "name": "workbench-testing-app",
+      "root": "apps/workbench-testing-app",
+      "score": 85,
+      "grades": {
+        "deprecated-apis": "info",
+        "change-detection": "good",
+        "components": "good",
+        "state": "good",
+        "architecture": "good",
+        "testing": "poor",
+        "type-safety": "good",
+        "security": "good",
+        "circular-deps": "fair",
+        "bundle": "info"
+      }
+    },
+    {
+      "name": "workbench-client-testing-app-common",
+      "root": "apps/workbench-client-testing-app-common",
+      "score": 90,
+      "grades": {
+        "deprecated-apis": "info",
+        "change-detection": "good",
+        "components": "good",
+        "state": "good",
+        "architecture": "good",
+        "testing": "poor",
+        "type-safety": "good",
+        "security": "good",
+        "circular-deps": "good",
+        "bundle": "info"
+      }
+    },
+    {
+      "name": "workbench-getting-started-app",
+      "root": "apps/workbench-getting-started-app",
+      "score": 90,
+      "grades": {
+        "deprecated-apis": "info",
+        "change-detection": "good",
+        "components": "good",
+        "state": "good",
+        "architecture": "good",
+        "testing": "poor",
+        "type-safety": "good",
+        "security": "good",
+        "circular-deps": "good",
+        "bundle": "info"
+      }
+    },
+    {
+      "name": "workbench-testing-app-common",
+      "root": "apps/workbench-testing-app-common",
+      "score": 90,
+      "grades": {
+        "deprecated-apis": "info",
+        "change-detection": "good",
+        "components": "good",
+        "state": "good",
+        "architecture": "good",
+        "testing": "poor",
+        "type-safety": "good",
+        "security": "good",
+        "circular-deps": "good",
+        "bundle": "info"
+      }
+    },
+    {
+      "name": "e2e-testing",
+      "root": "projects/scion/e2e-testing",
+      "score": 92,
+      "grades": {
+        "deprecated-apis": "info",
+        "change-detection": "good",
+        "components": "info",
+        "state": "info",
+        "architecture": "good",
+        "testing": "info",
+        "type-safety": "fair",
+        "security": "good",
+        "circular-deps": "good",
+        "bundle": "info"
+      }
+    }
+  ]
+}

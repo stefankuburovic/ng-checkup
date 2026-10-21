@@ -1,0 +1,395 @@
+{
+  "repo": "WorldHealthOrganization/GoDataSource-FrontEnd",
+  "commit": "420a2c395e898493997c1df98810350e204e7d98",
+  "project": {
+    "name": "go-data-front-end",
+    "kind": "angular-cli",
+    "angularVersion": "14.3.0",
+    "sourceFiles": 692,
+    "templateFiles": 198,
+    "linesOfCode": 181196
+  },
+  "score": 29,
+  "checks": [
+    {
+      "id": "version",
+      "grade": "poor",
+      "summary": "Angular 14.3.0, 8 majors behind 22.",
+      "measures": {
+        "end-of-life-packages": 1,
+        "webpack-builders": 1,
+        "mismatched-angular-packages": 0
+      },
+      "findings": [
+        {
+          "severity": "high",
+          "message": "Angular 14 is 8 majors behind 22 and out of support"
+        },
+        {
+          "severity": "medium",
+          "message": "1 project still built with the webpack builder"
+        },
+        {
+          "severity": "high",
+          "message": "`@angular/flex-layout` is end of life"
+        }
+      ]
+    },
+    {
+      "id": "deprecated-apis",
+      "grade": "info",
+      "summary": "Dependencies are not installed, so deprecations could not be read from the Angular packages.",
+      "measures": {
+        "legacy-template-directives": 680
+      },
+      "findings": [
+        {
+          "severity": "info",
+          "message": "Run `npm install` (or your package manager) and re-run for this check"
+        }
+      ]
+    },
+    {
+      "id": "dependencies",
+      "grade": "info",
+      "summary": "Dependencies are not installed, so the packages that depend on Angular could not be read.",
+      "measures": {},
+      "findings": [
+        {
+          "severity": "info",
+          "message": "Run `npm install` (or your package manager) and re-run for this check"
+        }
+      ]
+    },
+    {
+      "id": "change-detection",
+      "grade": "poor",
+      "summary": "Runs on zone.js; 30% of 199 components use OnPush.",
+      "measures": {
+        "eager-components": 140,
+        "ngzone-files": 0,
+        "zone-test-helpers": 0
+      },
+      "findings": [
+        {
+          "severity": "info",
+          "message": "Zoneless change detection needs Angular 20.2 or newer"
+        },
+        {
+          "severity": "medium",
+          "message": "140 components use eager change detection (70%)",
+          "files": [
+            "src/app/app.component.ts:7",
+            "src/app/common-modules/world-map-movement/components/world-map-movement/world-map-movement.component.ts:11",
+            "src/app/common-modules/world-map/components/world-map/world-map.component.ts:185"
+          ],
+          "count": 140
+        }
+      ]
+    },
+    {
+      "id": "components",
+      "grade": "poor",
+      "summary": "199 components: 0% standalone, 0% signal inputs, 0% built-in control flow.",
+      "measures": {
+        "module-components": 199,
+        "decorator-inputs-outputs": 406,
+        "legacy-control-flow": 680
+      },
+      "findings": [
+        {
+          "severity": "medium",
+          "message": "199 components still declared in NgModules (34 NgModules in total)",
+          "files": [
+            "src/app/app.component.ts:7",
+            "src/app/common-modules/world-map-movement/components/world-map-movement/world-map-movement.component.ts:11",
+            "src/app/common-modules/world-map/components/world-map/world-map.component.ts:185"
+          ],
+          "count": 199
+        },
+        {
+          "severity": "medium",
+          "message": "354 `@Input()` decorators and 52 `@Output()` decorators left",
+          "count": 406
+        },
+        {
+          "severity": "low",
+          "message": "680 uses of `*ngIf`, `*ngFor` and `[ngSwitch]`",
+          "count": 680
+        }
+      ]
+    },
+    {
+      "id": "state",
+      "grade": "fair",
+      "summary": "No classic NgRx, 0 signal()/computed() calls, 0 signal-store files.",
+      "measures": {
+        "classic-ngrx-files": 0,
+        "behaviorsubject-services": 2,
+        "effect-decorators": 0
+      },
+      "findings": [
+        {
+          "severity": "low",
+          "message": "2 services hold state in a `BehaviorSubject`",
+          "files": [
+            "src/app/core/services/data/outbreak.data.service.ts:32",
+            "src/app/core/services/helper/toast-v2.service.ts:45"
+          ],
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "architecture",
+      "grade": "poor",
+      "summary": "98% of 126 routes lazy, 96 files over 500 lines, 350 classes with constructor injection.",
+      "measures": {
+        "eager-routes": 2,
+        "very-large-files": 45,
+        "constructor-injection": 350,
+        "class-guards": 22
+      },
+      "findings": [
+        {
+          "severity": "medium",
+          "message": "96 files over 500 lines, 45 over 1 000",
+          "files": [
+            "src/app/shared/components-v2/app-spreadsheet-editor-v2/app-spreadsheet-editor-v2.component.ts",
+            "src/app/features/import-export-data/components/import-data/import-data.component.ts",
+            "src/app/features/case/pages/cases-list/cases-list.component.ts"
+          ],
+          "count": 96
+        },
+        {
+          "severity": "low",
+          "message": "22 class-based guards and interceptors",
+          "files": [
+            "src/app/core/services/guards/auth-guard.service.ts:10",
+            "src/app/core/services/guards/not-auth-redirect-guard.service.ts:5",
+            "src/app/core/services/guards/page-change-confirmation-guard.service.ts:122"
+          ],
+          "count": 22
+        },
+        {
+          "severity": "low",
+          "message": "350 classes inject through the constructor",
+          "files": [
+            "src/app/app.component.ts:20",
+            "src/app/common-modules/world-map-movement/components/world-map-movement/world-map-movement.component.ts:88",
+            "src/app/common-modules/world-map/components/world-map/world-map.component.ts:402"
+          ],
+          "count": 350
+        }
+      ]
+    },
+    {
+      "id": "testing",
+      "grade": "poor",
+      "summary": "No unit-test runner detected, 0 spec files, 0% of components and services with a spec.",
+      "measures": {
+        "untested-files": 357
+      },
+      "findings": [
+        {
+          "severity": "high",
+          "message": "No unit tests found"
+        },
+        {
+          "severity": "info",
+          "message": "No end-to-end test setup found"
+        }
+      ]
+    },
+    {
+      "id": "type-safety",
+      "grade": "poor",
+      "summary": "strictNullChecks off, strictTemplates off, 943 explicit any.",
+      "measures": {
+        "strict-flags-off": 3,
+        "explicit-any": 943,
+        "non-null-assertions": 0,
+        "ts-suppressions": 1,
+        "template-any-casts": 0,
+        "untyped-form-files": 3
+      },
+      "findings": [
+        {
+          "severity": "high",
+          "message": "`strictNullChecks` is off"
+        },
+        {
+          "severity": "high",
+          "message": "`strictTemplates` is off"
+        },
+        {
+          "severity": "medium",
+          "message": "`noImplicitAny` is off"
+        },
+        {
+          "severity": "medium",
+          "message": "943 explicit `any` in application code (5.2 per 1 000 lines)",
+          "files": [
+            "src/app/common-modules/world-map/components/world-map/world-map.component.ts:67",
+            "src/app/shared/components/pie-donut-graph/pie-donut-chart.component.ts:14",
+            "src/app/shared/forms-v2/validators/date-validator.directive.ts:13"
+          ],
+          "count": 224
+        },
+        {
+          "severity": "low",
+          "message": "1 `@ts-ignore` / `@ts-expect-error` comment"
+        },
+        {
+          "severity": "low",
+          "message": "3 files import `UntypedForm*` classes",
+          "files": [
+            "src/app/core/services/helper/form-helper.service.ts",
+            "src/app/features/duplicate-records/pages/duplicate-records-list/duplicate-records-list.component.ts",
+            "src/app/shared/forms-v2/core/app-form-base-v2.ts"
+          ],
+          "count": 3
+        }
+      ]
+    },
+    {
+      "id": "security",
+      "grade": "poor",
+      "summary": "8 direct DOM HTML writes, 0 evals, 12 sanitizer bypasses.",
+      "measures": {
+        "unsafe-dom-writes": 8,
+        "dynamic-code": 0,
+        "sanitizer-bypasses": 12,
+        "inner-html-bindings": 37
+      },
+      "findings": [
+        {
+          "severity": "high",
+          "message": "HTML is written into the DOM past Angular's sanitizer in 8 places",
+          "files": [
+            "src/app/shared/components-v2/app-spreadsheet-editor-v2/models/app-spreadsheet-editor-v2-cell-basic-header.model.ts:172",
+            "src/app/shared/components-v2/app-spreadsheet-editor-v2/models/app-spreadsheet-editor-v2-cell-basic-renderer.model.ts:219",
+            "src/app/shared/components-v2/app-spreadsheet-editor-v2/models/app-spreadsheet-editor-v2-cell-date-renderer.model.ts:38"
+          ],
+          "count": 8
+        },
+        {
+          "severity": "medium",
+          "message": "Angular's sanitization is bypassed in 12 places (`bypassSecurityTrust*`)",
+          "files": [
+            "src/app/core/helperClasses/user-role.helper.ts:54",
+            "src/app/core/services/data/captcha.data.service.ts:32",
+            "src/app/features/case/pages/cases-create-view-modify/cases-create-view-modify.component.ts:1853"
+          ],
+          "count": 12
+        },
+        {
+          "severity": "low",
+          "message": "37 `[innerHTML]` bindings in 27 templates",
+          "files": [
+            "src/app/features/authentication/pages/login/login.component.html",
+            "src/app/features/authentication/pages/reset-password-questions/reset-password-questions.component.html",
+            "src/app/features/d3-graphs/pages/transmission-chain-bars/transmission-chain-bars.component.html"
+          ],
+          "count": 27
+        }
+      ]
+    },
+    {
+      "id": "circular-deps",
+      "grade": "fair",
+      "summary": "2 groups of files importing each other in a loop, 6 files in total.",
+      "measures": {
+        "files-in-cycles": 6
+      },
+      "findings": [
+        {
+          "severity": "medium",
+          "message": "4 files import each other in a loop",
+          "files": [
+            "src/app/core/components/authenticated/authenticated.component.ts",
+            "src/app/core/helperClasses/list-component.ts",
+            "src/app/core/services/guards/page-change-confirmation-guard.service.ts"
+          ],
+          "count": 4
+        },
+        {
+          "severity": "medium",
+          "message": "2 files import each other in a loop",
+          "files": [
+            "src/app/core/models/team.model.ts",
+            "src/app/core/models/user.model.ts"
+          ],
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "bundle",
+      "grade": "info",
+      "summary": "No build stats found, so the bundle size is not part of this report.",
+      "measures": {},
+      "findings": [
+        {
+          "severity": "info",
+          "message": "Run `ng build --stats-json` (or `nx build <app> --stats-json`) and re-run to include the bundle size"
+        }
+      ]
+    }
+  ],
+  "plan": {
+    "from": 14,
+    "to": 22,
+    "before": [
+      "Break the import cycles (6)"
+    ],
+    "steps": [
+      {
+        "to": 15,
+        "items": [
+          "Angular Material moves to the MDC-based components"
+        ]
+      },
+      {
+        "to": 16,
+        "items": [
+          "Replace @angular/flex-layout first",
+          "Convert NgModule components to standalone (199)"
+        ]
+      },
+      {
+        "to": 17,
+        "items": [
+          "The MatLegacy* components are removed",
+          "Move templates to built-in control flow (680)"
+        ]
+      },
+      {
+        "to": 18,
+        "items": [
+          "Switch to the esbuild application builder (1)"
+        ]
+      },
+      {
+        "to": 19,
+        "items": [
+          "Convert @Input() and @Output() to signal inputs and outputs (406)"
+        ]
+      },
+      {
+        "to": 20,
+        "items": []
+      },
+      {
+        "to": 21,
+        "items": [
+          "Prepare for zoneless: move components to OnPush, then drop zone.js (140)"
+        ]
+      },
+      {
+        "to": 22,
+        "items": []
+      }
+    ]
+  }
+}

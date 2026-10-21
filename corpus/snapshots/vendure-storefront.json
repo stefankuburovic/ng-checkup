@@ -1,0 +1,338 @@
+{
+  "repo": "vendurehq/storefront-angular-starter",
+  "commit": "45b2f4e0cbfca2c86bdea632bbffc33bdf948de8",
+  "project": {
+    "name": "vendure-angular-storefront",
+    "kind": "angular-cli",
+    "angularVersion": "^17.1.1",
+    "sourceFiles": 126,
+    "templateFiles": 50,
+    "linesOfCode": 8341
+  },
+  "score": 51,
+  "checks": [
+    {
+      "id": "version",
+      "grade": "poor",
+      "summary": "Angular ^17.1.1, 5 majors behind 22.",
+      "measures": {
+        "end-of-life-packages": 1,
+        "webpack-builders": 1,
+        "mismatched-angular-packages": 0
+      },
+      "findings": [
+        {
+          "severity": "high",
+          "message": "Angular 17 is 5 majors behind 22 and out of support"
+        },
+        {
+          "severity": "medium",
+          "message": "1 project still built with the webpack builder"
+        },
+        {
+          "severity": "medium",
+          "message": "`codelyzer` is end of life"
+        }
+      ]
+    },
+    {
+      "id": "deprecated-apis",
+      "grade": "info",
+      "summary": "Dependencies are not installed, so deprecations could not be read from the Angular packages.",
+      "measures": {
+        "legacy-template-directives": 90
+      },
+      "findings": [
+        {
+          "severity": "info",
+          "message": "Run `npm install` (or your package manager) and re-run for this check"
+        }
+      ]
+    },
+    {
+      "id": "dependencies",
+      "grade": "info",
+      "summary": "Dependencies are not installed, so the packages that depend on Angular could not be read.",
+      "measures": {},
+      "findings": [
+        {
+          "severity": "info",
+          "message": "Run `npm install` (or your package manager) and re-run for this check"
+        }
+      ]
+    },
+    {
+      "id": "change-detection",
+      "grade": "fair",
+      "summary": "Runs on zone.js; 79% of 53 components use OnPush.",
+      "measures": {
+        "eager-components": 11,
+        "ngzone-files": 0,
+        "zone-test-helpers": 0
+      },
+      "findings": [
+        {
+          "severity": "info",
+          "message": "Zoneless change detection needs Angular 20.2 or newer"
+        },
+        {
+          "severity": "low",
+          "message": "11 components use eager change detection (21%)",
+          "files": [
+            "src/app/account/components/change-email-address/change-email-address.component.ts:10",
+            "src/app/account/components/forgotten-password/forgotten-password.component.ts:9",
+            "src/app/account/components/verify/verify.component.ts:10"
+          ],
+          "count": 11
+        }
+      ]
+    },
+    {
+      "id": "components",
+      "grade": "poor",
+      "summary": "53 components: 0% standalone, 0% signal inputs, 0% built-in control flow.",
+      "measures": {
+        "module-components": 53,
+        "decorator-inputs-outputs": 38,
+        "legacy-control-flow": 90
+      },
+      "findings": [
+        {
+          "severity": "medium",
+          "message": "53 components still declared in NgModules (6 NgModules in total)",
+          "files": [
+            "src/app/account/components/account-address-book/account-address-book.component.ts:9",
+            "src/app/account/components/account-address-detail/account-address-detail.component.ts:20",
+            "src/app/account/components/account-change-credentials/account-change-credentials.component.ts:13"
+          ],
+          "count": 53
+        },
+        {
+          "severity": "medium",
+          "message": "33 `@Input()` decorators and 5 `@Output()` decorators left",
+          "count": 38
+        },
+        {
+          "severity": "low",
+          "message": "90 uses of `*ngIf`, `*ngFor` and `[ngSwitch]`",
+          "count": 90
+        }
+      ]
+    },
+    {
+      "id": "state",
+      "grade": "fair",
+      "summary": "No classic NgRx, 0 signal()/computed() calls, 0 signal-store files.",
+      "measures": {
+        "classic-ngrx-files": 0,
+        "behaviorsubject-services": 1,
+        "effect-decorators": 0
+      },
+      "findings": [
+        {
+          "severity": "low",
+          "message": "1 service holds state in a `BehaviorSubject`",
+          "files": [
+            "src/app/core/providers/state/state.service.ts:29"
+          ],
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "architecture",
+      "grade": "fair",
+      "summary": "88% of 24 routes lazy, 1 file over 500 lines, 54 classes with constructor injection.",
+      "measures": {
+        "eager-routes": 3,
+        "very-large-files": 1,
+        "constructor-injection": 54,
+        "class-guards": 1
+      },
+      "findings": [
+        {
+          "severity": "medium",
+          "message": "1 file over 500 lines, 1 over 1 000",
+          "files": [
+            "src/app/common/generated-types.ts"
+          ],
+          "count": 1
+        },
+        {
+          "severity": "low",
+          "message": "1 class-based guard or interceptor",
+          "files": [
+            "src/app/core/providers/data/interceptor.ts:16"
+          ],
+          "count": 1
+        },
+        {
+          "severity": "low",
+          "message": "54 classes inject through the constructor",
+          "files": [
+            "src/app/account/components/account-address-book/account-address-book.component.ts:18",
+            "src/app/account/components/account-address-detail/account-address-detail.component.ts:32",
+            "src/app/account/components/account-change-credentials/account-change-credentials.component.ts:26"
+          ],
+          "count": 54
+        }
+      ]
+    },
+    {
+      "id": "testing",
+      "grade": "poor",
+      "summary": "Karma, 0 spec files, 0% of components and services with a spec.",
+      "measures": {
+        "untested-files": 63
+      },
+      "findings": [
+        {
+          "severity": "high",
+          "message": "Unit tests run on Karma, which is deprecated"
+        },
+        {
+          "severity": "high",
+          "message": "No unit tests found"
+        },
+        {
+          "severity": "info",
+          "message": "No end-to-end test setup found"
+        }
+      ]
+    },
+    {
+      "id": "type-safety",
+      "grade": "fair",
+      "summary": "strictNullChecks on, strictTemplates off, 318 explicit any.",
+      "measures": {
+        "strict-flags-off": 1,
+        "explicit-any": 318,
+        "non-null-assertions": 1,
+        "ts-suppressions": 0,
+        "template-any-casts": 0,
+        "untyped-form-files": 4
+      },
+      "findings": [
+        {
+          "severity": "high",
+          "message": "`strictTemplates` is off"
+        },
+        {
+          "severity": "medium",
+          "message": "318 explicit `any` in application code (38.1 per 1 000 lines)",
+          "files": [
+            "src/app/common/generated-types.ts:14",
+            "src/app/core/apollo-client-provider.ts:14",
+            "src/app/core/components/modal-dialog/modal-dialog.component.ts:17"
+          ],
+          "count": 27
+        },
+        {
+          "severity": "low",
+          "message": "1 non-null assertion (`x!`) in application code"
+        },
+        {
+          "severity": "low",
+          "message": "4 files import `UntypedForm*` classes",
+          "files": [
+            "src/app/account/components/account-customer-details/account-customer-details.component.ts",
+            "src/app/checkout/components/checkout-shipping/checkout-shipping.component.ts",
+            "src/app/core/components/product-search-bar/product-search-bar.component.ts"
+          ],
+          "count": 4
+        }
+      ]
+    },
+    {
+      "id": "security",
+      "grade": "fair",
+      "summary": "0 direct DOM HTML writes, 0 evals, 3 sanitizer bypasses.",
+      "measures": {
+        "unsafe-dom-writes": 0,
+        "dynamic-code": 0,
+        "sanitizer-bypasses": 3,
+        "inner-html-bindings": 2
+      },
+      "findings": [
+        {
+          "severity": "medium",
+          "message": "Angular's sanitization is bypassed in 3 places (`bypassSecurityTrust*`)",
+          "files": [
+            "src/app/core/components/product-list/product-list.component.ts:92",
+            "src/app/shared/components/collection-card/collection-card.component.ts:22",
+            "src/app/shared/pipes/safe-html.pipe.ts:14"
+          ],
+          "count": 3
+        },
+        {
+          "severity": "low",
+          "message": "2 `[innerHTML]` bindings in 2 templates",
+          "files": [
+            "src/app/core/components/product-detail/product-detail.component.html",
+            "src/app/core/components/top-reviews/top-reviews.component.html"
+          ],
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "circular-deps",
+      "grade": "good",
+      "summary": "No import cycles between application files.",
+      "measures": {
+        "files-in-cycles": 0
+      },
+      "findings": []
+    },
+    {
+      "id": "bundle",
+      "grade": "info",
+      "summary": "No build stats found, so the bundle size is not part of this report.",
+      "measures": {},
+      "findings": [
+        {
+          "severity": "info",
+          "message": "Run `ng build --stats-json` (or `nx build <app> --stats-json`) and re-run to include the bundle size"
+        }
+      ]
+    }
+  ],
+  "plan": {
+    "from": 17,
+    "to": 22,
+    "before": [
+      "Remove the TSLint leftovers"
+    ],
+    "steps": [
+      {
+        "to": 18,
+        "items": [
+          "Convert NgModule components to standalone (53)",
+          "Move templates to built-in control flow (90)",
+          "Switch to the esbuild application builder (1)"
+        ]
+      },
+      {
+        "to": 19,
+        "items": [
+          "Convert @Input() and @Output() to signal inputs and outputs (38)"
+        ]
+      },
+      {
+        "to": 20,
+        "items": []
+      },
+      {
+        "to": 21,
+        "items": [
+          "Move unit tests from Karma to Vitest",
+          "Prepare for zoneless: move components to OnPush, then drop zone.js (11)"
+        ]
+      },
+      {
+        "to": 22,
+        "items": []
+      }
+    ]
+  }
+}

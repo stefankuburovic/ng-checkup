@@ -22,3 +22,22 @@ jobs:
       - run: npm test
       # The tool checks itself on its own fixtures, the way a user would run it.
       - run: node dist/cli.js test/fixtures/modern-app --offline --fail-on poor
+
+  # ng-checkup on 13 real Angular repositories at pinned commits, compared
+  # with corpus/snapshots. A rule change that moves any number fails here with
+  # the diff, so it is reviewed before release instead of found by a reader.
+  corpus:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - uses: actions/cache@v4
+        with:
+          path: .corpus
+          key: corpus-${{ hashFiles('corpus/repos.json') }}
+      - run: npm run corpus

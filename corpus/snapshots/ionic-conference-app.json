@@ -1,0 +1,192 @@
+{
+  "repo": "ionic-team/ionic-conference-app",
+  "commit": "6b4996ea22b81fc98e03447784f4dc366801e045",
+  "project": {
+    "name": "ionic-angular-conference-app",
+    "kind": "angular-cli",
+    "angularVersion": "^22.0.2",
+    "sourceFiles": 35,
+    "templateFiles": 15,
+    "linesOfCode": 1960
+  },
+  "score": 87,
+  "checks": [
+    {
+      "id": "version",
+      "grade": "good",
+      "summary": "On the latest major, Angular ^22.0.2.",
+      "measures": {
+        "end-of-life-packages": 0,
+        "webpack-builders": 0,
+        "mismatched-angular-packages": 0
+      },
+      "findings": []
+    },
+    {
+      "id": "deprecated-apis",
+      "grade": "info",
+      "summary": "Dependencies are not installed, so deprecations could not be read from the Angular packages.",
+      "measures": {
+        "legacy-template-directives": 0
+      },
+      "findings": [
+        {
+          "severity": "info",
+          "message": "Run `npm install` (or your package manager) and re-run for this check"
+        }
+      ]
+    },
+    {
+      "id": "dependencies",
+      "grade": "info",
+      "summary": "Dependencies are not installed, so the packages that depend on Angular could not be read.",
+      "measures": {},
+      "findings": [
+        {
+          "severity": "info",
+          "message": "Run `npm install` (or your package manager) and re-run for this check"
+        }
+      ]
+    },
+    {
+      "id": "change-detection",
+      "grade": "good",
+      "summary": "Zoneless, with 100% of components on OnPush.",
+      "measures": {
+        "eager-components": 0,
+        "ngzone-files": 0,
+        "zone-test-helpers": 0
+      },
+      "findings": []
+    },
+    {
+      "id": "components",
+      "grade": "good",
+      "summary": "15 components: 100% standalone, 100% signal inputs, 100% built-in control flow.",
+      "measures": {
+        "module-components": 0,
+        "decorator-inputs-outputs": 0,
+        "legacy-control-flow": 0
+      },
+      "findings": []
+    },
+    {
+      "id": "state",
+      "grade": "good",
+      "summary": "No classic NgRx, 11 signal()/computed() calls, 0 signal-store files.",
+      "measures": {
+        "classic-ngrx-files": 0,
+        "behaviorsubject-services": 1,
+        "effect-decorators": 0
+      },
+      "findings": [
+        {
+          "severity": "low",
+          "message": "1 service holds state in a `BehaviorSubject`",
+          "files": [
+            "src/app/providers/location.service.ts:12"
+          ],
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "architecture",
+      "grade": "good",
+      "summary": "100% of 14 routes lazy, 0 files over 500 lines, 0 classes with constructor injection.",
+      "measures": {
+        "eager-routes": 0,
+        "very-large-files": 0,
+        "constructor-injection": 0,
+        "class-guards": 0
+      },
+      "findings": []
+    },
+    {
+      "id": "testing",
+      "grade": "poor",
+      "summary": "Karma, 5 spec files, 28% of components and services with a spec.",
+      "measures": {
+        "untested-files": 13
+      },
+      "findings": [
+        {
+          "severity": "high",
+          "message": "Unit tests run on Karma, which is deprecated"
+        },
+        {
+          "severity": "medium",
+          "message": "72% of components and services have no spec file next to them",
+          "files": [
+            "src/app/pages/about-popover/about-popover.ts",
+            "src/app/pages/about/about.ts",
+            "src/app/pages/account/account.ts"
+          ],
+          "count": 13
+        },
+        {
+          "severity": "info",
+          "message": "No end-to-end test setup found"
+        }
+      ]
+    },
+    {
+      "id": "type-safety",
+      "grade": "fair",
+      "summary": "strictNullChecks on, strictTemplates on, 8 explicit any.",
+      "measures": {
+        "strict-flags-off": 0,
+        "explicit-any": 8,
+        "non-null-assertions": 0,
+        "ts-suppressions": 0,
+        "template-any-casts": 0,
+        "untyped-form-files": 0
+      },
+      "findings": [
+        {
+          "severity": "medium",
+          "message": "8 explicit `any` in application code (4.1 per 1 000 lines)",
+          "files": [
+            "src/app/pages/speaker-detail/speaker-detail.ts:84",
+            "src/app/providers/location.service.ts:16",
+            "src/app/providers/user.service.ts:43"
+          ],
+          "count": 3
+        }
+      ]
+    },
+    {
+      "id": "security",
+      "grade": "good",
+      "summary": "No sanitizer bypasses, direct DOM HTML writes or eval in 30 files.",
+      "measures": {
+        "unsafe-dom-writes": 0,
+        "dynamic-code": 0,
+        "sanitizer-bypasses": 0,
+        "inner-html-bindings": 0
+      },
+      "findings": []
+    },
+    {
+      "id": "circular-deps",
+      "grade": "good",
+      "summary": "No import cycles between application files.",
+      "measures": {
+        "files-in-cycles": 0
+      },
+      "findings": []
+    },
+    {
+      "id": "bundle",
+      "grade": "info",
+      "summary": "No build stats found, so the bundle size is not part of this report.",
+      "measures": {},
+      "findings": [
+        {
+          "severity": "info",
+          "message": "Run `ng build --stats-json` (or `nx build <app> --stats-json`) and re-run to include the bundle size"
+        }
+      ]
+    }
+  ]
+}

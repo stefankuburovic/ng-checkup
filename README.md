@@ -401,6 +401,8 @@ node dist/cli.js path/to/some/angular/app
 
 Each check is one file in `src/checks/` and a pure function of the analysis context, so a new check is a new file plus a fixture that shows it.
 
+**The corpus.** `npm run corpus` runs ng-checkup on 13 public Angular repositories pinned to one commit each (`corpus/repos.json`: Angular 12 to 22, CLI and Nx workspaces, Ionic, a 180 000-line app) and compares the result with `corpus/snapshots/`. CI runs it on every push. A rule change that moves any number shows up as a diff; read it, and run `npm run corpus -- --update` only when every changed line is an improvement. The repositories are fetched shallow into `.corpus/` and their dependencies are never installed.
+
 ## Need help acting on the report?
 
 I'm [Stefan Kuburovic](https://stefankuburovic.github.io/), and modernizing large Angular codebases is my job. If you'd rather have someone walk through the report with your team, or do the upgrade with you, have a look at the [Angular Health Check](https://stefankuburovic.github.io/#health-check).

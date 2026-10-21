@@ -1,6 +1,6 @@
 import { dirname, resolve } from 'node:path';
 import ts from 'typescript';
-import type { SourceFileFacts } from './scan.js';
+import type { ImportFact, SourceFileFacts } from './scan.js';
 
 /** A group of files that import each other in a loop, directly or through others. */
 export interface DependencyTangle {
@@ -53,9 +53,10 @@ export function buildImportGraph(files: SourceFileFacts[], compilerOptions: ts.C
   const options: ts.CompilerOptions = { ...compilerOptions, moduleResolution: ts.ModuleResolutionKind.Bundler, module: ts.ModuleKind.ESNext, allowJs: false };
   const cache = ts.createModuleResolutionCache(process.cwd(), (name) => name, options);
 
-  const edges = new Map<string, string[]>();
+  // Pass 1: where each eager import points, if it is an analysed file.
+  const resolvedImports = new Map<string, Array<{ fact: ImportFact; target: string }>>();
   for (const file of sources) {
-    const targets = new Set<string>();
+    const resolvedFacts: Array<{ fact: ImportFact; target: string }> = [];
     for (const fact of file.imports) {
       if (fact.typeOnly || fact.dynamic) continue;
       // Bare specifiers that are not path aliases resolve into node_modules and are dropped below;
@@ -64,9 +65,39 @@ export function buildImportGraph(files: SourceFileFacts[], compilerOptions: ts.C
       const resolved = ts.resolveModuleName(fact.specifier, file.absolutePath, options, ts.sys, cache).resolvedModule;
       if (!resolved || resolved.isExternalLibraryImport) continue;
       const target = resolve(resolved.resolvedFileName);
-      if (byAbsolute.has(target)) targets.add(target);
+      if (byAbsolute.has(target)) resolvedFacts.push({ fact, target });
     }
-    edges.set(resolve(file.absolutePath), [...targets]);
+    resolvedImports.set(resolve(file.absolutePath), resolvedFacts);
+  }
+
+  // Pass 2: the type-only names of each file, following re-exports, so an
+  // import of a type through an `index.ts` barrel is recognised too.
+  const typeNames = new Map<string, Set<string>>();
+  const typeNamesOf = (path: string): Set<string> => {
+    const known = typeNames.get(path);
+    if (known) return known;
+    const names = new Set(byAbsolute.get(path)?.typeExports ?? []);
+    typeNames.set(path, names); // set before recursing, so a re-export cycle ends
+    for (const { fact, target } of resolvedImports.get(path) ?? []) {
+      if (!fact.reexport) continue;
+      const targetTypes = typeNamesOf(target);
+      if (fact.bindings.length === 0) for (const name of targetTypes) names.add(name);
+      for (const binding of fact.bindings) if (targetTypes.has(binding.imported)) names.add(binding.exported ?? binding.imported);
+    }
+    return names;
+  };
+
+  // Pass 3: the edges. An import whose every name is a type in the target is
+  // erased by TypeScript even without `import type`, so it is no edge: the
+  // case that made a 123-file "cycle" out of a library's model types.
+  const edges = new Map<string, string[]>();
+  for (const [path, resolvedFacts] of resolvedImports) {
+    const targets = new Set<string>();
+    for (const { fact, target } of resolvedFacts) {
+      const onlyTypes = fact.bindings.length > 0 && fact.bindings.every((binding) => binding.typeOnly || !binding.valueUsed || typeNamesOf(target).has(binding.imported));
+      if (!onlyTypes) targets.add(target);
+    }
+    edges.set(path, [...targets]);
   }
   return { edges, byAbsolute };
 }

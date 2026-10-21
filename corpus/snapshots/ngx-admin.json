@@ -1,0 +1,346 @@
+{
+  "repo": "akveo/ngx-admin",
+  "commit": "dc6a442704bfef34b776b5eb15faf852d9e2f75c",
+  "project": {
+    "name": "ngx-admin",
+    "kind": "angular-cli",
+    "angularVersion": "^15.2.10",
+    "sourceFiles": 241,
+    "templateFiles": 79,
+    "linesOfCode": 12612
+  },
+  "score": 51,
+  "checks": [
+    {
+      "id": "version",
+      "grade": "poor",
+      "summary": "Angular ^15.2.10, 7 majors behind 22.",
+      "measures": {
+        "end-of-life-packages": 4,
+        "webpack-builders": 1,
+        "mismatched-angular-packages": 1
+      },
+      "findings": [
+        {
+          "severity": "high",
+          "message": "Angular 15 is 7 majors behind 22 and out of support"
+        },
+        {
+          "severity": "medium",
+          "message": "1 Angular package on a different major than @angular/core 15"
+        },
+        {
+          "severity": "medium",
+          "message": "1 project still built with the webpack builder"
+        },
+        {
+          "severity": "medium",
+          "message": "`protractor` is end of life"
+        },
+        {
+          "severity": "medium",
+          "message": "`tslint` is end of life"
+        },
+        {
+          "severity": "medium",
+          "message": "`codelyzer` is end of life"
+        },
+        {
+          "severity": "medium",
+          "message": "`node-sass` is end of life"
+        }
+      ]
+    },
+    {
+      "id": "deprecated-apis",
+      "grade": "info",
+      "summary": "Dependencies are not installed, so deprecations could not be read from the Angular packages.",
+      "measures": {
+        "legacy-template-directives": 47
+      },
+      "findings": [
+        {
+          "severity": "info",
+          "message": "Run `npm install` (or your package manager) and re-run for this check"
+        }
+      ]
+    },
+    {
+      "id": "dependencies",
+      "grade": "info",
+      "summary": "Dependencies are not installed, so the packages that depend on Angular could not be read.",
+      "measures": {},
+      "findings": [
+        {
+          "severity": "info",
+          "message": "Run `npm install` (or your package manager) and re-run for this check"
+        }
+      ]
+    },
+    {
+      "id": "change-detection",
+      "grade": "poor",
+      "summary": "Runs on zone.js; 1% of 144 components use OnPush.",
+      "measures": {
+        "eager-components": 143,
+        "ngzone-files": 1,
+        "zone-test-helpers": 0
+      },
+      "findings": [
+        {
+          "severity": "info",
+          "message": "Zoneless change detection needs Angular 20.2 or newer"
+        },
+        {
+          "severity": "medium",
+          "message": "143 components use eager change detection (99%)",
+          "files": [
+            "src/app/@theme/components/footer/footer.component.ts:3",
+            "src/app/@theme/components/header/header.component.ts:9",
+            "src/app/@theme/components/search-input/search-input.component.ts:3"
+          ],
+          "count": 143
+        },
+        {
+          "severity": "low",
+          "message": "1 file injects `NgZone`",
+          "files": [
+            "src/app/pages/maps/search-map/search/search.component.ts:1"
+          ],
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "components",
+      "grade": "poor",
+      "summary": "144 components: 0% standalone, 0% signal inputs, 0% built-in control flow.",
+      "measures": {
+        "module-components": 144,
+        "decorator-inputs-outputs": 62,
+        "legacy-control-flow": 47
+      },
+      "findings": [
+        {
+          "severity": "medium",
+          "message": "144 components still declared in NgModules (29 NgModules in total)",
+          "files": [
+            "src/app/@theme/components/footer/footer.component.ts:3",
+            "src/app/@theme/components/header/header.component.ts:9",
+            "src/app/@theme/components/search-input/search-input.component.ts:3"
+          ],
+          "count": 144
+        },
+        {
+          "severity": "medium",
+          "message": "52 `@Input()` decorators and 10 `@Output()` decorators left",
+          "count": 62
+        },
+        {
+          "severity": "low",
+          "message": "47 uses of `*ngIf`, `*ngFor` and `[ngSwitch]`",
+          "count": 47
+        }
+      ]
+    },
+    {
+      "id": "state",
+      "grade": "fair",
+      "summary": "No classic NgRx, 0 signal()/computed() calls, 0 signal-store files.",
+      "measures": {
+        "classic-ngrx-files": 0,
+        "behaviorsubject-services": 1,
+        "effect-decorators": 0
+      },
+      "findings": [
+        {
+          "severity": "low",
+          "message": "1 service holds state in a `BehaviorSubject`",
+          "files": [
+            "src/app/@core/utils/state.service.ts:43"
+          ],
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "architecture",
+      "grade": "good",
+      "summary": "90% of 71 routes lazy, 1 file over 500 lines, 92 classes with constructor injection.",
+      "measures": {
+        "eager-routes": 7,
+        "very-large-files": 0,
+        "constructor-injection": 92,
+        "class-guards": 0
+      },
+      "findings": [
+        {
+          "severity": "low",
+          "message": "1 file over 500 lines",
+          "files": [
+            "src/app/pages/maps/bubble/bubble-map.component.ts"
+          ],
+          "count": 1
+        },
+        {
+          "severity": "low",
+          "message": "92 classes inject through the constructor",
+          "files": [
+            "src/app/@core/mock/orders-chart.service.ts:20",
+            "src/app/@core/mock/orders-profit-chart.service.ts:29",
+            "src/app/@core/mock/profit-chart.service.ts:20"
+          ],
+          "count": 92
+        }
+      ]
+    },
+    {
+      "id": "testing",
+      "grade": "poor",
+      "summary": "Karma, 0 spec files, 0% of components and services with a spec.",
+      "measures": {
+        "untested-files": 167
+      },
+      "findings": [
+        {
+          "severity": "high",
+          "message": "Unit tests run on Karma, which is deprecated"
+        },
+        {
+          "severity": "high",
+          "message": "No unit tests found"
+        },
+        {
+          "severity": "high",
+          "message": "End-to-end tests use Protractor, which is end of life"
+        }
+      ]
+    },
+    {
+      "id": "type-safety",
+      "grade": "poor",
+      "summary": "strictNullChecks off, strictTemplates off, 180 explicit any.",
+      "measures": {
+        "strict-flags-off": 3,
+        "explicit-any": 180,
+        "non-null-assertions": 0,
+        "ts-suppressions": 0,
+        "template-any-casts": 0,
+        "untyped-form-files": 1
+      },
+      "findings": [
+        {
+          "severity": "high",
+          "message": "`strictNullChecks` is off"
+        },
+        {
+          "severity": "high",
+          "message": "`strictTemplates` is off"
+        },
+        {
+          "severity": "medium",
+          "message": "`noImplicitAny` is off"
+        },
+        {
+          "severity": "medium",
+          "message": "180 explicit `any` in application code (14.3 per 1 000 lines)",
+          "files": [
+            "src/app/@core/utils/state.service.ts:10",
+            "src/app/pages/maps/bubble/bubble-map.component.ts:20",
+            "src/app/pages/charts/chartjs/chartjs-bar-horizontal.component.ts:11"
+          ],
+          "count": 65
+        },
+        {
+          "severity": "low",
+          "message": "1 file imports `UntypedForm*` classes",
+          "files": [
+            "src/app/pages/layout/stepper/stepper.component.ts"
+          ],
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "security",
+      "grade": "good",
+      "summary": "No sanitizer bypasses, direct DOM HTML writes or eval in 241 files.",
+      "measures": {
+        "unsafe-dom-writes": 0,
+        "dynamic-code": 0,
+        "sanitizer-bypasses": 0,
+        "inner-html-bindings": 0
+      },
+      "findings": []
+    },
+    {
+      "id": "circular-deps",
+      "grade": "good",
+      "summary": "No import cycles between application files.",
+      "measures": {
+        "files-in-cycles": 0
+      },
+      "findings": []
+    },
+    {
+      "id": "bundle",
+      "grade": "info",
+      "summary": "No build stats found, so the bundle size is not part of this report.",
+      "measures": {},
+      "findings": [
+        {
+          "severity": "info",
+          "message": "Run `ng build --stats-json` (or `nx build <app> --stats-json`) and re-run to include the bundle size"
+        }
+      ]
+    }
+  ],
+  "plan": {
+    "from": 15,
+    "to": 22,
+    "before": [
+      "Remove the TSLint leftovers"
+    ],
+    "steps": [
+      {
+        "to": 16,
+        "items": [
+          "Convert NgModule components to standalone (144)"
+        ]
+      },
+      {
+        "to": 17,
+        "items": [
+          "Move templates to built-in control flow (47)"
+        ]
+      },
+      {
+        "to": 18,
+        "items": [
+          "Switch to the esbuild application builder (1)"
+        ]
+      },
+      {
+        "to": 19,
+        "items": [
+          "Convert @Input() and @Output() to signal inputs and outputs (62)"
+        ]
+      },
+      {
+        "to": 20,
+        "items": []
+      },
+      {
+        "to": 21,
+        "items": [
+          "Move unit tests from Karma to Vitest",
+          "Prepare for zoneless: move components to OnPush, then drop zone.js (143)"
+        ]
+      },
+      {
+        "to": 22,
+        "items": []
+      }
+    ]
+  }
+}

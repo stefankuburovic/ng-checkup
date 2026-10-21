@@ -8,7 +8,15 @@ export interface ImportBinding {
   imported: string;
   /** The name it is bound to in this file. */
   local: string;
+  /** For a re-export, the name it is exported under (`B` in `export { A as B } from`). */
+  exported?: string;
   typeOnly: boolean;
+  /**
+   * False when the file only uses the binding as a type. TypeScript erases
+   * such an import even without `import type`, so it is no runtime
+   * dependency (see `valueReferences`). Always true for a re-export.
+   */
+  valueUsed: boolean;
 }
 
 /** One `import`, `export … from` or dynamic `import()` in a source file. */
@@ -25,6 +33,8 @@ export interface ImportFact {
   dynamic: boolean;
   /** Empty for a side-effect import (`import 'zone.js'`) and for `export * from`. */
   bindings: ImportBinding[];
+  /** True for `export … from`: the file passes the names on rather than using them. */
+  reexport?: boolean;
 }
 
 /** One `@Component` class. */
@@ -143,6 +153,14 @@ export interface SourceFileFacts {
   constructorInjections: Array<{ name: string; line: number; parameters: number }>;
   /** Classes implementing a router guard/resolver interface or `HttpInterceptor`, the pre-functional style. */
   classGuards: Array<{ name: string; line: number; kind: string }>;
+  /**
+   * Names this file exports only as types: `export type`, `export interface`,
+   * `export { type X }`, and `export { X }` of a local type. A name that is
+   * also a value (an interface merged with a const) is left out. The graph
+   * uses it to drop imports that name nothing but types, which TypeScript
+   * erases even without `import type`.
+   */
+  typeExports: string[];
   /** `templateUrl`/`template` is resolved by the template scan; inline templates are collected here. */
   inlineTemplates: TemplateFact[];
 }
@@ -178,6 +196,7 @@ export function scanSourceFile(root: string, absolutePath: string): SourceFileFa
     nonNullLines: [],
     definiteAssignments: 0,
     typeSuppressions: (text.match(/@ts-(ignore|expect-error|nocheck)\b/g) ?? []).length,
+    typeExports: typeExportsOf(source),
     toPromiseLines: [],
     bypassSecurityLines: [],
     unsafeDomLines: [],
@@ -195,6 +214,13 @@ export function scanSourceFile(root: string, absolutePath: string): SourceFileFa
     if (!fact) continue;
     facts.imports.push(fact);
     for (const binding of fact.bindings) locals.set(binding.local, { module: fact.specifier, imported: binding.imported });
+  }
+
+  // Which imported names the file uses as values; the rest TypeScript erases.
+  const valueNames = valueReferences(source, new Set(locals.keys()));
+  for (const fact of facts.imports) {
+    if (fact.reexport) continue;
+    for (const binding of fact.bindings) binding.valueUsed = valueNames.has(binding.local);
   }
 
   const lineOf = (node: ts.Node): number => source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1;
@@ -340,6 +366,93 @@ export function scanSourceFile(root: string, absolutePath: string): SourceFileFa
 }
 
 /**
+ * The names out of `names` that the file references as values: anywhere
+ * outside a type annotation, an `implements` clause, an interface or a type
+ * alias. That is the rule TypeScript applies when it decides to drop an
+ * import: `import { Store } from './store'` used only in `store: Store` is
+ * erased, and so is the dependency.
+ *
+ * One exception makes Angular code a runtime dependency where plain
+ * TypeScript would not be: the parameter types of a decorated class's
+ * constructor. The Angular compiler turns them into DI tokens
+ * (`ɵɵinject(Store)`), so they count as values, which is what keeps a real
+ * service cycle visible.
+ */
+function valueReferences(source: ts.SourceFile, names: Set<string>): Set<string> {
+  const used = new Set<string>();
+  if (names.size === 0) return used;
+  const visit = (node: ts.Node, inType: boolean): void => {
+    if (ts.isImportDeclaration(node) || ts.isInterfaceDeclaration(node) || ts.isTypeAliasDeclaration(node)) return;
+    if (ts.isHeritageClause(node)) {
+      const implementsClause = node.token === ts.SyntaxKind.ImplementsKeyword;
+      for (const type of node.types) {
+        visit(type.expression, inType || implementsClause);
+        for (const argument of type.typeArguments ?? []) visit(argument, true);
+      }
+      return;
+    }
+    if (ts.isConstructorDeclaration(node) && ts.isClassLike(node.parent) && (ts.getDecorators(node.parent) ?? []).length > 0) {
+      for (const parameter of node.parameters) {
+        for (const decorator of ts.getDecorators(parameter) ?? []) visit(decorator, false);
+        // The parameter's own type is the DI token; its type arguments are not.
+        if (parameter.type && ts.isTypeReferenceNode(parameter.type)) visit(parameter.type.typeName, false);
+        else if (parameter.type) visit(parameter.type, true);
+        if (parameter.initializer) visit(parameter.initializer, false);
+      }
+      if (node.body) visit(node.body, false);
+      return;
+    }
+    if (ts.isIdentifier(node)) {
+      if (!inType && names.has(node.text) && isReference(node)) used.add(node.text);
+      return;
+    }
+    const nowInType = inType || ts.isTypeNode(node);
+    ts.forEachChild(node, (child) => visit(child, nowInType));
+  };
+  visit(source, false);
+  return used;
+}
+
+/** False for an identifier that only names something: a property after a dot, an object key, a declared name. */
+function isReference(node: ts.Identifier): boolean {
+  const parent = node.parent;
+  if (ts.isPropertyAccessExpression(parent) && parent.name === node) return false;
+  if (ts.isQualifiedName(parent) && parent.right === node) return false;
+  if ((ts.isPropertyAssignment(parent) || ts.isPropertyDeclaration(parent) || ts.isMethodDeclaration(parent) || ts.isGetAccessor(parent) || ts.isSetAccessor(parent) || ts.isPropertySignature(parent)) && parent.name === node) return false;
+  if ((ts.isVariableDeclaration(parent) || ts.isParameter(parent) || ts.isFunctionDeclaration(parent) || ts.isClassDeclaration(parent) || ts.isEnumMember(parent) || ts.isBindingElement(parent)) && parent.name === node) return false;
+  if (ts.isExportSpecifier(parent)) return !parent.isTypeOnly && !parent.parent.parent.isTypeOnly;
+  return true;
+}
+
+/** See `SourceFileFacts.typeExports`. Top-level statements only, which is where exports live. */
+function typeExportsOf(source: ts.SourceFile): string[] {
+  const exported = (node: ts.Node): boolean => ts.canHaveModifiers(node) && (ts.getModifiers(node) ?? []).some((modifier) => modifier.kind === ts.SyntaxKind.ExportKeyword);
+  const types = new Set<string>();
+  const values = new Set<string>();
+  const exportedTypes = new Set<string>();
+  for (const statement of source.statements) {
+    if (ts.isTypeAliasDeclaration(statement) || ts.isInterfaceDeclaration(statement)) {
+      types.add(statement.name.text);
+      if (exported(statement)) exportedTypes.add(statement.name.text);
+    } else if ((ts.isClassDeclaration(statement) || ts.isFunctionDeclaration(statement) || ts.isEnumDeclaration(statement)) && statement.name) {
+      values.add(statement.name.text);
+    } else if (ts.isVariableStatement(statement)) {
+      for (const declaration of statement.declarationList.declarations) if (ts.isIdentifier(declaration.name)) values.add(declaration.name.text);
+    } else if (ts.isModuleDeclaration(statement) && ts.isIdentifier(statement.name)) {
+      values.add(statement.name.text);
+    }
+  }
+  for (const statement of source.statements) {
+    if (!ts.isExportDeclaration(statement) || statement.moduleSpecifier || !statement.exportClause || !ts.isNamedExports(statement.exportClause)) continue;
+    for (const element of statement.exportClause.elements) {
+      const local = (element.propertyName ?? element.name).text;
+      if (statement.isTypeOnly || element.isTypeOnly || (types.has(local) && !values.has(local))) exportedTypes.add(element.name.text);
+    }
+  }
+  return [...exportedTypes].filter((name) => !values.has(name));
+}
+
+/**
  * True for HTML the code wrote itself: a string literal, a template literal
  * without substitutions, or literals joined with `+`. `el.innerHTML = ''` (the
  * usual way to clear an element) and a fixed snippet of markup carry no input,
@@ -366,12 +479,12 @@ function importFactOf(statement: ts.Statement, source: ts.SourceFile): ImportFac
     const clause = statement.importClause;
     const bindings: ImportBinding[] = [];
     const clauseTypeOnly = clause?.isTypeOnly ?? false;
-    if (clause?.name) bindings.push({ imported: 'default', local: clause.name.text, typeOnly: clauseTypeOnly });
+    if (clause?.name) bindings.push({ imported: 'default', local: clause.name.text, typeOnly: clauseTypeOnly, valueUsed: true });
     const named = clause?.namedBindings;
-    if (named && ts.isNamespaceImport(named)) bindings.push({ imported: '*', local: named.name.text, typeOnly: clauseTypeOnly });
+    if (named && ts.isNamespaceImport(named)) bindings.push({ imported: '*', local: named.name.text, typeOnly: clauseTypeOnly, valueUsed: true });
     if (named && ts.isNamedImports(named)) {
       for (const element of named.elements) {
-        bindings.push({ imported: (element.propertyName ?? element.name).text, local: element.name.text, typeOnly: clauseTypeOnly || element.isTypeOnly });
+        bindings.push({ imported: (element.propertyName ?? element.name).text, local: element.name.text, typeOnly: clauseTypeOnly || element.isTypeOnly, valueUsed: true });
       }
     }
     return {
@@ -390,7 +503,9 @@ function importFactOf(statement: ts.Statement, source: ts.SourceFile): ImportFac
             imported: (element.propertyName ?? element.name).text,
             // A re-export binds nothing locally; the empty name keeps it out of the local lookup.
             local: '',
+            exported: element.name.text,
             typeOnly: statement.isTypeOnly || element.isTypeOnly,
+            valueUsed: true,
           }))
         : [];
     return {
@@ -399,6 +514,7 @@ function importFactOf(statement: ts.Statement, source: ts.SourceFile): ImportFac
       typeOnly: statement.isTypeOnly || (bindings.length > 0 && bindings.every((binding) => binding.typeOnly)),
       dynamic: false,
       bindings,
+      reexport: true,
     };
   }
   return undefined;

@@ -32,7 +32,7 @@ The id in parentheses is what the JSON report uses.
 | Grade | When |
 | --- | --- |
 | good | on the latest major or one behind |
-| fair | two majors behind, a webpack-based builder, mixed `@angular/*` majors, or end-of-life tooling (Protractor, TSLint, codelyzer, node-sass) |
+| fair | two majors behind, a project built only with a webpack-based builder (an extra webpack target beside an esbuild build does not count), mixed `@angular/*` majors, or end-of-life tooling (Protractor, TSLint, codelyzer, node-sass) |
 | poor | three or more majors behind (out of support), or an end-of-life runtime package (`@angular/http`, `@angular/flex-layout`) |
 
 Angular releases a major roughly every six months and supports each for 18 months, so the newest three are supported. `ng update` moves one major at a time, so the gap is also the number of upgrade steps.
@@ -215,7 +215,7 @@ Angular sanitizes every bound value, so an Angular app is safe from cross-site s
 
 ## Circular dependencies (`circular-deps`) <a id="circular-deps"></a>
 
-**What it reads:** every static, value-level import between application files, resolved like the Angular CLI does (relative paths, `index.ts` barrels and tsconfig `paths` aliases). `import type` and `import()` are ignored, since neither can cause an initialization-order crash, and so are spec files.
+**What it reads:** every static, value-level import between application files, resolved like the Angular CLI does (relative paths, `index.ts` barrels and tsconfig `paths` aliases). `import()` and test code are ignored, and so is every import TypeScript erases: `import type`, and also a plain import whose names the file uses only as types (`store: Store`), or that names only types (`export type ID = string`), directly or through a barrel. None of those exists at runtime, so none can cause an initialization-order crash. One Angular rule keeps a real cycle visible: the constructor parameter types of a decorated class are DI tokens, so they count as runtime references.
 
 Cycles are reported as **groups** of files that import each other in a loop (strongly connected components), each with one concrete loop to cut. Counting individual cycles grows combinatorially and gives numbers nobody can act on.
 

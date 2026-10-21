@@ -1,0 +1,310 @@
+{
+  "repo": "nrwl/nx-examples",
+  "commit": "16f15e16dc25c1f4c38949e54ebf5f9e7fdf2d05",
+  "project": {
+    "name": "nx-example",
+    "kind": "nx",
+    "angularVersion": "21.2.0",
+    "sourceFiles": 85,
+    "templateFiles": 5,
+    "linesOfCode": 941
+  },
+  "score": 73,
+  "checks": [
+    {
+      "id": "version",
+      "grade": "good",
+      "summary": "Angular 21.2.0, 1 major behind 22.",
+      "measures": {
+        "end-of-life-packages": 0,
+        "webpack-builders": 0,
+        "mismatched-angular-packages": 0
+      },
+      "findings": [
+        {
+          "severity": "low",
+          "message": "One major behind (21 → 22)"
+        }
+      ]
+    },
+    {
+      "id": "deprecated-apis",
+      "grade": "info",
+      "summary": "Dependencies are not installed, so deprecations could not be read from the Angular packages.",
+      "measures": {
+        "legacy-template-directives": 0
+      },
+      "findings": [
+        {
+          "severity": "info",
+          "message": "Run `npm install` (or your package manager) and re-run for this check"
+        }
+      ]
+    },
+    {
+      "id": "dependencies",
+      "grade": "info",
+      "summary": "Dependencies are not installed, so the packages that depend on Angular could not be read.",
+      "measures": {},
+      "findings": [
+        {
+          "severity": "info",
+          "message": "Run `npm install` (or your package manager) and re-run for this check"
+        }
+      ]
+    },
+    {
+      "id": "change-detection",
+      "grade": "poor",
+      "summary": "Runs on zone.js; 0% of 3 components use OnPush.",
+      "measures": {
+        "eager-components": 3,
+        "ngzone-files": 0,
+        "zone-test-helpers": 0
+      },
+      "findings": [
+        {
+          "severity": "medium",
+          "message": "Change detection still runs on zone.js"
+        },
+        {
+          "severity": "medium",
+          "message": "3 components use eager change detection (100%)",
+          "files": [
+            "apps/products/src/app/app.component.ts:5",
+            "libs/products/home-page/src/lib/home-page/home-page.component.ts:14",
+            "libs/products/product-detail-page/src/lib/product-detail-page/product-detail-page.component.ts:14"
+          ],
+          "count": 3
+        }
+      ]
+    },
+    {
+      "id": "components",
+      "grade": "fair",
+      "summary": "3 components: 0% standalone, no inputs, 100% built-in control flow.",
+      "measures": {
+        "module-components": 3,
+        "decorator-inputs-outputs": 0,
+        "legacy-control-flow": 0
+      },
+      "findings": [
+        {
+          "severity": "medium",
+          "message": "3 components still declared in NgModules (5 NgModules in total)",
+          "files": [
+            "apps/products/src/app/app.component.ts:5",
+            "libs/products/home-page/src/lib/home-page/home-page.component.ts:14",
+            "libs/products/product-detail-page/src/lib/product-detail-page/product-detail-page.component.ts:14"
+          ],
+          "count": 3
+        }
+      ]
+    },
+    {
+      "id": "state",
+      "grade": "fair",
+      "summary": "Classic NgRx in 8 files, 0 signal()/computed() calls, 0 signal-store files.",
+      "measures": {
+        "classic-ngrx-files": 8,
+        "behaviorsubject-services": 0,
+        "effect-decorators": 0
+      },
+      "findings": [
+        {
+          "severity": "low",
+          "message": "Classic NgRx in 8 files: 0 reducers, 0 effects, 1 selector, 0 action creators",
+          "files": [
+            "apps/products/src/app/app.module.ts:5",
+            "libs/products/home-page/src/lib/home-page/home-page.component.ts:3",
+            "libs/products/product-detail-page/src/lib/product-detail-page/product-detail-page.component.ts:4"
+          ],
+          "count": 8
+        }
+      ]
+    },
+    {
+      "id": "architecture",
+      "grade": "good",
+      "summary": "100% of 4 routes lazy, 0 files over 500 lines, 0 classes with constructor injection.",
+      "measures": {
+        "eager-routes": 0,
+        "very-large-files": 0,
+        "constructor-injection": 0,
+        "class-guards": 0
+      },
+      "findings": []
+    },
+    {
+      "id": "testing",
+      "grade": "good",
+      "summary": "Jest, 13 spec files, 100% of components and services with a spec.",
+      "measures": {
+        "untested-files": 0
+      },
+      "findings": []
+    },
+    {
+      "id": "type-safety",
+      "grade": "poor",
+      "summary": "strictNullChecks off, strictTemplates off, 0 explicit any.",
+      "measures": {
+        "strict-flags-off": 3,
+        "explicit-any": 0,
+        "non-null-assertions": 0,
+        "ts-suppressions": 0,
+        "template-any-casts": 0,
+        "untyped-form-files": 0
+      },
+      "findings": [
+        {
+          "severity": "high",
+          "message": "`strictNullChecks` is off"
+        },
+        {
+          "severity": "high",
+          "message": "`strictTemplates` is off"
+        },
+        {
+          "severity": "medium",
+          "message": "`noImplicitAny` is off"
+        }
+      ]
+    },
+    {
+      "id": "security",
+      "grade": "good",
+      "summary": "No sanitizer bypasses, direct DOM HTML writes or eval in 67 files.",
+      "measures": {
+        "unsafe-dom-writes": 0,
+        "dynamic-code": 0,
+        "sanitizer-bypasses": 0,
+        "inner-html-bindings": 0
+      },
+      "findings": []
+    },
+    {
+      "id": "circular-deps",
+      "grade": "good",
+      "summary": "No import cycles between application files.",
+      "measures": {
+        "files-in-cycles": 0
+      },
+      "findings": []
+    },
+    {
+      "id": "bundle",
+      "grade": "info",
+      "summary": "No build stats found, so the bundle size is not part of this report.",
+      "measures": {},
+      "findings": [
+        {
+          "severity": "info",
+          "message": "Run `ng build --stats-json` (or `nx build <app> --stats-json`) and re-run to include the bundle size"
+        }
+      ]
+    }
+  ],
+  "projects": [
+    {
+      "name": "products",
+      "root": "apps/products",
+      "score": 65,
+      "grades": {
+        "deprecated-apis": "info",
+        "change-detection": "poor",
+        "components": "poor",
+        "state": "fair",
+        "architecture": "good",
+        "testing": "good",
+        "type-safety": "poor",
+        "security": "good",
+        "circular-deps": "good",
+        "bundle": "info"
+      }
+    },
+    {
+      "name": "products-home-page",
+      "root": "libs/products/home-page",
+      "score": 80,
+      "grades": {
+        "deprecated-apis": "info",
+        "change-detection": "good",
+        "components": "fair",
+        "state": "fair",
+        "architecture": "good",
+        "testing": "good",
+        "type-safety": "poor",
+        "security": "good",
+        "circular-deps": "good",
+        "bundle": "info"
+      }
+    },
+    {
+      "name": "products-product-detail-page",
+      "root": "libs/products/product-detail-page",
+      "score": 80,
+      "grades": {
+        "deprecated-apis": "info",
+        "change-detection": "good",
+        "components": "fair",
+        "state": "fair",
+        "architecture": "good",
+        "testing": "good",
+        "type-safety": "poor",
+        "security": "good",
+        "circular-deps": "good",
+        "bundle": "info"
+      }
+    },
+    {
+      "name": "shared-cart-state",
+      "root": "libs/shared/cart/state",
+      "score": 80,
+      "grades": {
+        "deprecated-apis": "info",
+        "change-detection": "good",
+        "components": "info",
+        "state": "fair",
+        "architecture": "good",
+        "testing": "info",
+        "type-safety": "poor",
+        "security": "good",
+        "circular-deps": "good",
+        "bundle": "info"
+      }
+    },
+    {
+      "name": "shared-product-state",
+      "root": "libs/shared/product/state",
+      "score": 80,
+      "grades": {
+        "deprecated-apis": "info",
+        "change-detection": "good",
+        "components": "info",
+        "state": "fair",
+        "architecture": "good",
+        "testing": "info",
+        "type-safety": "poor",
+        "security": "good",
+        "circular-deps": "good",
+        "bundle": "info"
+      }
+    }
+  ],
+  "plan": {
+    "from": 21,
+    "to": 22,
+    "before": [],
+    "steps": [
+      {
+        "to": 22,
+        "items": [
+          "Update NgRx to 22 in the same step",
+          "Convert NgModule components to standalone (3)",
+          "Prepare for zoneless: move components to OnPush, then drop zone.js (3)"
+        ]
+      }
+    ]
+  }
+}

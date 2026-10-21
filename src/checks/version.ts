@@ -83,12 +83,16 @@ export function versionCheck(context: AnalysisContext): CheckResult {
     });
   }
 
-  const webpackTargets = workspace.targets.filter((target) => WEBPACK_BUILDERS.has(target.builder));
-  if (webpackTargets.length > 0) {
+  // Per project, and only when the project has no esbuild build at all: a
+  // workspace may keep an extra webpack target on purpose (SCION keeps
+  // `build-basehref-webpack` to test that setup), which is not an unfinished migration.
+  const esbuildProjects = new Set(workspace.targets.filter((target) => /:(application|browser-esbuild)$/.test(target.builder)).map((target) => target.project));
+  const webpackProjects = [...new Set(workspace.targets.filter((target) => WEBPACK_BUILDERS.has(target.builder) && !esbuildProjects.has(target.project)).map((target) => target.project))];
+  if (webpackProjects.length > 0) {
     findings.push({
       severity: 'medium',
-      message: `${plural(webpackTargets.length, 'project')} still built with the webpack builder`,
-      detail: `The esbuild-based \`application\` builder has been the default since Angular 17 and builds several times faster. \`ng update @angular/cli --name use-application-builder\` migrates the configuration. Projects: ${webpackTargets.map((target) => target.project).join(', ')}.`,
+      message: `${plural(webpackProjects.length, 'project')} still built with the webpack builder`,
+      detail: `The esbuild-based \`application\` builder has been the default since Angular 17 and builds several times faster. \`ng update @angular/cli --name use-application-builder\` migrates the configuration. Projects: ${webpackProjects.join(', ')}.`,
     });
   }
 
@@ -98,7 +102,7 @@ export function versionCheck(context: AnalysisContext): CheckResult {
   }
 
   const grade: Grade =
-    gap >= 3 || endOfLife.some((entry) => entry.runtime) ? 'poor' : gap === 2 || mismatched.length > 0 || webpackTargets.length > 0 || endOfLife.length > 0 ? 'fair' : 'good';
+    gap >= 3 || endOfLife.some((entry) => entry.runtime) ? 'poor' : gap === 2 || mismatched.length > 0 || webpackProjects.length > 0 || endOfLife.length > 0 ? 'fair' : 'good';
   const usesApplicationBuilder = workspace.targets.some((target) => /:(application|browser-esbuild)$/.test(target.builder));
 
   return {
@@ -110,12 +114,12 @@ export function versionCheck(context: AnalysisContext): CheckResult {
       { label: 'Installed', value: versionLabel, hint: workspace.angular.installed ? 'node_modules' : 'package.json range' },
       { label: 'Latest', value: latestAngular.major, hint: latestLabel },
       { label: 'Majors behind', value: gap },
-      { label: 'Build system', value: webpackTargets.length > 0 ? 'webpack' : usesApplicationBuilder ? 'esbuild' : 'unknown' },
+      { label: 'Build system', value: webpackProjects.length > 0 ? 'webpack' : usesApplicationBuilder ? 'esbuild' : 'unknown' },
     ],
     findings,
     measures: [
       { id: 'end-of-life-packages', label: 'End-of-life packages', value: endOfLife.length },
-      { id: 'webpack-builders', label: 'Projects on the webpack builder', value: webpackTargets.length },
+      { id: 'webpack-builders', label: 'Projects on the webpack builder', value: webpackProjects.length },
       { id: 'mismatched-angular-packages', label: 'Angular packages on another major', value: mismatched.length },
     ],
   };

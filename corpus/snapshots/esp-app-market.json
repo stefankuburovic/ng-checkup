@@ -1,0 +1,277 @@
+{
+  "repo": "ThingPulse/esp-app-market",
+  "commit": "664e1d856653bc8508ed5d83688825b7032f6253",
+  "project": {
+    "name": "esp-app-market",
+    "kind": "angular-cli",
+    "angularVersion": "^15.0.0",
+    "sourceFiles": 31,
+    "templateFiles": 6,
+    "linesOfCode": 972
+  },
+  "score": 55,
+  "checks": [
+    {
+      "id": "version",
+      "grade": "poor",
+      "summary": "Angular ^15.0.0, 7 majors behind 22.",
+      "measures": {
+        "end-of-life-packages": 0,
+        "webpack-builders": 1,
+        "mismatched-angular-packages": 0
+      },
+      "findings": [
+        {
+          "severity": "high",
+          "message": "Angular 15 is 7 majors behind 22 and out of support"
+        },
+        {
+          "severity": "medium",
+          "message": "1 project still built with the webpack builder"
+        }
+      ]
+    },
+    {
+      "id": "deprecated-apis",
+      "grade": "info",
+      "summary": "Dependencies are not installed, so deprecations could not be read from the Angular packages.",
+      "measures": {
+        "legacy-template-directives": 19
+      },
+      "findings": [
+        {
+          "severity": "info",
+          "message": "Run `npm install` (or your package manager) and re-run for this check"
+        }
+      ]
+    },
+    {
+      "id": "dependencies",
+      "grade": "info",
+      "summary": "Dependencies are not installed, so the packages that depend on Angular could not be read.",
+      "measures": {},
+      "findings": [
+        {
+          "severity": "info",
+          "message": "Run `npm install` (or your package manager) and re-run for this check"
+        }
+      ]
+    },
+    {
+      "id": "change-detection",
+      "grade": "poor",
+      "summary": "Runs on zone.js; 0% of 5 components use OnPush.",
+      "measures": {
+        "eager-components": 5,
+        "ngzone-files": 0,
+        "zone-test-helpers": 0
+      },
+      "findings": [
+        {
+          "severity": "info",
+          "message": "Zoneless change detection needs Angular 20.2 or newer"
+        },
+        {
+          "severity": "medium",
+          "message": "5 components use eager change detection (100%)",
+          "files": [
+            "src/app/app.component.ts:7",
+            "src/app/apps/apps.component.ts:8",
+            "src/app/devices/devices.component.ts:5"
+          ],
+          "count": 5
+        }
+      ]
+    },
+    {
+      "id": "components",
+      "grade": "poor",
+      "summary": "5 components: 0% standalone, no inputs, 0% built-in control flow.",
+      "measures": {
+        "module-components": 5,
+        "decorator-inputs-outputs": 0,
+        "legacy-control-flow": 19
+      },
+      "findings": [
+        {
+          "severity": "medium",
+          "message": "5 components still declared in NgModules (2 NgModules in total)",
+          "files": [
+            "src/app/app.component.ts:7",
+            "src/app/apps/apps.component.ts:8",
+            "src/app/devices/devices.component.ts:5"
+          ],
+          "count": 5
+        },
+        {
+          "severity": "low",
+          "message": "19 uses of `*ngIf`, `*ngFor` and `[ngSwitch]`",
+          "count": 19
+        }
+      ]
+    },
+    {
+      "id": "state",
+      "grade": "info",
+      "summary": "No state-management library or signal usage found.",
+      "measures": {
+        "classic-ngrx-files": 0,
+        "behaviorsubject-services": 0,
+        "effect-decorators": 0
+      },
+      "findings": []
+    },
+    {
+      "id": "architecture",
+      "grade": "good",
+      "summary": "0% of 4 routes lazy, 0 files over 500 lines, 9 classes with constructor injection.",
+      "measures": {
+        "eager-routes": 4,
+        "very-large-files": 0,
+        "constructor-injection": 9,
+        "class-guards": 1
+      },
+      "findings": [
+        {
+          "severity": "low",
+          "message": "1 class-based guard or interceptor",
+          "files": [
+            "src/app/services/cache.interceptor.ts:6"
+          ],
+          "count": 1
+        },
+        {
+          "severity": "low",
+          "message": "9 classes inject through the constructor",
+          "files": [
+            "src/app/app.component.ts:17",
+            "src/app/apps/apps.component.ts:20",
+            "src/app/devices/devices.component.ts:15"
+          ],
+          "count": 9
+        }
+      ]
+    },
+    {
+      "id": "testing",
+      "grade": "poor",
+      "summary": "Karma, 9 spec files, 73% of components and services with a spec.",
+      "measures": {
+        "untested-files": 3
+      },
+      "findings": [
+        {
+          "severity": "high",
+          "message": "Unit tests run on Karma, which is deprecated"
+        }
+      ]
+    },
+    {
+      "id": "type-safety",
+      "grade": "fair",
+      "summary": "strictNullChecks on, strictTemplates on, 17 explicit any.",
+      "measures": {
+        "strict-flags-off": 0,
+        "explicit-any": 17,
+        "non-null-assertions": 3,
+        "ts-suppressions": 0,
+        "template-any-casts": 0,
+        "untyped-form-files": 0
+      },
+      "findings": [
+        {
+          "severity": "medium",
+          "message": "17 explicit `any` in application code (17.5 per 1 000 lines)",
+          "files": [
+            "src/app/services/utils.service.ts:36",
+            "src/app/services/cache.interceptor.ts:8",
+            "src/app/services/esp-port.service.ts:50"
+          ],
+          "count": 4
+        },
+        {
+          "severity": "low",
+          "message": "3 non-null assertions (`x!`) in application code"
+        }
+      ]
+    },
+    {
+      "id": "security",
+      "grade": "good",
+      "summary": "No sanitizer bypasses, direct DOM HTML writes or eval in 22 files.",
+      "measures": {
+        "unsafe-dom-writes": 0,
+        "dynamic-code": 0,
+        "sanitizer-bypasses": 0,
+        "inner-html-bindings": 0
+      },
+      "findings": []
+    },
+    {
+      "id": "circular-deps",
+      "grade": "good",
+      "summary": "No import cycles between application files.",
+      "measures": {
+        "files-in-cycles": 0
+      },
+      "findings": []
+    },
+    {
+      "id": "bundle",
+      "grade": "info",
+      "summary": "No build stats found, so the bundle size is not part of this report.",
+      "measures": {},
+      "findings": [
+        {
+          "severity": "info",
+          "message": "Run `ng build --stats-json` (or `nx build <app> --stats-json`) and re-run to include the bundle size"
+        }
+      ]
+    }
+  ],
+  "plan": {
+    "from": 15,
+    "to": 22,
+    "before": [],
+    "steps": [
+      {
+        "to": 16,
+        "items": [
+          "Convert NgModule components to standalone (5)"
+        ]
+      },
+      {
+        "to": 17,
+        "items": [
+          "The MatLegacy* components are removed",
+          "Move templates to built-in control flow (19)"
+        ]
+      },
+      {
+        "to": 18,
+        "items": [
+          "Switch to the esbuild application builder (1)"
+        ]
+      },
+      {
+        "to": 19,
+        "items": []
+      },
+      {
+        "to": 20,
+        "items": []
+      },
+      {
+        "to": 21,
+        "items": [
+          "Move unit tests from Karma to Vitest",
+          "Prepare for zoneless: move components to OnPush, then drop zone.js (5)"
+        ]
+      },
+      {
+        "to": 22,
+        "items": []
+      }
+    ]
+  }
+}

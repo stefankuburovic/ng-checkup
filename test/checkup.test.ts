@@ -142,3 +142,25 @@ describe('strictness defaults that changed between versions', () => {
     expect(check.metrics).toContainEqual({ label: 'strictTemplates', value: 'off', hint: 'default in Angular 21' });
   });
 });
+
+describe('webpack builder', () => {
+  it('counts a project only when it has no esbuild build, so a deliberate extra webpack target is not an unfinished migration', async () => {
+    const { removeTemp, writeTemp } = await import('./helpers.js');
+    const workspace = (targets: Record<string, string>) =>
+      writeTemp({
+        'package.json': JSON.stringify({ dependencies: { '@angular/core': '~22.0.0' } }),
+        'angular.json': JSON.stringify({ projects: { app: { root: '', architect: Object.fromEntries(Object.entries(targets).map(([name, builder]) => [name, { builder }])) } } }),
+        'src/a.ts': 'export const a = 1;',
+      });
+    const webpackCount = async (targets: Record<string, string>) => {
+      const root = workspace(targets);
+      try {
+        return (await runCheckup(root, { offline: true })).checks.find((check) => check.id === 'version')!.measures!.find((measure) => measure.id === 'webpack-builders')!.value;
+      } finally {
+        removeTemp(root);
+      }
+    };
+    expect(await webpackCount({ build: '@angular/build:application', 'build-webpack': '@angular-devkit/build-angular:browser' })).toBe(0);
+    expect(await webpackCount({ build: '@angular-devkit/build-angular:browser', 'build-legacy': '@angular-devkit/build-angular:browser' })).toBe(1);
+  });
+});

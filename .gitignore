@@ -5,3 +5,4 @@ coverage/
 ng-checkup-report.*
 *.log
 .DS_Store
+.corpus/

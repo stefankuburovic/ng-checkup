@@ -1,0 +1,247 @@
+{
+  "repo": "maptiler/angular-template-maplibre-gl-js",
+  "commit": "6f29ffd68c7e06201d63378a0d5e9cb4692ad795",
+  "project": {
+    "name": "angular-template-maplibre-gl-js",
+    "kind": "angular-cli",
+    "angularVersion": "~13.0.0",
+    "sourceFiles": 12,
+    "templateFiles": 4,
+    "linesOfCode": 168
+  },
+  "score": 60,
+  "checks": [
+    {
+      "id": "version",
+      "grade": "poor",
+      "summary": "Angular ~13.0.0, 9 majors behind 22.",
+      "measures": {
+        "end-of-life-packages": 0,
+        "webpack-builders": 1,
+        "mismatched-angular-packages": 0
+      },
+      "findings": [
+        {
+          "severity": "high",
+          "message": "Angular 13 is 9 majors behind 22 and out of support"
+        },
+        {
+          "severity": "medium",
+          "message": "1 project still built with the webpack builder"
+        }
+      ]
+    },
+    {
+      "id": "deprecated-apis",
+      "grade": "info",
+      "summary": "Dependencies are not installed, so deprecations could not be read from the Angular packages.",
+      "measures": {
+        "legacy-template-directives": 0
+      },
+      "findings": [
+        {
+          "severity": "info",
+          "message": "Run `npm install` (or your package manager) and re-run for this check"
+        }
+      ]
+    },
+    {
+      "id": "dependencies",
+      "grade": "info",
+      "summary": "Dependencies are not installed, so the packages that depend on Angular could not be read.",
+      "measures": {},
+      "findings": [
+        {
+          "severity": "info",
+          "message": "Run `npm install` (or your package manager) and re-run for this check"
+        }
+      ]
+    },
+    {
+      "id": "change-detection",
+      "grade": "poor",
+      "summary": "Runs on zone.js; 0% of 3 components use OnPush.",
+      "measures": {
+        "eager-components": 3,
+        "ngzone-files": 0,
+        "zone-test-helpers": 0
+      },
+      "findings": [
+        {
+          "severity": "info",
+          "message": "Zoneless change detection needs Angular 20.2 or newer"
+        },
+        {
+          "severity": "medium",
+          "message": "3 components use eager change detection (100%)",
+          "files": [
+            "src/app/app.component.ts:3",
+            "src/app/map/map.component.ts:6",
+            "src/app/navbar/navbar.component.ts:3"
+          ],
+          "count": 3
+        }
+      ]
+    },
+    {
+      "id": "components",
+      "grade": "poor",
+      "summary": "3 components: 0% standalone, no inputs, no control flow.",
+      "measures": {
+        "module-components": 3,
+        "decorator-inputs-outputs": 0,
+        "legacy-control-flow": 0
+      },
+      "findings": [
+        {
+          "severity": "medium",
+          "message": "3 components still declared in NgModules (1 NgModule in total)",
+          "files": [
+            "src/app/app.component.ts:3",
+            "src/app/map/map.component.ts:6",
+            "src/app/navbar/navbar.component.ts:3"
+          ],
+          "count": 3
+        }
+      ]
+    },
+    {
+      "id": "state",
+      "grade": "info",
+      "summary": "No state-management library or signal usage found.",
+      "measures": {
+        "classic-ngrx-files": 0,
+        "behaviorsubject-services": 0,
+        "effect-decorators": 0
+      },
+      "findings": []
+    },
+    {
+      "id": "architecture",
+      "grade": "good",
+      "summary": "No routes found, 0 files over 500 lines, 0 classes with constructor injection.",
+      "measures": {
+        "eager-routes": 0,
+        "very-large-files": 0,
+        "constructor-injection": 0,
+        "class-guards": 0
+      },
+      "findings": []
+    },
+    {
+      "id": "testing",
+      "grade": "poor",
+      "summary": "Karma, 3 spec files, 100% of components and services with a spec.",
+      "measures": {
+        "untested-files": 0
+      },
+      "findings": [
+        {
+          "severity": "high",
+          "message": "Unit tests run on Karma, which is deprecated"
+        },
+        {
+          "severity": "info",
+          "message": "No end-to-end test setup found"
+        }
+      ]
+    },
+    {
+      "id": "type-safety",
+      "grade": "good",
+      "summary": "strictNullChecks on, strictTemplates on, 0 explicit any.",
+      "measures": {
+        "strict-flags-off": 0,
+        "explicit-any": 0,
+        "non-null-assertions": 0,
+        "ts-suppressions": 0,
+        "template-any-casts": 0,
+        "untyped-form-files": 0
+      },
+      "findings": []
+    },
+    {
+      "id": "security",
+      "grade": "good",
+      "summary": "No sanitizer bypasses, direct DOM HTML writes or eval in 9 files.",
+      "measures": {
+        "unsafe-dom-writes": 0,
+        "dynamic-code": 0,
+        "sanitizer-bypasses": 0,
+        "inner-html-bindings": 0
+      },
+      "findings": []
+    },
+    {
+      "id": "circular-deps",
+      "grade": "good",
+      "summary": "No import cycles between application files.",
+      "measures": {
+        "files-in-cycles": 0
+      },
+      "findings": []
+    },
+    {
+      "id": "bundle",
+      "grade": "info",
+      "summary": "No build stats found, so the bundle size is not part of this report.",
+      "measures": {},
+      "findings": [
+        {
+          "severity": "info",
+          "message": "Run `ng build --stats-json` (or `nx build <app> --stats-json`) and re-run to include the bundle size"
+        }
+      ]
+    }
+  ],
+  "plan": {
+    "from": 13,
+    "to": 22,
+    "before": [],
+    "steps": [
+      {
+        "to": 14,
+        "items": []
+      },
+      {
+        "to": 15,
+        "items": []
+      },
+      {
+        "to": 16,
+        "items": [
+          "Convert NgModule components to standalone (3)"
+        ]
+      },
+      {
+        "to": 17,
+        "items": []
+      },
+      {
+        "to": 18,
+        "items": [
+          "Switch to the esbuild application builder (1)"
+        ]
+      },
+      {
+        "to": 19,
+        "items": []
+      },
+      {
+        "to": 20,
+        "items": []
+      },
+      {
+        "to": 21,
+        "items": [
+          "Move unit tests from Karma to Vitest",
+          "Prepare for zoneless: move components to OnPush, then drop zone.js (3)"
+        ]
+      },
+      {
+        "to": 22,
+        "items": []
+      }
+    ]
+  }
+}
