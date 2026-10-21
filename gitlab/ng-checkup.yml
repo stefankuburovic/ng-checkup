@@ -16,9 +16,13 @@
 #   NG_CHECKUP_FAIL_ON  poor, fair or regression; empty never fails
 #   NG_CHECKUP_ARGS     further options, such as "--plan --project admin"
 #   NG_CHECKUP_VERSION  the ng-checkup release to run
-#   NG_CHECKUP_TOKEN    a project access token with the `api` scope (role
-#                       Reporter or higher), masked. GitLab's own job token
-#                       cannot write merge request comments; without this
+#   NG_CHECKUP_TOKEN    a token with the `api` scope, as a CI/CD variable that is
+#                       Masked but NOT Protected: merge request branches are not
+#                       protected, so a protected variable never reaches them.
+#                       A project access token (role Reporter) comments as a bot;
+#                       on gitlab.com Free, where those need Premium, a personal
+#                       access token works and comments as you. GitLab's own job
+#                       token cannot write merge request comments; without this
 #                       variable the comment is skipped and everything else runs.
 #
 # If your GitLab cannot reach raw.githubusercontent.com, copy this file into

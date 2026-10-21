@@ -371,7 +371,7 @@ ng-checkup:
     NG_CHECKUP_FAIL_ON: regression   # optional; also NG_CHECKUP_PATH, NG_CHECKUP_ARGS
 ```
 
-The job runs on merge requests and on the default branch, which is what the widget compares with. For the comment, add a project access token with the `api` scope as a masked CI/CD variable `NG_CHECKUP_TOKEN`; GitLab's own job token cannot write comments, so without it the comment is skipped and the rest runs. `npx ng-checkup init` writes this for a repository with a `.gitlab-ci.yml`. If your GitLab cannot reach GitHub, copy [`gitlab/ng-checkup.yml`](https://github.com/stefankuburovic/ng-checkup/blob/main/gitlab/ng-checkup.yml) into the repository and include it with `local:`.
+The job runs on merge requests and on the default branch, which is what the widget compares with. For the comment, add a token with the `api` scope as the CI/CD variable `NG_CHECKUP_TOKEN`, **masked but not protected** (merge request branches are not protected, so a protected variable never reaches them). A project access token comments as a bot; on gitlab.com Free, where those need Premium, a personal access token works and comments as you. GitLab's own job token cannot write comments, so without the variable the comment is skipped and the rest runs. A live example: [ng-checkup-demo](https://gitlab.com/stefankuburovic/ng-checkup-demo). `npx ng-checkup init` writes this for a repository with a `.gitlab-ci.yml`. If your GitLab cannot reach GitHub, copy [`gitlab/ng-checkup.yml`](https://github.com/stefankuburovic/ng-checkup/blob/main/gitlab/ng-checkup.yml) into the repository and include it with `local:`.
 
 **GitHub code scanning**
 
