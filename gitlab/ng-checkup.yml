@@ -1,0 +1,81 @@
+# ng-checkup for GitLab CI. Add to .gitlab-ci.yml:
+#
+#   include:
+#     - remote: https://raw.githubusercontent.com/stefankuburovic/ng-checkup/v0/gitlab/ng-checkup.yml
+#
+# On every merge request and on the default branch it runs the checkup and
+#   - puts the findings in the merge request's Code Quality widget, where
+#     GitLab lists what the MR introduces and what it resolves (any tier),
+#   - keeps the HTML, Markdown and JSON reports as job artifacts,
+#   - writes one comment on the merge request, edited on every push, when a
+#     token is set in NG_CHECKUP_TOKEN (see below).
+# The default-branch run is what the widget compares a merge request with.
+#
+# Variables (set them in the including file, or as CI/CD variables):
+#   NG_CHECKUP_PATH     folder to check, relative to the repository (default .)
+#   NG_CHECKUP_FAIL_ON  poor, fair or regression; empty never fails
+#   NG_CHECKUP_ARGS     further options, such as "--plan --project admin"
+#   NG_CHECKUP_VERSION  the ng-checkup release to run
+#   NG_CHECKUP_TOKEN    a project access token with the `api` scope (role
+#                       Reporter or higher), masked. GitLab's own job token
+#                       cannot write merge request comments; without this
+#                       variable the comment is skipped and everything else runs.
+#
+# If your GitLab cannot reach raw.githubusercontent.com, copy this file into
+# the repository and include it with `local:` instead.
+
+ng-checkup:
+  image: node:22
+  stage: test
+  variables:
+    NG_CHECKUP_PATH: .
+    NG_CHECKUP_FAIL_ON: ''
+    NG_CHECKUP_ARGS: ''
+    NG_CHECKUP_VERSION: 0.9.0
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+  script:
+    - |
+      out="$CI_PROJECT_DIR/ng-checkup"
+      mkdir -p "$out" /tmp/ng-checkup-npx
+      root="$(cd "$NG_CHECKUP_PATH" && pwd)"
+      fail=""
+      [ -n "$NG_CHECKUP_FAIL_ON" ] && fail="--fail-on $NG_CHECKUP_FAIL_ON"
+      # npx from an empty folder, so a project named ng-checkup cannot shadow the release.
+      cd /tmp/ng-checkup-npx
+      set +e
+      npx -y "ng-checkup@$NG_CHECKUP_VERSION" "$root" --no-color \
+        --report "$out/ng-checkup.html" --report "$out/ng-checkup.md" --report "$out/ng-checkup.json" \
+        --report "$out/ng-checkup.codequality.json" --report "$out/ng-checkup.comment.md" \
+        $fail $NG_CHECKUP_ARGS
+      code=$?
+      set -e
+      cd "$CI_PROJECT_DIR"
+      # Code Quality paths are relative to the checked folder; GitLab wants them relative to the repository.
+      if [ -f "$out/ng-checkup.codequality.json" ] && [ "$NG_CHECKUP_PATH" != "." ]; then
+        node -e 'const fs=require("fs");const [f,p]=process.argv.slice(1);const d=JSON.parse(fs.readFileSync(f,"utf8"));for(const e of d)e.location.path=p.replace(/^\.\//,"").replace(/\/+$/,"")+"/"+e.location.path;fs.writeFileSync(f,JSON.stringify(d,null,2))' "$out/ng-checkup.codequality.json" "$NG_CHECKUP_PATH"
+      fi
+      if [ -n "$CI_MERGE_REQUEST_IID" ] && [ -n "$NG_CHECKUP_TOKEN" ] && [ -f "$out/ng-checkup.comment.md" ]; then
+        # One comment per merge request: find the earlier one by its marker and edit it.
+        node -e '
+          const fs = require("fs");
+          const api = `${process.env.CI_API_V4_URL}/projects/${process.env.CI_PROJECT_ID}/merge_requests/${process.env.CI_MERGE_REQUEST_IID}/notes`;
+          const headers = { "PRIVATE-TOKEN": process.env.NG_CHECKUP_TOKEN, "Content-Type": "application/json" };
+          const body = fs.readFileSync(process.argv[1], "utf8");
+          (async () => {
+            const notes = await (await fetch(`${api}?per_page=100&sort=asc`, { headers })).json();
+            const own = Array.isArray(notes) ? notes.find((note) => typeof note.body === "string" && note.body.startsWith("<!-- ng-checkup -->")) : undefined;
+            const response = await fetch(own ? `${api}/${own.id}` : api, { method: own ? "PUT" : "POST", headers, body: JSON.stringify({ body }) });
+            if (!response.ok) console.log(`ng-checkup: could not write the merge request comment (${response.status}); check that NG_CHECKUP_TOKEN has the api scope.`);
+          })().catch((error) => console.log(`ng-checkup: could not write the merge request comment: ${error.message}`));
+        ' "$out/ng-checkup.comment.md"
+      fi
+      exit $code
+  artifacts:
+    when: always
+    expose_as: ng-checkup report
+    paths:
+      - ng-checkup/
+    reports:
+      codequality: ng-checkup/ng-checkup.codequality.json

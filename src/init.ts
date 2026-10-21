@@ -175,7 +175,7 @@ export function planInit(files: InitFileSystem, options: InitOptions): InitPlan 
     if (files.exists(path)) {
       notes.push(`Kept the existing ${path}.`);
       if (failOn === 'regression' && (files.read(path) ?? '').includes('--fail-on poor')) notes.push(`${path} still runs --fail-on poor. With a baseline, --fail-on regression lets existing code pass and fails only when a number gets worse.`);
-    } else changes.push({ path, action: 'create', content: gitlabJob(packageManager, failOn), summary: 'A GitLab CI job that runs the checkup and keeps the reports as artifacts' });
+    } else changes.push({ path, action: 'create', content: gitlabJob(failOn), summary: 'A GitLab CI job: Code Quality in merge requests, the reports as artifacts, an MR comment once NG_CHECKUP_TOKEN is set' });
     if (!(files.read('.gitlab-ci.yml') ?? '').includes(path)) {
       notes.push(`Add this to your .gitlab-ci.yml to run it:\n    include:\n      - local: ${path}`);
     }
@@ -263,24 +263,38 @@ ${CI_REPORTS.map((report) => `            ${report}`).join('\n')}
 `;
 }
 
-/** A GitLab CI job file for the repository's package manager, meant to be `include`d. */
-export function gitlabJob(manager: PackageManager, failOn: CiFailOn = 'poor'): string {
-  const corepack = manager === 'pnpm' ? '    - corepack enable\n' : '';
+/**
+ * The GitLab job `init` writes: an `include` of the ng-checkup template at
+ * the `v0` tag, plus the one setting `init` decides, `NG_CHECKUP_FAIL_ON`.
+ *
+ * The template (`gitlab/ng-checkup.yml`) runs the release it names with
+ * `npx`, needs no install step, and brings the merge request integration:
+ * the Code Quality widget, the artifacts and, once `NG_CHECKUP_TOKEN` is set,
+ * one comment per merge request. Including it rather than copying it means a
+ * repository gets fixes by the tag moving, not by re-running `init`. A GitLab
+ * that cannot reach GitHub copies the template instead, which its header
+ * explains.
+ */
+export function gitlabJob(failOn: CiFailOn = 'poor'): string {
   return `# Added by ng-checkup init. Include it from .gitlab-ci.yml:
 #   include:
 #     - local: ng-checkup.gitlab-ci.yml
+#
+# It adds the ng-checkup job: findings in the merge request's Code Quality
+# widget, the reports as artifacts, and one merge request comment once
+# NG_CHECKUP_TOKEN is set (a project access token with the api scope, as a
+# masked CI/CD variable). Every option is described in the included file.
+include:
+  - remote: ${GITLAB_TEMPLATE_URL}
+
 ng-checkup:
-  image: node:22
-  script:
-${corepack}    - ${installCommand(manager, true)}
-    - ${ciRun(manager, failOn)}
-  artifacts:
-    when: always
-    expose_as: ng-checkup report
-    paths:
-${CI_REPORTS.map((report) => `      - ${report}`).join('\n')}
+  variables:
+    NG_CHECKUP_FAIL_ON: ${failOn}
 `;
 }
+
+/** Where `include: remote:` finds the GitLab template: the moving `v0` tag, so fixes arrive without re-running `init`. */
+export const GITLAB_TEMPLATE_URL = 'https://raw.githubusercontent.com/stefankuburovic/ng-checkup/v0/gitlab/ng-checkup.yml';
 
 /**
  * Serialises `value` with the indentation and final newline of `original`,

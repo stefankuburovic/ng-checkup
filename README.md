@@ -82,7 +82,7 @@ Both make the same changes and list what they changed:
 | `.gitignore` | the generated reports, if the repository has a `.gitignore` |
 | `ng-checkup.baseline.json` | today's numbers, so CI fails only when one gets worse ([baseline](#baseline-adopt-it-on-legacy-code)) |
 | `.github/workflows/ng-checkup.yml` | runs on every pull request with `--fail-on regression`, uploads the reports (when `.github/` exists) |
-| `ng-checkup.gitlab-ci.yml` | the same as a GitLab job; add `include: [{ local: ng-checkup.gitlab-ci.yml }]` to your `.gitlab-ci.yml` (when that file exists) |
+| `ng-checkup.gitlab-ci.yml` | the [GitLab job](#in-ci): Code Quality in merge requests and an MR comment; add `include: [{ local: ng-checkup.gitlab-ci.yml }]` to your `.gitlab-ci.yml` (when that file exists) |
 
 After that it is `npm run checkup` (or `pnpm checkup`, `yarn checkup`; the lockfile decides). Running either command again changes nothing. It never overwrites a file you wrote: an existing workflow or config is kept, and a different `checkup` script is kept unless you pass `--force`.
 
@@ -253,6 +253,7 @@ Defaults that changed between versions are applied per version: a component with
 | `npx ng-checkup --report checkup.md` | Markdown for a pull request, an issue or a wiki |
 | `npx ng-checkup --report checkup.json` | everything, machine-readable |
 | `npx ng-checkup --report checkup.sarif` | SARIF 2.1.0 for [GitHub code scanning](#in-ci) and other SARIF viewers |
+| `npx ng-checkup --report checkup.codequality.json` | GitLab Code Quality, for the merge request widget |
 | `npx ng-checkup --report checkup.comment.md` | a short pull-request comment: what changed against the baseline, a grade per area, the top priorities |
 | `npx ng-checkup --json` | the JSON on stdout, for piping |
 
@@ -275,7 +276,8 @@ Arguments:
 
 Options:
   -r, --report <file>    Write the full report; format from the extension:
-                         .html, .md, .json, .sarif (GitHub code scanning) or
+                         .html, .md, .json, .sarif (GitHub code scanning),
+                         .codequality.json (GitLab merge request widget) or
                          .comment.md (a short pull-request comment). Repeatable.
       --json             Print the report as JSON to stdout instead of the summary
   -v, --verbose          Print every finding with its files
@@ -358,18 +360,18 @@ No `npm ci` needed: versions come from the lockfile. Inputs: `path` (a folder in
     path: checkup.*
 ```
 
-**GitLab CI**
+**GitLab CI.** One include gives merge requests the same: the findings in the Code Quality widget, where GitLab lists what the MR introduces and what it resolves against the target branch (on every tier, self-hosted included), the reports as artifacts, and one comment on the merge request, edited on every push:
 
 ```yaml
+include:
+  - remote: https://raw.githubusercontent.com/stefankuburovic/ng-checkup/v0/gitlab/ng-checkup.yml
+
 ng-checkup:
-  image: node:22
-  script:
-    - npm ci
-    - npx ng-checkup --fail-on regression --report checkup.md --report checkup.html
-  artifacts:
-    when: always
-    paths: [checkup.md, checkup.html]
+  variables:
+    NG_CHECKUP_FAIL_ON: regression   # optional; also NG_CHECKUP_PATH, NG_CHECKUP_ARGS
 ```
+
+The job runs on merge requests and on the default branch, which is what the widget compares with. For the comment, add a project access token with the `api` scope as a masked CI/CD variable `NG_CHECKUP_TOKEN`; GitLab's own job token cannot write comments, so without it the comment is skipped and the rest runs. `npx ng-checkup init` writes this for a repository with a `.gitlab-ci.yml`. If your GitLab cannot reach GitHub, copy [`gitlab/ng-checkup.yml`](https://github.com/stefankuburovic/ng-checkup/blob/main/gitlab/ng-checkup.yml) into the repository and include it with `local:`.
 
 **GitHub code scanning**
 

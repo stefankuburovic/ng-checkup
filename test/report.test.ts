@@ -1,6 +1,7 @@
 import { renderHtml } from '../src/report/html.js';
 import { renderMarkdown } from '../src/report/markdown.js';
 import { renderSarif } from '../src/report/sarif.js';
+import { renderCodeQuality } from '../src/report/codequality.js';
 import { overallScore, topPriorities } from '../src/report/summary.js';
 import { renderTerminal } from '../src/report/terminal.js';
 import type { CheckResult, Report } from '../src/types.js';
@@ -118,5 +119,29 @@ describe('renderSarif', () => {
     expect(results[0].locations[0].physicalLocation).toEqual({ artifactLocation: { uri: 'package.json', uriBaseId: '%SRCROOT%' } });
     expect(results[1].locations[0].physicalLocation).toEqual({ artifactLocation: { uri: 'src/a.ts', uriBaseId: '%SRCROOT%' }, region: { startLine: 3 } });
     expect(results[1].message.text).toBe('Uses `<img onerror>` in a message\n\nDetail with `code`.\n\n3 more locations not listed; raise --max-examples to report them all.');
+  });
+});
+
+describe('renderCodeQuality', () => {
+  const finding = (message: string, path: string, line?: number) => ({ severity: 'medium' as const, message, files: [{ path, ...(line ? { line } : {}) }], count: 1 });
+  const entries = (checks: CheckResult[]) => JSON.parse(renderCodeQuality(sampleReport(checks))) as Array<{ fingerprint: string; severity: string; location: { path: string; lines: { begin: number } }; check_name: string }>;
+
+  it('maps severities, puts project-wide findings on package.json and leaves info out', () => {
+    const result = entries([poorCheck, goodCheck, { ...goodCheck, id: 'state', findings: [{ severity: 'info', message: 'Only a hint' }] }]);
+    expect(result.map((entry) => [entry.check_name, entry.severity, entry.location.path])).toEqual([
+      ['ng-checkup/testing', 'minor', 'package.json'],
+      ['ng-checkup/testing', 'critical', 'src/a.ts'],
+      ['ng-checkup/version', 'major', 'package.json'],
+    ]);
+    expect(result[1]!.location.lines.begin).toBe(3);
+  });
+
+  it('keeps a fingerprint when only the count or the line changes, so GitLab sees the same finding', () => {
+    const check = (message: string, line: number): CheckResult => ({ ...goodCheck, id: 'type-safety', findings: [finding(message, 'src/a.ts', line)] });
+    const before = entries([check('41 explicit `any` in application code (3.2 per 1 000 lines)', 10)])[0]!.fingerprint;
+    const after = entries([check('42 explicit `any` in application code (3.3 per 1 000 lines)', 14)])[0]!.fingerprint;
+    const elsewhere = entries([check('42 explicit `any` in application code (3.3 per 1 000 lines)', 14).findings[0] ? { ...check('x', 1), findings: [finding('42 explicit `any` in application code (3.3 per 1 000 lines)', 'src/b.ts', 1)] } : goodCheck])[0]!.fingerprint;
+    expect(after).toBe(before);
+    expect(elsewhere).not.toBe(before);
   });
 });

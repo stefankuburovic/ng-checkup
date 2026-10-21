@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { formatJsonLike, githubWorkflow, gitlabJob, planInit, type InitFileSystem } from '../src/init.js';
 
@@ -93,11 +94,24 @@ describe('formatJsonLike', () => {
 
 describe('CI templates', () => {
   it('fail on a poor area and keep both reports', () => {
-    for (const template of [githubWorkflow('npm'), gitlabJob('npm')]) {
-      expect(template).toContain('npx ng-checkup --fail-on poor --report checkup.md --report checkup.html');
-    }
+    expect(githubWorkflow('npm')).toContain('npx ng-checkup --fail-on poor --report checkup.md --report checkup.html');
     expect(githubWorkflow('yarn')).toContain('yarn ng-checkup --fail-on poor');
-    expect(gitlabJob('pnpm')).toContain('corepack enable');
+  });
+
+  it('include the GitLab template at the v0 tag and set only fail-on', () => {
+    const job = gitlabJob('regression');
+    expect(job).toContain('- remote: https://raw.githubusercontent.com/stefankuburovic/ng-checkup/v0/gitlab/ng-checkup.yml');
+    expect(job).toMatch(/ng-checkup:\n {2}variables:\n {4}NG_CHECKUP_FAIL_ON: regression\n$/);
+  });
+
+  it('ship a GitLab template that runs this very release, with Code Quality and the comment', () => {
+    const template = readFileSync(new URL('../gitlab/ng-checkup.yml', import.meta.url), 'utf8');
+    const version = (JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')) as { version: string }).version;
+    // A release moves v0 to a commit whose template must run that same release.
+    expect(template).toContain(`NG_CHECKUP_VERSION: ${version}`);
+    expect(template).toContain('codequality: ng-checkup/ng-checkup.codequality.json');
+    expect(template).toContain('--report "$out/ng-checkup.comment.md"');
+    expect(template).toContain('startsWith("<!-- ng-checkup -->")');
   });
 });
 

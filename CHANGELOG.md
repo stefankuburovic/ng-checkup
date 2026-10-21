@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.9.0 (2026-10-21)
+
+- **GitLab:** `include: remote: …/ng-checkup/v0/gitlab/ng-checkup.yml` adds a job that puts the findings in the merge request's Code Quality widget (GitLab lists what the MR introduces and resolves, on every tier), keeps the reports as artifacts, and writes one merge request comment, edited on every push, when `NG_CHECKUP_TOKEN` is set. Runs on merge requests and on the default branch.
+- `--report x.codequality.json`: the GitLab Code Quality format. Fingerprints leave out counts and line numbers, so a finding stays the same finding while its numbers change.
+- `ng-checkup init` writes the GitLab job as an include of that template.
+- The pull-request comment's footer no longer says "workflow run", since GitLab uses it too.
+
 ## 0.8.0 (2026-10-21)
 
 - **GitHub Action:** `uses: stefankuburovic/ng-checkup@v0`. One pull-request comment, edited in place on every push, with the measures that got worse or better than the baseline, a grade per area and the top priorities; the same in the job summary; the HTML, Markdown and JSON reports as an artifact; optionally SARIF to code scanning (paths fixed up for a monorepo folder). `fail-on` fails the job. Needs no `npm ci`.
