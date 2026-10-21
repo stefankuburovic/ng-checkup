@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.9.1 (2026-10-21)
+
+- Code Quality fingerprints ignore singular and plural as well as numbers. In the first real merge request, "1 component uses…" turning into "2 components use…" showed an unchanged file as resolved and new in the widget.
+
 ## 0.9.0 (2026-10-21)
 
 - **GitLab:** `include: remote: …/ng-checkup/v0/gitlab/ng-checkup.yml` adds a job that puts the findings in the merge request's Code Quality widget (GitLab lists what the MR introduces and resolves, on every tier), keeps the reports as artifacts, and writes one merge request comment, edited on every push, when `NG_CHECKUP_TOKEN` is set. Runs on merge requests and on the default branch.

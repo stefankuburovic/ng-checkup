@@ -30,6 +30,24 @@ export function renderCodeQuality(report: Report): string {
   return `${JSON.stringify(entries, null, 2)}\n`;
 }
 
+/**
+ * What a finding is about, with everything that changes with its size taken
+ * out: numbers, and the singular or plural they force on the words around
+ * them. "1 component uses eager change detection" and "2 components use
+ * eager change detection" are one finding; without the second step GitLab
+ * showed the first as resolved and the second as new on an unrelated file.
+ * Exported for tests.
+ */
+export function findingKind(message: string): string {
+  const irregular: Record<string, string> = { is: 'be', are: 'be', was: 'be', were: 'be', has: 'have', does: 'do', its: 'their' };
+  return message
+    .toLowerCase()
+    .replace(/\d[\d\s.,%]*/g, '#')
+    .split(/(\W+)/)
+    .map((word) => irregular[word] ?? (/(ss|sh|ch|x)es$/.test(word) ? word.slice(0, -2) : word.length > 3 && /[^s]s$/.test(word) ? word.slice(0, -1) : word))
+    .join('');
+}
+
 /** True for the findings that become Code Quality entries. */
 function isReported(finding: Finding): finding is Finding & { severity: Exclude<Severity, 'info'> } {
   return finding.severity !== 'info';
@@ -38,7 +56,7 @@ function isReported(finding: Finding): finding is Finding & { severity: Exclude<
 /** The entries of one finding: one per example file, or one on `package.json`. */
 function entriesOf(check: CheckResult, finding: Finding & { severity: Exclude<Severity, 'info'> }): Array<Record<string, unknown>> {
   const files = finding.files && finding.files.length > 0 ? finding.files : [{ path: 'package.json' }];
-  const kind = finding.message.replace(/\d[\d\s.,]*/g, '#');
+  const kind = findingKind(finding.message);
   return files.map((file) => ({
     type: 'issue',
     check_name: `ng-checkup/${check.id}`,

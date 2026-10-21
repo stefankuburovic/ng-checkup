@@ -1,7 +1,7 @@
 import { renderHtml } from '../src/report/html.js';
 import { renderMarkdown } from '../src/report/markdown.js';
 import { renderSarif } from '../src/report/sarif.js';
-import { renderCodeQuality } from '../src/report/codequality.js';
+import { findingKind, renderCodeQuality } from '../src/report/codequality.js';
 import { overallScore, topPriorities } from '../src/report/summary.js';
 import { renderTerminal } from '../src/report/terminal.js';
 import type { CheckResult, Report } from '../src/types.js';
@@ -143,5 +143,17 @@ describe('renderCodeQuality', () => {
     const elsewhere = entries([check('42 explicit `any` in application code (3.3 per 1 000 lines)', 14).findings[0] ? { ...check('x', 1), findings: [finding('42 explicit `any` in application code (3.3 per 1 000 lines)', 'src/b.ts', 1)] } : goodCheck])[0]!.fingerprint;
     expect(after).toBe(before);
     expect(elsewhere).not.toBe(before);
+  });
+});
+
+describe('findingKind', () => {
+  it('is the same finding whatever its count, singular or plural', () => {
+    expect(findingKind('1 component uses eager change detection (50%)')).toBe(findingKind('2 components use eager change detection (67%)'));
+    expect(findingKind('1 `@Input()` decorator and 1 `@Output()` decorator left')).toBe(findingKind('2 `@Input()` decorators and 1 `@Output()` decorator left'));
+    expect(findingKind('1 file is over 500 lines')).toBe(findingKind('3 files are over 500 lines'));
+    expect(findingKind('1 class injects through the constructor')).toBe(findingKind('3 classes inject through the constructor'));
+    expect(findingKind('sanitization is bypassed in 1 place')).toBe(findingKind('sanitization is bypassed in 4 places'));
+    expect(findingKind('Angular 15 is 7 majors behind 22')).toBe(findingKind('Angular 16 is 6 majors behind 22'));
+    expect(findingKind('Strings are run as code')).not.toBe(findingKind('HTML is written into the DOM'));
   });
 });
