@@ -33,6 +33,7 @@ export type * from './types.js';
 export { renderHtml } from './report/html.js';
 export { renderMarkdown } from './report/markdown.js';
 export { renderSarif } from './report/sarif.js';
+export { COMMENT_MARKER, renderComment } from './report/comment.js';
 export { createAnalysisCache, type AnalysisCache } from './cache.js';
 export { overallScore, topPriorities } from './report/summary.js';
 export { CONFIG_FILE, loadConfig, type CheckupConfig } from './config.js';

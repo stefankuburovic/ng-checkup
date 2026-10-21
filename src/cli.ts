@@ -10,6 +10,7 @@ import { ProjectNotFoundError, runCheckup, TOOL } from './index.js';
 import { planInit, type CiChoice, type InitPlan } from './init.js';
 import { cloneRemote, describeCheckout, parseRemote, type RemoteRepository } from './remote.js';
 import { renderHtml } from './report/html.js';
+import { renderComment } from './report/comment.js';
 import { renderMarkdown } from './report/markdown.js';
 import { notesTemplate } from './report/notes.js';
 import { renderSarif } from './report/sarif.js';
@@ -35,8 +36,8 @@ Arguments:
 
 Options:
   -r, --report <file>    Write the full report; format from the extension:
-                         .html, .md, .json or .sarif (GitHub code scanning).
-                         Repeatable.
+                         .html, .md, .json, .sarif (GitHub code scanning) or
+                         .comment.md (a short pull-request comment). Repeatable.
       --json             Print the report as JSON to stdout instead of the summary
   -v, --verbose          Print every finding with its files
       --plan             Add an upgrade plan to the latest Angular, one major
@@ -280,6 +281,7 @@ function assertReportFormat(path: string): void {
 /** Renders a report in the format its file extension names. */
 export function renderForFile(report: Report, path: string): string {
   const extension = extname(path).toLowerCase();
+  if (path.toLowerCase().endsWith('.comment.md')) return renderComment(report);
   if (extension === '.json') return `${JSON.stringify(report, null, 2)}\n`;
   if (extension === '.md') return renderMarkdown(report);
   if (extension === '.sarif') return renderSarif(report);

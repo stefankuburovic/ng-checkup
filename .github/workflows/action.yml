@@ -1,0 +1,33 @@
+name: Action
+
+# Runs the GitHub Action from this repository (uses: ./) on its own legacy
+# fixture, with the fresh build, so a change to action.yml or to the comment
+# format is seen working on a real pull request before it is tagged.
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  checkup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - id: checkup
+        uses: ./
+        with:
+          path: test/fixtures/legacy-app
+          offline: 'true'
+          plan: 'true'
+      - name: The action reports a score
+        run: test -n "${{ steps.checkup.outputs.score }}" && echo "score ${{ steps.checkup.outputs.score }}"

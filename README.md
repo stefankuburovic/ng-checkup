@@ -274,8 +274,8 @@ Arguments:
 
 Options:
   -r, --report <file>    Write the full report; format from the extension:
-                         .html, .md, .json or .sarif (GitHub code scanning).
-                         Repeatable.
+                         .html, .md, .json, .sarif (GitHub code scanning) or
+                         .comment.md (a short pull-request comment). Repeatable.
       --json             Print the report as JSON to stdout instead of the summary
   -v, --verbose          Print every finding with its files
       --plan             Add an upgrade plan to the latest Angular, one major

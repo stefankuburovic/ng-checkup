@@ -1,0 +1,140 @@
+name: ng-checkup
+description: Angular modernization checkup on every pull request. One up-to-date PR comment, baseline regressions, optional code-scanning annotations.
+author: Stefan Kuburovic
+branding:
+  icon: check-circle
+  color: blue
+
+inputs:
+  path:
+    description: Folder to check, relative to the repository root.
+    default: .
+  fail-on:
+    description: Fail the job when an area is graded `poor` (or `fair`), or with `regression` when a measure is worse than the committed baseline. Empty never fails.
+    default: ''
+  plan:
+    description: Add the upgrade plan to the reports.
+    default: 'false'
+  comment:
+    description: Write the result as one pull-request comment, edited in place on every push. Needs `pull-requests write` permission; on a fork PR, where the token cannot write, it is skipped with a warning.
+    default: 'true'
+  sarif:
+    description: Upload findings to GitHub code scanning, as annotations on the changed lines. Needs `security-events write` permission.
+    default: 'false'
+  artifact:
+    description: Upload the HTML, Markdown, JSON (and SARIF) reports as a workflow artifact named `ng-checkup`.
+    default: 'true'
+  offline:
+    description: Skip the npm registry (latest Angular, third-party releases, typings of uninstalled packages).
+    default: 'false'
+  args:
+    description: Further command-line options, as you would type them, such as `--project admin --max-examples 20`.
+    default: ''
+  version:
+    description: ng-checkup version to run. Empty runs the version this action was released with.
+    default: ''
+  node-version:
+    description: Node.js version to run it on (22 or newer).
+    default: '22'
+  token:
+    description: Token for the pull-request comment.
+    default: ${{ github.token }}
+
+outputs:
+  score:
+    description: The overall score, 0 to 100, or empty when nothing was graded.
+    value: ${{ steps.run.outputs.score }}
+  exit-code:
+    description: 0 done, 1 `fail-on` tripped, 2 usage or runtime error.
+    value: ${{ steps.run.outputs.exit-code }}
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@v4
+      with:
+        node-version: ${{ inputs.node-version }}
+
+    - id: run
+      name: Run ng-checkup
+      shell: bash
+      env:
+        INPUT_PATH: ${{ inputs.path }}
+        INPUT_FAIL_ON: ${{ inputs.fail-on }}
+        INPUT_PLAN: ${{ inputs.plan }}
+        INPUT_SARIF: ${{ inputs.sarif }}
+        INPUT_OFFLINE: ${{ inputs.offline }}
+        INPUT_ARGS: ${{ inputs.args }}
+        INPUT_VERSION: ${{ inputs.version }}
+      run: |
+        set +e
+        out="$RUNNER_TEMP/ng-checkup"
+        mkdir -p "$out"
+        # Inside the ng-checkup repository itself (its own CI), run the fresh
+        # build; everywhere else, the npm release this action was tagged with.
+        if [ -f "$GITHUB_ACTION_PATH/dist/cli.js" ]; then
+          cli=(node "$GITHUB_ACTION_PATH/dist/cli.js")
+        else
+          version="${INPUT_VERSION:-$(node -p "require(process.env.GITHUB_ACTION_PATH + '/package.json').version")}"
+          cli=(npx -y "ng-checkup@$version")
+        fi
+        args=("$INPUT_PATH" --no-color --report "$out/ng-checkup.html" --report "$out/ng-checkup.md" --report "$out/ng-checkup.json" --report "$out/ng-checkup.comment.md")
+        [ "$INPUT_SARIF" = "true" ] && args+=(--report "$out/ng-checkup.sarif")
+        [ -n "$INPUT_FAIL_ON" ] && args+=(--fail-on "$INPUT_FAIL_ON")
+        [ "$INPUT_PLAN" = "true" ] && args+=(--plan)
+        [ "$INPUT_OFFLINE" = "true" ] && args+=(--offline)
+        # INPUT_ARGS is split on spaces on purpose, like a command line.
+        "${cli[@]}" "${args[@]}" $INPUT_ARGS
+        code=$?
+        echo "exit-code=$code" >> "$GITHUB_OUTPUT"
+        echo "dir=$out" >> "$GITHUB_OUTPUT"
+        if [ -f "$out/ng-checkup.json" ]; then
+          score=$(node -e "const r=require(process.argv[1]);const p={good:100,fair:60,poor:20};const g=r.checks.filter(c=>c.grade in p);console.log(g.length?Math.round(g.reduce((s,c)=>s+p[c.grade],0)/g.length):'')" "$out/ng-checkup.json")
+          echo "score=$score" >> "$GITHUB_OUTPUT"
+        fi
+        # SARIF paths are relative to the checked folder; code scanning wants them relative to the repository.
+        if [ -f "$out/ng-checkup.sarif" ] && [ "$INPUT_PATH" != "." ]; then
+          node -e "const fs=require('fs');const [file,prefix]=process.argv.slice(1);const s=JSON.parse(fs.readFileSync(file,'utf8'));for(const r of s.runs[0].results)for(const l of r.locations)l.physicalLocation.artifactLocation.uri=prefix.replace(/\/+$/,'')+'/'+l.physicalLocation.artifactLocation.uri;fs.writeFileSync(file,JSON.stringify(s,null,2))" "$out/ng-checkup.sarif" "${INPUT_PATH#./}"
+        fi
+        [ -f "$out/ng-checkup.comment.md" ] && cat "$out/ng-checkup.comment.md" >> "$GITHUB_STEP_SUMMARY"
+        exit 0
+
+    - name: Comment on the pull request
+      if: inputs.comment == 'true' && (github.event_name == 'pull_request' || github.event_name == 'pull_request_target')
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.token }}
+        REPO: ${{ github.repository }}
+        PR: ${{ github.event.pull_request.number }}
+        FILE: ${{ steps.run.outputs.dir }}/ng-checkup.comment.md
+      run: |
+        [ -f "$FILE" ] || exit 0
+        # One comment per pull request: find the earlier one by its marker and edit it.
+        id=$(gh api "repos/$REPO/issues/$PR/comments" --paginate --jq '.[] | select(.body | startswith("<!-- ng-checkup -->")) | .id' 2>/dev/null | head -n 1)
+        if [ -n "$id" ]; then
+          gh api -X PATCH "repos/$REPO/issues/comments/$id" -F body=@"$FILE" > /dev/null || echo "::warning::ng-checkup could not update its pull-request comment (missing pull-requests: write permission, or a fork PR)."
+        else
+          gh api "repos/$REPO/issues/$PR/comments" -F body=@"$FILE" > /dev/null || echo "::warning::ng-checkup could not comment on the pull request (missing pull-requests: write permission, or a fork PR)."
+        fi
+
+    - name: Upload the reports
+      if: inputs.artifact == 'true' && steps.run.outputs.dir != ''
+      uses: actions/upload-artifact@v4
+      with:
+        name: ng-checkup
+        path: ${{ steps.run.outputs.dir }}
+        if-no-files-found: ignore
+
+    - name: Upload to code scanning
+      if: inputs.sarif == 'true' && hashFiles(format('{0}/ng-checkup.sarif', steps.run.outputs.dir)) != ''
+      uses: github/codeql-action/upload-sarif@v3
+      with:
+        sarif_file: ${{ steps.run.outputs.dir }}/ng-checkup.sarif
+        category: ng-checkup
+
+    - name: Fail on the result
+      if: steps.run.outputs.exit-code != '0'
+      shell: bash
+      run: |
+        echo "::error::ng-checkup exited with ${{ steps.run.outputs.exit-code }}${{ inputs.fail-on != '' && format(' (fail-on: {0})', inputs.fail-on) || '' }}."
+        exit ${{ steps.run.outputs.exit-code }}
