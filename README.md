@@ -253,6 +253,7 @@ Defaults that changed between versions are applied per version: a component with
 | `npx ng-checkup --report checkup.md` | Markdown for a pull request, an issue or a wiki |
 | `npx ng-checkup --report checkup.json` | everything, machine-readable |
 | `npx ng-checkup --report checkup.sarif` | SARIF 2.1.0 for [GitHub code scanning](#in-ci) and other SARIF viewers |
+| `npx ng-checkup --report checkup.comment.md` | a short pull-request comment: what changed against the baseline, a grade per area, the top priorities |
 | `npx ng-checkup --json` | the JSON on stdout, for piping |
 
 `--report` is repeatable, so one run can write all three files.
@@ -318,9 +319,31 @@ Exit codes: `0` done, `1` `--fail-on` tripped, `2` usage error (including `--fai
 
 ## In CI
 
-`ng add ng-checkup` and `npx ng-checkup init` write this for you. By hand:
+**GitHub Action.** One comment on every pull request, edited in place on each push, with what got worse or better than the baseline, a grade per area and the top priorities. Plus the job summary, the full reports as an artifact, and optionally annotations on the changed lines:
 
-**GitHub Actions**
+```yaml
+name: ng-checkup
+on: pull_request
+permissions:
+  contents: read
+  pull-requests: write      # the comment
+  security-events: write    # only with sarif: true
+jobs:
+  checkup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: stefankuburovic/ng-checkup@v0
+        with:
+          fail-on: regression   # needs a committed baseline: npx ng-checkup baseline
+          sarif: true
+```
+
+No `npm ci` needed: versions come from the lockfile. Inputs: `path` (a folder in a monorepo), `fail-on` (`poor`, `fair`, `regression`), `plan`, `comment`, `sarif`, `artifact`, `offline`, `args` (any other option, such as `--project admin`), `version`, `node-version`. Outputs: `score`, `exit-code`. On a pull request from a fork the token cannot write, so the comment is skipped with a warning and the job summary still has it.
+
+`ng add ng-checkup` and `npx ng-checkup init` write a plain workflow for you instead. By hand:
+
+**GitHub Actions, without the Action**
 
 ```yaml
 - uses: actions/setup-node@v4
@@ -421,6 +444,7 @@ Package names and versions, and only to the public npm registry: the latest `@an
 ## Roadmap
 
 - Per-project baselines for monorepos
+- The Action on the GitHub Marketplace
 - Change frequency from git history, to rank large files by how often they change
 - A VS Code extension showing findings inline
 

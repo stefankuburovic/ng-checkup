@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.8.0 (2026-10-21)
+
+- **GitHub Action:** `uses: stefankuburovic/ng-checkup@v0`. One pull-request comment, edited in place on every push, with the measures that got worse or better than the baseline, a grade per area and the top priorities; the same in the job summary; the HTML, Markdown and JSON reports as an artifact; optionally SARIF to code scanning (paths fixed up for a monorepo folder). `fail-on` fails the job. Needs no `npm ci`.
+- `--report x.comment.md`: the short pull-request comment format, also usable from any other CI.
+
 ## 0.7.0 (2026-10-21)
 
 - **Client report:** `--client "<name>"` writes the HTML report as a deliverable: a cover, a summary in sentences, the key figures, what to act on, the roadmap per major, then the consultant's recommendations from `--notes` (Markdown), with the full report as an appendix. The first run creates the notes as a template prefilled with the upgrade steps and an empty estimate column. Prints to PDF with the cover, notes and appendix on their own pages. `--prepared-by` (or `NG_CHECKUP_PREPARED_BY`) names the author; the codebase is named by its repository and commit, never a local path.
