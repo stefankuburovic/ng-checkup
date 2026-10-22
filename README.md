@@ -385,7 +385,16 @@ No `npm ci` needed: versions come from the lockfile. Inputs: `path` (a folder in
     path: checkup.*
 ```
 
-**GitLab CI.** One include gives merge requests the same: the findings in the Code Quality widget, where GitLab lists what the MR introduces and what it resolves against the target branch (on every tier, self-hosted included), the reports as artifacts, and one comment on the merge request, edited on every push:
+**GitLab CI.** One include gives merge requests the same: the findings in the Code Quality widget, where GitLab lists what the MR introduces and what it resolves against the target branch (on every tier, self-hosted included), the reports as artifacts, and one comment on the merge request, edited on every push. On gitlab.com, use the [CI/CD Catalog component](https://gitlab.com/explore/catalog/stefankuburovic/ng-checkup), configured through inputs (`path`, `fail-on`, `args`, `job-name` for one checkup per app, ...):
+
+```yaml
+include:
+  - component: $CI_SERVER_FQDN/stefankuburovic/ng-checkup/ng-checkup@0.10.0
+    inputs:
+      fail-on: regression
+```
+
+On a self-managed GitLab, which cannot include components from gitlab.com, use the template:
 
 ```yaml
 include:
