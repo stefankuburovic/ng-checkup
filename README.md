@@ -346,7 +346,7 @@ Exit codes: `0` done, `1` `--fail-on` tripped, `2` usage error (including `--fai
 
 ## In CI
 
-**GitHub Action.** One comment on every pull request, edited in place on each push, with what got worse or better than the baseline, a grade per area and the top priorities. Plus the job summary, the full reports as an artifact, and optionally annotations on the changed lines:
+**GitHub Action** ([on the Marketplace](https://github.com/marketplace/actions/ng-checkup)). One comment on every pull request, edited in place on each push, with what got worse or better than the baseline, a grade per area and the top priorities. Plus the job summary, the full reports as an artifact, and optionally annotations on the changed lines:
 
 ```yaml
 name: ng-checkup
@@ -471,7 +471,6 @@ Package names and versions, and only to the public npm registry: the latest `@an
 ## Roadmap
 
 - Per-project baselines for monorepos
-- The Action on the GitHub Marketplace
 - Change frequency from git history, to rank large files by how often they change
 - A VS Code extension showing findings inline
 
