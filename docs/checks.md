@@ -1,11 +1,12 @@
 # The checks
 
-Twelve checks run on every repository. A thirteenth, [AngularJS migration](#angularjs), runs first when the repository has AngularJS code or packages.
+Twelve checks run on every repository. A thirteenth runs first when there is legacy code: [AngularJS migration](#angularjs) for AngularJS code or packages, or, for an Ex Libris Primo VE customization package, [Primo NDE migration](#primo-nde) in its place.
 
 Every check grades one area **good**, **fair**, **poor** or **info**. `info` means there was nothing to grade (no components, no tests) or an input was missing (no `node_modules`), and it never counts against the score.
 
 The score is the average of the graded areas: good counts 100, fair 60, poor 20.
 
+- [Primo NDE migration](#primo-nde) (only for a Primo VE package)
 - [AngularJS migration](#angularjs) (only with AngularJS)
 - [Angular version & tooling](#version)
 - [Deprecated APIs](#deprecated-apis)
@@ -25,6 +26,18 @@ In a monorepo every project also gets its own grade on the code checks (everythi
 The id in parentheses is what the JSON report uses.
 
 ---
+
+## Primo NDE migration (`primo-nde`) <a id="primo-nde"></a>
+
+Only for a repository holding an Ex Libris Primo VE customization package: the AngularJS module `viewCustom`, or components registered under Primo's hook names (`prmSearchBarAfter`). It replaces the AngularJS area, whose hybrid route does not apply: a Primo package is rebuilt in the NDE custom module ([ExLibrisGroup/customModule](https://github.com/ExLibrisGroup/customModule), Angular 18 in October 2026), not upgraded in place.
+
+**Looks at:** every view folder (a folder holding `js/`; a network's `…CENTRAL_PACKAGE` is the central package). Per view, each hook once (`prm-search-bar-after`), the helper components and directives the hooks render (controllers are not counted, Primo registers one per component), `parentCtrl` reads (`parentCtrl.x` and `parentCtrl[…]`, not the `parentCtrl: '<'` binding every hook declares) with the paths read most, `$http` calls, third-party integrations named in the code (BrowZine/LibKey, Altmetric, Unpaywall, Google Analytics/Tag Manager, Matomo, LibChat, LibraryH3lp, HathiTrust, StackMap), and static home pages (`html/home_<lang>.html`, `html/homepage/homepage_<lang>.html`). A `js/custom.js` that only concatenates the view's other files is not counted again, and neither are copies outside the view folders.
+
+**Findings:** NDE replaces VE and customizations do not carry over (high), the hooks to rebuild, `parentCtrl` reads, integrations, the central package, home pages.
+
+**Grade:** poor when `parentCtrl` is read or more than ten hooks are filled; fair otherwise.
+
+**Plan:** with `--plan`, `report.migration` (mode `primo-nde`) has four phases: decide what NDE still needs and set up the custom module, branding and home pages, rebuild the hooks (central package first), test in proxy mode and switch view by view.
 
 ## AngularJS migration (`angularjs`) <a id="angularjs"></a>
 
@@ -275,6 +288,10 @@ The largest packages in the initial bundle are listed with their size, from the 
 
 | Key | Counts |
 | --- | --- |
+| `primo-nde.parentctrl-reads` | Reads of `parentCtrl` in a Primo VE package |
+| `primo-nde.primo-helper-components` | Helper components of a Primo VE package |
+| `primo-nde.primo-hooks` | Primo hooks filled, per view |
+| `primo-nde.primo-integrations` | Third-party integrations in a Primo VE package |
 | `angularjs.angularjs-components` | AngularJS components, directives and controllers |
 | `angularjs.angularjs-controllers` | AngularJS controllers |
 | `angularjs.angularjs-filters` | AngularJS filters |

@@ -6,7 +6,8 @@
     "kind": "unknown",
     "sourceFiles": 0,
     "templateFiles": 3,
-    "linesOfCode": 0
+    "linesOfCode": 92,
+    "javascriptFiles": 10
   },
   "score": 20,
   "checks": [
@@ -68,7 +69,7 @@
     {
       "id": "change-detection",
       "grade": "info",
-      "summary": "Runs on zone.js; 0% of 0 components use OnPush.",
+      "summary": "No Angular components.",
       "measures": {
         "eager-components": 0,
         "ngzone-files": 0,

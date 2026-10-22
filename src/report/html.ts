@@ -1,7 +1,7 @@
 import { formatCount, plural } from '../checks/context.js';
 import type { CheckResult, Finding, Grade, Report } from '../types.js';
 import { renderNotes } from './notes.js';
-import { formatDuration, formatLocation, gradeLabel, kindLabel, overallScore, projectAreas, remainingCount, SCORE_EXPLANATION, severityLabel, topPriorities } from './summary.js';
+import { formatDuration, formatLocation, gradeLabel, kindLabel, migrationTarget, overallScore, projectAreas, remainingCount, SCORE_EXPLANATION, severityLabel, topPriorities } from './summary.js';
 
 /**
  * Renders the report as one self-contained HTML file.
@@ -18,7 +18,7 @@ export function renderHtml(report: Report): string {
   const { project } = report;
   const score = overallScore(report);
   const priorities = topPriorities(report);
-  const meta = [kindLabel(project.kind), project.angularVersion ? `Angular ${project.angularVersion}` : undefined, plural(project.sourceFiles, 'TypeScript file'), plural(project.templateFiles, 'template'), plural(project.linesOfCode, 'line') + ' of code', project.generatedFiles ? `${plural(project.generatedFiles, 'generated file')} left out` : undefined]
+  const meta = [kindLabel(project.kind), project.angularVersion ? `Angular ${project.angularVersion}` : undefined, `${plural(project.sourceFiles, 'TypeScript file')}${project.javascriptFiles ? `, ${plural(project.javascriptFiles, 'JavaScript file')}` : ''}`, plural(project.templateFiles, 'template'), plural(project.linesOfCode, 'line') + ' of code', project.generatedFiles ? `${plural(project.generatedFiles, 'generated file')} left out` : undefined]
     .filter(Boolean)
     .join(' · ');
 
@@ -103,8 +103,10 @@ function renderClientHtml(report: Report, client: NonNullable<Report['client']>)
   const graded = report.checks.filter((check) => check.grade !== 'info');
   const count = (grade: Grade): number => graded.filter((check) => check.grade === grade).length;
   // An AngularJS app is first of all that; its summary opens the report instead of the Angular version's.
-  const version = report.checks.find((check) => check.id === 'angularjs') ?? report.checks.find((check) => check.id === 'version');
+  const version = report.checks.find((check) => check.id === 'primo-nde' || check.id === 'angularjs') ?? report.checks.find((check) => check.id === 'version');
   const migration = report.migration;
+  // A Primo package is not an Angular codebase; the deliverable is named after what it is for.
+  const checkName = migration?.mode === 'primo-nde' ? 'Primo NDE Migration Check' : 'Angular Health Check';
   const actions = report.checks
     .flatMap((check) => check.findings.filter((finding) => finding.severity === 'high' || finding.severity === 'medium').map((finding) => ({ check, finding })))
     .sort((left, right) => (left.finding.severity === right.finding.severity ? 0 : left.finding.severity === 'high' ? -1 : 1));
@@ -116,7 +118,7 @@ function renderClientHtml(report: Report, client: NonNullable<Report['client']>)
   const summary = [
     version ? version.summary : undefined,
     `Of ${plural(graded.length, 'graded area')}, ${formatCount(count('poor'))} ${count('poor') === 1 ? 'is' : 'are'} poor, ${formatCount(count('fair'))} fair and ${formatCount(count('good'))} good${score === undefined ? '' : `, for an overall score of ${score} out of 100`}.`,
-    migration ? `Leaving AngularJS takes ${plural(migration.phases.length, 'phase')} with ${plural(migration.phases.reduce((sum, phase) => sum + phase.items.length, 0), 'piece')} of work, each shipping on its own.` : undefined,
+    migration ? `${migration.mode === 'primo-nde' ? 'Moving to Primo NDE' : 'Leaving AngularJS'} takes ${plural(migration.phases.length, 'phase')} with ${plural(migration.phases.reduce((sum, phase) => sum + phase.items.length, 0), 'piece')} of work, each shipping on its own.` : undefined,
     plan ? `Reaching Angular ${plan.to} takes ${plural(plan.steps.length, '`ng update` step')}, with ${plural(plan.before.length + plan.steps.reduce((sum, step) => sum + step.items.length, 0), 'piece')} of work along the way, listed below.` : undefined,
     urgent.length > 0 ? `The most urgent: ${urgent.map(({ finding }) => clause(finding.message)).join('; ')}.` : undefined,
   ].filter((sentence): sentence is string => sentence !== undefined);
@@ -129,13 +131,13 @@ function renderClientHtml(report: Report, client: NonNullable<Report['client']>)
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="generator" content="${escape(`${report.tool.name} ${report.tool.version}`)}">
-<title>Angular Health Check: ${escape(client.name)}</title>
+<title>${escape(checkName)}: ${escape(client.name)}</title>
 <style>${STYLES}${CLIENT_STYLES}</style>
 </head>
 <body>
 <main>
   <header class="cover">
-    <p class="eyebrow">Angular Health Check</p>
+    <p class="eyebrow">${escape(checkName)}</p>
     <h1>${escape(client.name)}</h1>
     <p class="cover-project">${escape(project.name)}${project.angularVersion ? ` · Angular ${escape(project.angularVersion)}` : ''}</p>
     <dl class="cover-meta">
@@ -154,7 +156,7 @@ function renderClientHtml(report: Report, client: NonNullable<Report['client']>)
         ['Score', score === undefined ? '-' : `${score}/100`, 'average of the graded areas'],
         ...(migration && !project.angularVersion
           ? [
-              ['AngularJS', migration.from.replace(/^AngularJS ?/, '') || '-', `moving to Angular ${migration.to}`],
+              migration.mode === 'primo-nde' ? ['Primo', 'VE', 'moving to NDE'] : ['AngularJS', migration.from.replace(/^AngularJS ?/, '') || '-', `moving to ${migrationTarget(migration)}`],
               ['Migration phases', formatCount(migration.phases.length), 'each shipping on its own'],
             ]
           : [
@@ -162,7 +164,7 @@ function renderClientHtml(report: Report, client: NonNullable<Report['client']>)
               ['Upgrade steps', plan ? formatCount(plan.steps.length) : '-', 'one major at a time'],
             ]),
         ['To act on', formatCount(actions.length), `${formatCount(actions.filter(({ finding }) => finding.severity === 'high').length)} high priority`],
-        ['Code', formatCount(project.linesOfCode), `lines in ${formatCount(project.sourceFiles)} files`],
+        ['Code', formatCount(project.linesOfCode), `lines in ${formatCount(project.sourceFiles + (project.javascriptFiles ?? 0))} files`],
       ]
         .map(([label, value, hint]) => `<div class="metric"><dt>${escape(label!)}</dt><dd>${escape(value!)}</dd>${hint ? `<dd class="hint">${escape(hint)}</dd>` : ''}</div>`)
         .join('\n      ')}
@@ -186,7 +188,7 @@ function renderClientHtml(report: Report, client: NonNullable<Report['client']>)
   ${
     migration
       ? `<section aria-labelledby="migration-roadmap-title">
-    <h2 id="migration-roadmap-title" class="section-title">Roadmap: ${escape(migration.from)} → Angular ${migration.to}</h2>
+    <h2 id="migration-roadmap-title" class="section-title">Roadmap: ${escape(migration.from)} → ${escape(migrationTarget(migration))}</h2>
     <div class="table-wrap"><table class="projects roadmap">
       <thead><tr><th>Phase</th><th>What it involves</th></tr></thead>
       <tbody>
@@ -261,8 +263,8 @@ function migrationSection(migration: NonNullable<Report['migration']>): string {
   const item = (entry: { title: string; command?: string; detail?: string; count?: number }): string =>
     `<li><strong>${inline(entry.title)}</strong>${entry.count !== undefined ? ` <span class="count">${formatCount(entry.count)}</span>` : ''}${entry.command ? `<code class="command">${escape(entry.command)}</code>` : ''}${entry.detail ? `<p>${inline(entry.detail)}</p>` : ''}</li>`;
   return `<section aria-labelledby="migration-title">
-    <h2 id="migration-title" class="section-title">Migration plan: ${escape(migration.from)} → Angular ${migration.to}</h2>
-    <p class="check-summary">${plural(migration.phases.length, 'phase')}, each shipping on its own, in the order of the Angular upgrade guide: prepare on AngularJS, run both frameworks side by side, move the code bottom up, remove AngularJS.</p>
+    <h2 id="migration-title" class="section-title">Migration plan: ${escape(migration.from)} → ${escape(migrationTarget(migration))}</h2>
+    <p class="check-summary">${plural(migration.phases.length, 'phase')}, each shipping on its own, ${migration.mode === 'primo-nde' ? 'from deciding what NDE still needs to switching view by view' : 'in the order of the Angular upgrade guide: prepare on AngularJS, run both frameworks side by side, move the code bottom up, remove AngularJS'}.</p>
     <ol class="steps">
       ${migration.phases
         .map(

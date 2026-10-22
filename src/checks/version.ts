@@ -49,7 +49,9 @@ export function versionCheck(context: AnalysisContext): CheckResult {
       grade: 'info',
       summary:
         context.angularJs.version || context.angularJs.files.length > 0
-          ? 'No `@angular/core` yet: the app runs on AngularJS (see AngularJS migration).'
+          ? context.angularJs.files.some((file) => file.primo?.viewCustom)
+            ? 'No `@angular/core`: a Primo VE customization package, on AngularJS (see Primo NDE migration).'
+            : 'No `@angular/core` yet: the app runs on AngularJS (see AngularJS migration).'
           : 'No `@angular/core` dependency found in package.json.',
       metrics: [{ label: 'Latest Angular', value: latestAngular.major, hint: latestLabel }],
       findings: [],

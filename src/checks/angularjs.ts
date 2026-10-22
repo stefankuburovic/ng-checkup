@@ -1,4 +1,5 @@
 import type { AngularJsFileFacts, Registration } from '../angularjs.js';
+import { viewRootOf } from '../primo.js';
 import type { CheckResult, FileRef, Finding, Grade } from '../types.js';
 import { applicationFiles, countCalls, filesImporting, formatCount, percent, plural, verb, type AnalysisContext } from './context.js';
 
@@ -101,7 +102,18 @@ export function summarizeAngularJs(context: AnalysisContext): AngularJsSummary {
     files.some((file) => file.moduleDefinitions.length > 0 || file.registrations.some((registration) => registration.rooted)) ||
     angularJs.version !== undefined ||
     angularJs.templates.some((template) => template.stats.apps > 0);
-  const registrations = files.flatMap((file) => file.registrations.filter((registration) => !registration.downgraded && (registration.rooted || evidence)).map((registration) => ({ ...registration, path: file.path })));
+  // One registration per name and kind within a folder of the app: a concatenated bundle checked in
+  // beside its sources (Primo packages ship `js/custom.js` built from the other files of `js/`)
+  // registers everything a second time, and counting both doubled every number.
+  const seen = new Set<string>();
+  const registrations = files
+    .flatMap((file) => file.registrations.filter((registration) => !registration.downgraded && (registration.rooted || evidence)).map((registration) => ({ ...registration, path: file.path })))
+    .filter((registration) => {
+      const key = `${viewRootOf(registration.path)}|${registration.kind}|${registration.name}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
   const count = (kind: Registration['kind']): number => registrations.filter((registration) => registration.kind === kind).length;
 
   const application = applicationFiles(context);

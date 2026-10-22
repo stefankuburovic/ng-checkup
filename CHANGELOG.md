@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.11.0 (2026-10-22)
+
+- **Primo VE to NDE.** A repository with an Ex Libris Primo VE customization package gets a Primo NDE migration area instead of the AngularJS one: the hooks to rebuild in the NDE custom module, view by view, `parentCtrl` reads with the paths read most, third-party integrations (BrowZine/LibKey, Altmetric, Unpaywall, LibChat, analytics, …), static home pages and the central package of a network. `--plan` gives the move to NDE in four phases, also in the client report. NDE is announced as the only Primo UI from January 2028, and VE customizations do not carry over.
+- AngularJS: a registration is counted once per name and kind within a folder, so a concatenated `custom.js` checked in beside its sources no longer doubles the numbers. On the corpus this took one service off orientdb-studio, two modules registering the same factory name in one folder.
+- The corpus has two Primo VE packages: SLSP's swisscovery union view and Brandeis University's view.
+
 ## 0.10.1 (2026-10-22)
 
 - Templates: markup inside HTML comments (`<!-- … -->`) is no longer counted. Commented-out `*ngIf`/`*ngFor`, `[innerHTML]` bindings and AngularJS attributes were reported as live code; on a 460-template app fully on built-in control flow, all 33 `*ngIf`/`*ngFor` reported as deprecated sat in comments. Line numbers after a comment are unchanged. On the corpus: 4, 1 and 1 fewer legacy directives in three repositories.

@@ -88,7 +88,9 @@ export function changeDetectionCheck(context: AnalysisContext): CheckResult {
     id: 'change-detection',
     title: 'Change detection & zoneless readiness',
     grade,
-    summary: zoneless
+    summary: major === undefined && components.length === 0
+      ? 'No Angular components.'
+      : zoneless
       ? `Zoneless, with ${onPushShare}% of components on OnPush.`
       : `Runs on zone.js; ${onPushShare}% of ${plural(components.length, 'component')} use OnPush.`,
     metrics: [

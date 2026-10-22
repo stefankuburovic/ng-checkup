@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import ts from 'typescript';
 import { isTestCode, toReportPath } from './files.js';
+import { primoFactsOf, type PrimoFileFacts } from './primo.js';
 import { withoutHtmlComments } from './template-text.js';
 
 /** The AngularJS registration methods that define something a migration has to move. */
@@ -63,6 +64,8 @@ export interface AngularJsFileFacts {
   upgradedComponents: number;
   /** Provider objects whose `deps` include `'$injector'`: AngularJS services made injectable in Angular. */
   upgradedServices: number;
+  /** Set for a file of an Ex Libris Primo VE customization package (see `primo.ts`). */
+  primo?: PrimoFileFacts;
 }
 
 /**
@@ -71,7 +74,7 @@ export interface AngularJsFileFacts {
  * Whitespace around the dots is allowed: the AngularJS tutorial itself writes
  * `angular.` and `module('x').` at line ends.
  */
-const CANDIDATE = /angular\s*\.\s*module|\$scope|\$rootScope|\$compile|\$routeProvider|\$stateProvider|UpgradeComponent|\$injector|\.\s*(controller|directive|component|service|factory|provider|filter)\s*\(\s*['"`]/;
+const CANDIDATE = /angular\s*\.\s*module|viewCustom|parentCtrl|\$scope|\$rootScope|\$compile|\$routeProvider|\$stateProvider|UpgradeComponent|\$injector|\.\s*(controller|directive|component|service|factory|provider|filter)\s*\(\s*['"`]/;
 
 /**
  * The version in the license header AngularJS ships in every build
@@ -119,6 +122,8 @@ export function scanAngularJsFile(root: string, absolutePath: string, text = rea
     upgradedComponents: 0,
     upgradedServices: 0,
   };
+  const primo = primoFactsOf(text);
+  if (primo) facts.primo = primo;
   const lineOf = (node: ts.Node): number => source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1;
   const addLine = (lines: number[], node: ts.Node): void => {
     const line = lineOf(node);
@@ -178,7 +183,8 @@ export function scanAngularJsFile(root: string, absolutePath: string, text = rea
     facts.compileLines.length +
     facts.routeLines.length +
     facts.upgradedComponents +
-    facts.upgradedServices;
+    facts.upgradedServices +
+    (primo ? 1 : 0);
   return found > 0 ? { facts } : undefined;
 }
 

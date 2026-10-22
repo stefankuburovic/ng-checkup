@@ -1,6 +1,6 @@
 import { formatCount, plural } from '../checks/context.js';
 import type { Report } from '../types.js';
-import { formatDuration, formatLocation, gradeLabel, kindLabel, overallScore, projectAreas, remainingCount, SCORE_EXPLANATION, severityLabel, topPriorities } from './summary.js';
+import { formatDuration, formatLocation, gradeLabel, kindLabel, migrationTarget, overallScore, projectAreas, remainingCount, SCORE_EXPLANATION, severityLabel, topPriorities } from './summary.js';
 
 /**
  * Renders the report as GitHub-flavoured Markdown, for a pull request, a
@@ -15,7 +15,7 @@ export function renderMarkdown(report: Report): string {
 
   lines.push(`# Angular checkup: ${project.name}`, '');
   lines.push(
-    `${kindLabel(project.kind)}${project.angularVersion ? ` · Angular ${project.angularVersion}` : ''} · ${plural(project.sourceFiles, 'TypeScript file')} · ${plural(project.templateFiles, 'template')} · ${plural(project.linesOfCode, 'line')} of application code${project.generatedFiles ? ` (${plural(project.generatedFiles, 'generated file')} left out)` : ''}`,
+    `${kindLabel(project.kind)}${project.angularVersion ? ` · Angular ${project.angularVersion}` : ''} · ${`${plural(project.sourceFiles, 'TypeScript file')}${project.javascriptFiles ? `, ${plural(project.javascriptFiles, 'JavaScript file')}` : ''}`} · ${plural(project.templateFiles, 'template')} · ${plural(project.linesOfCode, 'line')} of application code${project.generatedFiles ? ` (${plural(project.generatedFiles, 'generated file')} left out)` : ''}`,
     '',
   );
   if (score !== undefined) lines.push(`**Score: ${score}/100.** ${SCORE_EXPLANATION}`, '');
@@ -44,7 +44,7 @@ export function renderMarkdown(report: Report): string {
 
   const migration = report.migration;
   if (migration) {
-    lines.push(`## Migration plan: ${migration.from} → Angular ${migration.to}`, '', `${plural(migration.phases.length, 'phase')}, each shipping on its own.`, '');
+    lines.push(`## Migration plan: ${migration.from} → ${migrationTarget(migration)}`, '', `${plural(migration.phases.length, 'phase')}, each shipping on its own.`, '');
     migration.phases.forEach((phase, index) => {
       lines.push(`### ${index + 1}. ${phase.title}`, '', `_${phase.goal}_`, '');
       for (const item of phase.items) lines.push(`- **${item.title}**${item.count !== undefined ? ` (${formatCount(item.count)})` : ''}${item.command ? `: \`${item.command}\`` : ''}${item.detail ? `. ${item.detail}` : ''}`);

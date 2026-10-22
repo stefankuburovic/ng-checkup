@@ -92,3 +92,8 @@ export function remainingCount(finding: Finding): number {
   const listed = finding.files?.length ?? 0;
   return listed === 0 ? 0 : Math.max(0, (finding.count ?? 0) - listed);
 }
+
+/** Where a migration plan leads, as the reports name it: `Primo NDE`, or `Angular 22`. */
+export function migrationTarget(migration: NonNullable<Report['migration']>): string {
+  return migration.targetLabel ?? `Angular ${migration.to}`;
+}

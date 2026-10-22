@@ -1,5 +1,5 @@
 {
-  "$comment": "Public Angular repositories the corpus check runs ng-checkup on, each pinned to one commit so a snapshot only changes when ng-checkup does. Chosen for spread: Angular 12 to 22, CLI and Nx workspaces, Ionic, small templates and a 180 000-line app, plus AngularJS apps in plain JavaScript and hybrid AngularJS/Angular apps. Move a commit only on purpose, in its own change, and update the snapshot with it.",
+  "$comment": "Public Angular repositories the corpus check runs ng-checkup on, each pinned to one commit so a snapshot only changes when ng-checkup does. Chosen for spread: Angular 12 to 22, CLI and Nx workspaces, Ionic, small templates and a 180 000-line app, plus AngularJS apps in plain JavaScript, hybrid AngularJS/Angular apps and Primo VE customization packages. Move a commit only on purpose, in its own change, and update the snapshot with it.",
   "repos": [
     { "name": "realworld", "repo": "gothinkster/angular-realworld-example-app", "commit": "57eeb6a4ca2ab1790cc768fcbe37a3afc2a6a82e", "why": "Angular 12 app, the example report on the offer page" },
     { "name": "ngx-admin", "repo": "akveo/ngx-admin", "commit": "dc6a442704bfef34b776b5eb15faf852d9e2f75c", "why": "popular legacy admin template, Nebular" },
@@ -17,6 +17,8 @@
     { "name": "angular-phonecat", "repo": "angular/angular-phonecat", "commit": "ef6f6eb672ded472b4e442d598f5df40d0e0642c", "why": "the AngularJS 1.8 tutorial app: components, plain JavaScript, chained registrations" },
     { "name": "realworld-angularjs", "repo": "gothinkster/angularjs-realworld-example-app", "commit": "08755ca543e13cb26bc7086d0596ad58567a6f78", "why": "AngularJS 1.5 in ES modules, controllers registered on module variables, ui-router" },
     { "name": "orientdb-studio", "repo": "orientechnologies/orientdb-studio", "commit": "f2dbfbd0b747d621338bded969f6247c18d84083", "why": "real hybrid app, AngularJS 1.5 and Angular 4 on UpgradeModule, 88 controllers, downgraded services" },
-    { "name": "ui-router-hybrid", "repo": "ui-router/sample-app-angular-hybrid", "commit": "8ab41ac68cb5e51f17846d82dea47cb4789eb071", "why": "hybrid AngularJS 1.8 and Angular 22 with UI-Router hybrid, AngularJS code in TypeScript" }
+    { "name": "ui-router-hybrid", "repo": "ui-router/sample-app-angular-hybrid", "commit": "8ab41ac68cb5e51f17846d82dea47cb4789eb071", "why": "hybrid AngularJS 1.8 and Angular 22 with UI-Router hybrid, AngularJS code in TypeScript" },
+    { "name": "primo-slsp", "repo": "Swiss-Library-Service-Platform/swisscovery", "commit": "5bea0ea856b902fb7936d0d1512047000c3fa84a", "why": "Primo VE union view of the Swiss library network: 34 hooks, heavy parentCtrl use, a browserified custom.js beside the sources" },
+    { "name": "primo-brandeis", "repo": "Brandeis-Library/primo-ve-customization-package", "commit": "67073bad763899002298913989e00fc19625423a", "why": "Primo VE package of one university, with leftover copies outside the view folder" }
   ]
 }

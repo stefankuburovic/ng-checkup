@@ -7,7 +7,8 @@
     "angularVersion": "4.4.6",
     "sourceFiles": 141,
     "templateFiles": 254,
-    "linesOfCode": 10020
+    "linesOfCode": 22992,
+    "javascriptFiles": 35
   },
   "score": 48,
   "checks": [
@@ -18,7 +19,7 @@
       "measures": {
         "angularjs-components": 115,
         "angularjs-controllers": 88,
-        "angularjs-services": 34,
+        "angularjs-services": 33,
         "angularjs-filters": 16,
         "angularjs-templates": 178,
         "scope-files": 20

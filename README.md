@@ -25,6 +25,7 @@ npx ng-checkup
 - [Watch mode](#watch-mode)
 - [Upgrade plan](#upgrade-plan)
 - [AngularJS and hybrid apps](#angularjs-and-hybrid-apps)
+- [Primo VE to NDE](#primo-ve-to-nde)
 - [Monorepos](#monorepos)
 - [Client report](#client-report)
 - [What it checks](#what-it-checks)
@@ -207,6 +208,20 @@ With `--plan` the report adds the **migration plan**, in the order of the Angula
 
 Every count is a [measure](https://github.com/stefankuburovic/ng-checkup/blob/main/docs/checks.md#measures), so a [baseline](#baseline-adopt-it-on-legacy-code) in CI holds a running migration to one rule: AngularJS only ever shrinks.
 
+## Primo VE to NDE
+
+```bash
+npx ng-checkup github:Swiss-Library-Service-Platform/swisscovery --plan
+```
+
+Libraries on Ex Libris Primo VE customize it with an AngularJS package, and those customizations do not carry over to the New Discovery Experience, announced as the only Primo UI from January 2028: NDE is extended through an Angular custom module ([ExLibrisGroup/customModule](https://github.com/ExLibrisGroup/customModule)). When ng-checkup finds a Primo VE package (the `viewCustom` module, components named after Primo's hooks), the AngularJS area becomes **Primo NDE migration**, view by view:
+
+- the **hooks** the package fills (`prm-search-bar-after`, …), each one an Angular component to build in the custom module, and the helper components they render;
+- the reads of **`parentCtrl`**, the VE hook's handle on Primo's internal controller, which NDE replaces with `hostComponent` and the NgRx app state, with the paths read most (`parentCtrl.loc.items`, …): that is where the effort and the risk sit;
+- **third-party integrations** (BrowZine and LibKey, Altmetric, Unpaywall, LibChat, analytics, …), the **static home pages** per language, and a network's **central package**, which moves first.
+
+A `js/custom.js` built from the view's other files and copies outside the view folders are not counted twice. With `--plan`, the plan has four phases (decide what NDE still needs and set up the module, branding and home pages, rebuild the hooks, test in proxy mode and switch view by view), and the client report puts them in its roadmap.
+
 ## Monorepos
 
 In an Angular CLI workspace with several projects or an Nx workspace, the report adds a table with one row per project, worst score first (here [nx-examples](https://github.com/nrwl/nx-examples), shortened):
@@ -247,6 +262,7 @@ The codebase is named by its repository and commit, never by a path on your disk
 
 | Area | It looks at | Poor when |
 | --- | --- | --- |
+| [**Primo NDE migration**](https://github.com/stefankuburovic/ng-checkup/blob/main/docs/checks.md#primo-nde) (only for a Primo VE customization package) | hooks to rebuild per view, `parentCtrl` reads and the paths read most, third-party integrations, home pages, the central package | `parentCtrl` is read, or more than ten hooks |
 | [**AngularJS migration**](https://github.com/stefankuburovic/ng-checkup/blob/main/docs/checks.md#angularjs) (only with AngularJS code or packages) | AngularJS components, directives, controllers, services, filters and templates; `$scope`, scope events, `$compile`, directives `UpgradeComponent` cannot wrap; AngularJS packages; hybrid progress | any AngularJS code left, unless a hybrid app has 80% of its components on Angular |
 | [**Angular version & tooling**](https://github.com/stefankuburovic/ng-checkup/blob/main/docs/checks.md#version) | installed vs. latest Angular, mixed `@angular/*` majors, webpack builder, end-of-life packages | three or more majors behind, i.e. out of support |
 | [**Deprecated APIs**](https://github.com/stefankuburovic/ng-checkup/blob/main/docs/checks.md#deprecated-apis) | every imported Angular/NgRx symbol your **installed** version tags `@deprecated`, plus `*ngIf` / `*ngFor` in templates | something deprecated two majors ago is still used |

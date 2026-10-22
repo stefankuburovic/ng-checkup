@@ -3,6 +3,7 @@ import { dirname, resolve } from 'node:path';
 import { assembleAngularJs, scanAngularJsFile } from './angularjs.js';
 import { readBundleStats } from './bundle.js';
 import { angularJsCheck, hasAngularJs, summarizeAngularJs } from './checks/angularjs.js';
+import { primoNdeCheck, summarizePrimo } from './checks/primo.js';
 import { bundleCheck } from './checks/bundle.js';
 import { architectureCheck } from './checks/architecture.js';
 import { changeDetectionCheck } from './checks/change-detection.js';
@@ -22,7 +23,7 @@ import { loadDeprecationIndex } from './typings.js';
 import { ignoreMatcher } from './config.js';
 import { collectFiles } from './files.js';
 import { buildImportGraph, findTanglesIn, readCompilerOptions, staticallyReachable } from './graph.js';
-import { buildMigrationPlan } from './migration.js';
+import { buildMigrationPlan, buildPrimoPlan } from './migration.js';
 import { buildPlan } from './plan.js';
 import { scanSourceFile, scanTemplateFile } from './scan.js';
 import { overallScore } from './report/summary.js';
@@ -42,7 +43,7 @@ export { createAnalysisCache, type AnalysisCache } from './cache.js';
 export { overallScore, topPriorities } from './report/summary.js';
 export { CONFIG_FILE, loadConfig, type CheckupConfig } from './config.js';
 export { buildPlan, type PlanItem, type PlanRequirement, type UpgradePlan, type UpgradeStep } from './plan.js';
-export { buildMigrationPlan, type MigrationPhase, type MigrationPlan } from './migration.js';
+export { buildMigrationPlan, buildPrimoPlan, type MigrationPhase, type MigrationPlan } from './migration.js';
 export { ANGULAR_VERSIONS, type AngularVersionInfo } from './angular-versions.js';
 export {
   BASELINE_FILE,
@@ -113,12 +114,22 @@ export async function runCheckup(root: string, options: CheckupOptions = {}): Pr
   const started = Date.now();
   const absoluteRoot = resolve(root);
   const context = await buildContext(absoluteRoot, options);
-  // AngularJS comes first when there is any: it blocks everything else.
-  const checks = [...(hasAngularJs(context) ? [angularJsCheck(context)] : []), ...CHECKS.map((check) => check(context))];
+  // AngularJS comes first when there is any: it blocks everything else. A Primo VE customization
+  // package is AngularJS too, but it does not move to Angular through ngUpgrade; it is rebuilt in
+  // the NDE custom module, so it gets its own area and plan instead of the general AngularJS ones.
+  const primo = summarizePrimo(context);
+  const legacy = primo.present ? [primoNdeCheck(context)] : hasAngularJs(context) ? [angularJsCheck(context)] : [];
+  const checks = [...legacy, ...CHECKS.map((check) => check(context))];
   const application = context.sources.filter((file) => !file.isSpec && !file.isGenerated);
   const generatedFiles = context.sources.filter((file) => file.isGenerated).length;
+  // AngularJS code is mostly JavaScript; without it an AngularJS app or a Primo package reported 0 lines.
+  const javascript = context.angularJs.files.filter((file) => file.language === 'js' && !file.isSpec);
   const plan = options.plan ? buildPlan(context.workspace, checks, context.latestAngular.major, undefined, context.compatibility) : undefined;
-  const migration = options.plan ? buildMigrationPlan(summarizeAngularJs(context), context.latestAngular.major, plan?.steps.length ?? 0, context.workspace.dependencies) : undefined;
+  const migration = !options.plan
+    ? undefined
+    : primo.present
+      ? buildPrimoPlan(primo)
+      : buildMigrationPlan(summarizeAngularJs(context), context.latestAngular.major, plan?.steps.length ?? 0, context.workspace.dependencies);
   const projects = options.project ? [] : projectBreakdown(context);
 
   return {
@@ -131,8 +142,9 @@ export async function runCheckup(root: string, options: CheckupOptions = {}): Pr
       angularVersion: context.workspace.angular.installed ?? context.workspace.angular.declared,
       sourceFiles: context.sources.length,
       templateFiles: context.templates.filter((template) => !template.inline).length,
-      linesOfCode: application.reduce((sum, file) => sum + file.linesOfCode, 0),
+      linesOfCode: application.reduce((sum, file) => sum + file.linesOfCode, 0) + javascript.reduce((sum, file) => sum + file.linesOfCode, 0),
       ...(generatedFiles > 0 ? { generatedFiles } : {}),
+      ...(javascript.length > 0 ? { javascriptFiles: javascript.length } : {}),
     },
     checks,
     durationMs: Date.now() - started,

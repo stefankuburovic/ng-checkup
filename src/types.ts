@@ -94,6 +94,11 @@ export interface Report {
     linesOfCode: number;
     /** Files written by a code generator, left out of every count of application code. Absent when there are none. */
     generatedFiles?: number;
+    /**
+     * JavaScript files with AngularJS code (Primo VE packages included), tests
+     * left out; their lines are part of `linesOfCode`. Absent when there are none.
+     */
+    javascriptFiles?: number;
   };
   checks: CheckResult[];
   durationMs: number;

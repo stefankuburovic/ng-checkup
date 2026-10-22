@@ -1,4 +1,6 @@
 import type { AngularJsSummary } from './checks/angularjs.js';
+import type { PrimoSummary } from './checks/primo.js';
+import { NDE_CUSTOM_MODULE_ANGULAR } from './primo.js';
 import type { PlanItem } from './plan.js';
 
 /** One phase of the AngularJS migration: what it achieves, and the work in this codebase. */
@@ -15,7 +17,9 @@ export interface MigrationPlan {
   from: string;
   /** The Angular major the migration lands on: the installed one in a hybrid app on a current major, else the latest. */
   to: number;
-  mode: 'angularjs-only' | 'hybrid' | 'leftovers';
+  /** What the reports name as the destination, when it is more than `Angular <to>` (`Primo NDE`). */
+  targetLabel?: string;
+  mode: 'angularjs-only' | 'hybrid' | 'leftovers' | 'primo-nde';
   phases: MigrationPhase[];
 }
 
@@ -123,4 +127,65 @@ export function buildMigrationPlan(summary: AngularJsSummary, latest: number, up
   ].filter((phase) => phase.items.length > 0);
 
   return { from, to: summary.hybrid && summary.angularMajor !== undefined && upgradeSteps === 0 ? summary.angularMajor : latest, mode: summary.hybrid ? 'hybrid' : 'angularjs-only', phases };
+}
+
+/**
+ * Plans the move of a Primo VE customization package to the NDE custom
+ * module, in the order a library can work through it: decide what still
+ * needs customizing (NDE does some of it out of the box), set up the module
+ * and move the branding and static pages, rebuild the hooks as Angular
+ * components (central package first, since every view loads it), then test
+ * against the live view in proxy mode and switch view by view.
+ *
+ * As with `buildMigrationPlan`, every item carries this package's count and
+ * no estimate: how long a hook takes depends mostly on its `parentCtrl`
+ * reads, which the counts show and only a person can price.
+ */
+export function buildPrimoPlan(summary: PrimoSummary): MigrationPlan | undefined {
+  if (!summary.present) return undefined;
+  const central = summary.views.find((view) => view.central);
+  const homePages = [...new Set(summary.views.flatMap((view) => view.homePages))];
+
+  const decide: PlanItem[] = [
+    {
+      title: 'Check each customization against NDE as it ships',
+      detail: 'NDE was redesigned from the ground up; some VE customizations fill gaps it no longer has. Dropping those first is the cheapest part of the migration.',
+      count: summary.hooks + summary.components,
+    },
+    {
+      title: `Set up the NDE custom module (Angular ${NDE_CUSTOM_MODULE_ANGULAR})`,
+      command: 'git clone https://github.com/ExLibrisGroup/customModule.git && cd customModule && npm install',
+      detail: 'Set the institution and view in `build-settings.env`; `npm run build` writes the package to upload per view.',
+    },
+  ];
+
+  const branding: PlanItem[] = [
+    { title: 'Move logos, images and CSS', detail: 'Images to `src/assets/images`, CSS to `src/assets/css/custom.css` or the Material 3 theme in `src/app/styles`.', count: summary.views.length },
+  ];
+  if (homePages.length > 0) branding.push({ title: 'Move the static home pages', detail: `To \`src/assets/homepage/homepage_<lang>.html\`; AngularJS markup in them has to go. Languages: ${homePages.join(', ')}.`, count: homePages.length });
+
+  const rebuild: PlanItem[] = [];
+  if (central && central.hooks.length > 0) rebuild.push({ title: 'Rebuild the central package first', detail: `\`${central.root}\` is loaded by every view, so its hooks are done once for all of them.`, count: central.hooks.length });
+  rebuild.push({
+    title: 'Rebuild each hook as an Angular component',
+    detail: 'Map it in `selectorComponentMap` to the matching `nde-…-before`, `-after`, `-top` or `-bottom` selector, found in the NDE UI.',
+    count: summary.hooks,
+  });
+  if (summary.components > 0) rebuild.push({ title: 'Rebuild the helper components the hooks render', count: summary.components });
+  if (summary.parentCtrlReads > 0) rebuild.push({ title: 'Replace `parentCtrl` reads', detail: 'With `@Input() hostComponent` or NgRx store selectors (`store.selectSignal(...)`).', count: summary.parentCtrlReads });
+  if (summary.httpCalls > 0) rebuild.push({ title: 'Move `$http` requests to `HttpClient`', count: summary.httpCalls });
+  for (const integration of summary.integrations) rebuild.push({ title: `Rebuild or replace ${integration}`, detail: 'Check for the vendor\'s NDE version first.' });
+
+  const ship: PlanItem[] = [
+    { title: 'Test against the live view in proxy mode', command: 'npm run start:proxy', detail: 'Or open the NDE view with `?useLocalCustomPackage=true` while `npm run start` runs.' },
+    { title: 'Build, upload and switch view by view', command: 'npm run build', detail: 'Before January 2028, when NDE is announced as the only UI.', count: summary.views.length },
+  ];
+
+  const phases: MigrationPhase[] = [
+    { title: 'Decide and set up', goal: 'A list of the customizations NDE still needs, and the custom module building for your institution and view.', items: decide },
+    { title: 'Branding and static pages', goal: 'The NDE view looks like the library again.', items: branding },
+    { title: 'Rebuild the hooks', goal: 'Every customization that is still needed runs as an Angular component in NDE.', items: rebuild },
+    { title: 'Test and switch', goal: 'Each view runs on NDE, before the VE UI goes away.', items: ship },
+  ];
+  return { from: 'Primo VE customizations (AngularJS)', to: NDE_CUSTOM_MODULE_ANGULAR, targetLabel: 'Primo NDE', mode: 'primo-nde', phases };
 }

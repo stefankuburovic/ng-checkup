@@ -1,6 +1,6 @@
 import { formatCount, plural } from '../checks/context.js';
 import type { Grade, Report, Severity } from '../types.js';
-import { formatDuration, formatLocation, gradeLabel, kindLabel, overallScore, projectAreas, remainingCount, SCORE_EXPLANATION, severityLabel, topPriorities } from './summary.js';
+import { formatDuration, formatLocation, gradeLabel, kindLabel, migrationTarget, overallScore, projectAreas, remainingCount, SCORE_EXPLANATION, severityLabel, topPriorities } from './summary.js';
 
 /** Options for the terminal renderer. */
 export interface TerminalOptions {
@@ -37,7 +37,7 @@ export function renderTerminal(report: Report, options: TerminalOptions): string
   const lines: string[] = [];
   const { project } = report;
   lines.push(`${c.bold(report.tool.name)} ${c.dim(report.tool.version)}  ${c.bold(project.name)} ${c.dim(`· ${kindLabel(project.kind)}${project.angularVersion ? ` · Angular ${project.angularVersion}` : ''}`)}`);
-  lines.push(c.dim(`${plural(project.sourceFiles, 'TypeScript file')}, ${plural(project.templateFiles, 'template')}, ${plural(project.linesOfCode, 'line')} of application code${project.generatedFiles ? ` (${plural(project.generatedFiles, 'generated file')} left out)` : ''}, analysed in ${formatDuration(report.durationMs)}`));
+  lines.push(c.dim(`${`${plural(project.sourceFiles, 'TypeScript file')}${project.javascriptFiles ? `, ${plural(project.javascriptFiles, 'JavaScript file')}` : ''}`}, ${plural(project.templateFiles, 'template')}, ${plural(project.linesOfCode, 'line')} of application code${project.generatedFiles ? ` (${plural(project.generatedFiles, 'generated file')} left out)` : ''}, analysed in ${formatDuration(report.durationMs)}`));
   lines.push('');
 
   const titleWidth = Math.max(...report.checks.map((check) => check.title.length));
@@ -99,7 +99,7 @@ export function renderTerminal(report: Report, options: TerminalOptions): string
   const migration = report.migration;
   if (migration) {
     lines.push('');
-    lines.push(`${c.bold('Migration plan')}  ${migration.from} → Angular ${migration.to}, ${plural(migration.phases.length, 'phase')}`);
+    lines.push(`${c.bold('Migration plan')}  ${migration.from} → ${migrationTarget(migration)}, ${plural(migration.phases.length, 'phase')}`);
     migration.phases.forEach((phase, index) => {
       lines.push(`  ${c.bold(`${index + 1}. ${phase.title}`)}  ${c.dim(phase.goal)}`);
       for (const item of phase.items) lines.push(`        · ${code(item.title)}${item.count !== undefined ? c.dim(` (${formatCount(item.count)})`) : ''}${item.command ? `  ${c.cyan(item.command)}` : ''}`);
