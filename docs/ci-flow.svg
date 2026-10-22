@@ -1,0 +1,100 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="480" viewBox="0 0 960 480" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#57606a"/>
+    </marker>
+    <style>
+      .card { fill: #f6f8fa; stroke: #d0d7de; stroke-width: 1; }
+      .tool { fill: #ddf4ff; stroke: #54aeff; stroke-width: 1.2; }
+      .out { fill: #ffffff; stroke: #d0d7de; stroke-width: 1; }
+      .h { font-size: 15px; font-weight: 600; fill: #1f2328; }
+      .t { font-size: 12.5px; fill: #1f2328; }
+      .m { font-size: 11.5px; fill: #57606a; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+      .s { font-size: 11.5px; fill: #57606a; }
+      .lane { font-size: 13px; font-weight: 700; letter-spacing: 0.06em; }
+      .flow { stroke: #57606a; stroke-width: 1.6; fill: none; marker-end: url(#arrow); }
+    </style>
+  </defs>
+
+  <rect x="0.5" y="0.5" width="959" height="479" rx="12" fill="#ffffff" stroke="#d0d7de"/>
+
+  <!-- GitHub lane -->
+  <rect x="16" y="16" width="928" height="212" rx="10" fill="#ffffff" stroke="#d0d7de"/>
+  <rect x="16" y="16" width="6" height="212" rx="3" fill="#24292f"/>
+  <text x="36" y="42" class="lane" fill="#24292f">GITHUB</text>
+
+  <rect x="36" y="60" width="170" height="150" rx="8" class="card"/>
+  <text x="50" y="86" class="h">Pull request</text>
+  <text x="50" y="108" class="t">opened, or a new</text>
+  <text x="50" y="125" class="t">commit pushed to it</text>
+
+  <rect x="236" y="60" width="214" height="150" rx="8" class="card"/>
+  <text x="250" y="86" class="h">Workflow on a runner</text>
+  <text x="250" y="108" class="m">.github/workflows/*.yml</text>
+  <text x="250" y="132" class="m">uses: stefankuburovic/</text>
+  <text x="250" y="148" class="m">      ng-checkup@v0</text>
+  <text x="250" y="176" class="s">The Action, from the</text>
+  <text x="250" y="192" class="s">GitHub Marketplace</text>
+
+  <rect x="480" y="60" width="200" height="150" rx="8" class="tool"/>
+  <text x="494" y="86" class="h">npx ng-checkup</text>
+  <text x="494" y="108" class="t">from npm, no npm ci;</text>
+  <text x="494" y="125" class="t">reads the code, runs</text>
+  <text x="494" y="142" class="t">nothing of it</text>
+  <text x="494" y="170" class="s">fail-on: poor, fair, or</text>
+  <text x="494" y="186" class="s">regression vs. baseline</text>
+
+  <rect x="710" y="60" width="218" height="150" rx="8" class="out"/>
+  <text x="724" y="86" class="h">Back in the pull request</text>
+  <text x="724" y="110" class="t">• one comment, edited</text>
+  <text x="736" y="126" class="t">on every push</text>
+  <text x="724" y="146" class="t">• job summary</text>
+  <text x="724" y="166" class="t">• code scanning (SARIF)</text>
+  <text x="724" y="186" class="t">• reports as an artifact</text>
+  <text x="724" y="202" class="s">  a red check can block the merge</text>
+
+  <path d="M206,135 L232,135" class="flow"/>
+  <path d="M450,135 L476,135" class="flow"/>
+  <path d="M680,135 L706,135" class="flow"/>
+
+  <!-- GitLab lane -->
+  <rect x="16" y="252" width="928" height="212" rx="10" fill="#ffffff" stroke="#d0d7de"/>
+  <rect x="16" y="252" width="6" height="212" rx="3" fill="#fc6d26"/>
+  <text x="36" y="278" class="lane" fill="#e24329">GITLAB</text>
+
+  <rect x="36" y="296" width="170" height="150" rx="8" class="card"/>
+  <text x="50" y="322" class="h">Merge request</text>
+  <text x="50" y="344" class="t">opened, or a new</text>
+  <text x="50" y="361" class="t">commit pushed to it;</text>
+  <text x="50" y="378" class="t">also every push to</text>
+  <text x="50" y="395" class="t">the default branch</text>
+
+  <rect x="236" y="296" width="214" height="150" rx="8" class="card"/>
+  <text x="250" y="322" class="h">Pipeline on a runner</text>
+  <text x="250" y="344" class="m">.gitlab-ci.yml</text>
+  <text x="250" y="368" class="m">include: component:</text>
+  <text x="250" y="384" class="m">  …/ng-checkup@0.10</text>
+  <text x="250" y="408" class="s">CI/CD Catalog on gitlab.com;</text>
+  <text x="250" y="424" class="s">self-managed: include: remote</text>
+
+  <rect x="480" y="296" width="200" height="150" rx="8" class="tool"/>
+  <text x="494" y="322" class="h">npx ng-checkup</text>
+  <text x="494" y="344" class="t">the same tool, the same</text>
+  <text x="494" y="361" class="t">options, plus a Code</text>
+  <text x="494" y="378" class="t">Quality report</text>
+  <text x="494" y="406" class="s">fail-on: poor, fair, or</text>
+  <text x="494" y="422" class="s">regression vs. baseline</text>
+
+  <rect x="710" y="296" width="218" height="150" rx="8" class="out"/>
+  <text x="724" y="322" class="h">Back in the merge request</text>
+  <text x="724" y="346" class="t">• Code Quality widget: what</text>
+  <text x="736" y="362" class="t">it introduces and resolves</text>
+  <text x="724" y="382" class="t">• one comment, edited on</text>
+  <text x="736" y="398" class="t">every push (needs a token)</text>
+  <text x="724" y="418" class="t">• reports as artifacts</text>
+  <text x="724" y="438" class="s">  a failed job can block the merge</text>
+
+  <path d="M206,371 L232,371" class="flow"/>
+  <path d="M450,371 L476,371" class="flow"/>
+  <path d="M680,371 L706,371" class="flow"/>
+</svg>

@@ -346,6 +346,10 @@ Exit codes: `0` done, `1` `--fail-on` tripped, `2` usage error (including `--fai
 
 ## In CI
 
+![How ng-checkup runs on GitHub and GitLab: a pull or merge request starts a workflow or pipeline on a runner, the runner runs npx ng-checkup, and the results come back into the pull or merge request](https://raw.githubusercontent.com/stefankuburovic/ng-checkup/main/docs/ci-flow.png)
+
+The same tool runs in both: a pull request (GitHub) or merge request (GitLab) starts a job on a runner, the job runs `npx ng-checkup` from npm without installing your project, and the results come back where the review happens. With `fail-on` the job turns red, which blocks the merge when the branch requires the check.
+
 **GitHub Action** ([on the Marketplace](https://github.com/marketplace/actions/ng-checkup)). One comment on every pull request, edited in place on each push, with what got worse or better than the baseline, a grade per area and the top priorities. Plus the job summary, the full reports as an artifact, and optionally annotations on the changed lines:
 
 ```yaml
