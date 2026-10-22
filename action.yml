@@ -1,5 +1,5 @@
 name: ng-checkup
-description: Angular modernization checkup on every pull request. One up-to-date PR comment, baseline regressions, optional code-scanning annotations.
+description: "Angular and AngularJS modernization checkup on every pull request: one up-to-date comment, baseline regressions, SARIF."
 author: Stefan Kuburovic
 branding:
   icon: check-circle
