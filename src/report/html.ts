@@ -70,6 +70,8 @@ export function renderHtml(report: Report): string {
 
   ${report.baseline ? baselineSection(report.baseline) : ''}
 
+  ${report.migration ? migrationSection(report.migration) : ''}
+
   ${report.plan ? planSection(report.plan) : ''}
 
   ${report.checks.map(checkSection).join('\n  ')}
@@ -100,18 +102,21 @@ function renderClientHtml(report: Report, client: NonNullable<Report['client']>)
   const score = overallScore(report);
   const graded = report.checks.filter((check) => check.grade !== 'info');
   const count = (grade: Grade): number => graded.filter((check) => check.grade === grade).length;
-  const version = report.checks.find((check) => check.id === 'version');
+  // An AngularJS app is first of all that; its summary opens the report instead of the Angular version's.
+  const version = report.checks.find((check) => check.id === 'angularjs') ?? report.checks.find((check) => check.id === 'version');
+  const migration = report.migration;
   const actions = report.checks
     .flatMap((check) => check.findings.filter((finding) => finding.severity === 'high' || finding.severity === 'medium').map((finding) => ({ check, finding })))
     .sort((left, right) => (left.finding.severity === right.finding.severity ? 0 : left.finding.severity === 'high' ? -1 : 1));
   const plan = report.plan;
   // The version is already the summary's first sentence; the urgent list names the rest.
-  const urgent = actions.filter(({ check, finding }) => finding.severity === 'high' && check.id !== 'version').slice(0, 3);
-  // "Unit tests run…" reads as one sentence once joined; an acronym or code stays as it is.
-  const clause = (message: string): string => message.replace(/\.$/, '').replace(/^([A-Z])(?=[a-z])/, (letter) => letter.toLowerCase());
+  const urgent = actions.filter(({ check, finding }) => finding.severity === 'high' && check.id !== version?.id).slice(0, 3);
+  // "Unit tests run…" reads as one sentence once joined; an acronym, code or a name (Angular, AngularJS) stays as it is.
+  const clause = (message: string): string => message.replace(/\.$/, '').replace(/^(?!Angular)([A-Z])(?=[a-z])/, (letter) => letter.toLowerCase());
   const summary = [
     version ? version.summary : undefined,
     `Of ${plural(graded.length, 'graded area')}, ${formatCount(count('poor'))} ${count('poor') === 1 ? 'is' : 'are'} poor, ${formatCount(count('fair'))} fair and ${formatCount(count('good'))} good${score === undefined ? '' : `, for an overall score of ${score} out of 100`}.`,
+    migration ? `Leaving AngularJS takes ${plural(migration.phases.length, 'phase')} with ${plural(migration.phases.reduce((sum, phase) => sum + phase.items.length, 0), 'piece')} of work, each shipping on its own.` : undefined,
     plan ? `Reaching Angular ${plan.to} takes ${plural(plan.steps.length, '`ng update` step')}, with ${plural(plan.before.length + plan.steps.reduce((sum, step) => sum + step.items.length, 0), 'piece')} of work along the way, listed below.` : undefined,
     urgent.length > 0 ? `The most urgent: ${urgent.map(({ finding }) => clause(finding.message)).join('; ')}.` : undefined,
   ].filter((sentence): sentence is string => sentence !== undefined);
@@ -147,8 +152,15 @@ function renderClientHtml(report: Report, client: NonNullable<Report['client']>)
     <dl class="metrics">
       ${[
         ['Score', score === undefined ? '-' : `${score}/100`, 'average of the graded areas'],
-        ['Angular', project.angularVersion ?? '-', plan ? `latest is ${plan.to}` : ''],
-        ['Upgrade steps', plan ? formatCount(plan.steps.length) : '-', 'one major at a time'],
+        ...(migration && !project.angularVersion
+          ? [
+              ['AngularJS', migration.from.replace(/^AngularJS ?/, '') || '-', `moving to Angular ${migration.to}`],
+              ['Migration phases', formatCount(migration.phases.length), 'each shipping on its own'],
+            ]
+          : [
+              ['Angular', project.angularVersion ?? '-', plan ? `latest is ${plan.to}` : ''],
+              ['Upgrade steps', plan ? formatCount(plan.steps.length) : '-', 'one major at a time'],
+            ]),
         ['To act on', formatCount(actions.length), `${formatCount(actions.filter(({ finding }) => finding.severity === 'high').length)} high priority`],
         ['Code', formatCount(project.linesOfCode), `lines in ${formatCount(project.sourceFiles)} files`],
       ]
@@ -169,6 +181,21 @@ function renderClientHtml(report: Report, client: NonNullable<Report['client']>)
       </tbody>
     </table></div>
   </section>`
+  }
+
+  ${
+    migration
+      ? `<section aria-labelledby="migration-roadmap-title">
+    <h2 id="migration-roadmap-title" class="section-title">Roadmap: ${escape(migration.from)} → Angular ${migration.to}</h2>
+    <div class="table-wrap"><table class="projects roadmap">
+      <thead><tr><th>Phase</th><th>What it involves</th></tr></thead>
+      <tbody>
+      ${migration.phases.map((phase, index) => `<tr><td><strong>${index + 1}. ${escape(phase.title)}</strong></td><td>${phase.items.map((item) => `${inline(item.title)}${item.count !== undefined ? ` <span class="muted">(${formatCount(item.count)})</span>` : ''}`).join('<br>')}</td></tr>`).join('\n      ')}
+      </tbody>
+    </table></div>
+    <p class="check-summary">Counts are places in the code each change touches. What each phase achieves is in the appendix.</p>
+  </section>`
+      : ''
   }
 
   ${
@@ -200,6 +227,7 @@ function renderClientHtml(report: Report, client: NonNullable<Report['client']>)
       ${report.checks.map(overviewCard).join('\n      ')}
     </div>
     ${report.projects ? projectsSection(report) : ''}
+    ${report.migration ? migrationSection(report.migration) : ''}
     ${plan ? planSection(plan) : ''}
     ${report.checks.map(checkSection).join('\n  ')}
   </div>
@@ -226,6 +254,27 @@ function scoreRing(score: number): string {
       </svg>
       <figcaption><span class="score-value">${score}</span><span class="score-unit">/100</span></figcaption>
     </figure>`;
+}
+
+/** The AngularJS migration plan: one card per phase, with its goal and its work in this codebase. */
+function migrationSection(migration: NonNullable<Report['migration']>): string {
+  const item = (entry: { title: string; command?: string; detail?: string; count?: number }): string =>
+    `<li><strong>${inline(entry.title)}</strong>${entry.count !== undefined ? ` <span class="count">${formatCount(entry.count)}</span>` : ''}${entry.command ? `<code class="command">${escape(entry.command)}</code>` : ''}${entry.detail ? `<p>${inline(entry.detail)}</p>` : ''}</li>`;
+  return `<section aria-labelledby="migration-title">
+    <h2 id="migration-title" class="section-title">Migration plan: ${escape(migration.from)} → Angular ${migration.to}</h2>
+    <p class="check-summary">${plural(migration.phases.length, 'phase')}, each shipping on its own, in the order of the Angular upgrade guide: prepare on AngularJS, run both frameworks side by side, move the code bottom up, remove AngularJS.</p>
+    <ol class="steps">
+      ${migration.phases
+        .map(
+          (phase, index) => `<li class="finding step">
+        <div class="finding-head"><span class="chip sev-low">${index + 1}</span><strong>${escape(phase.title)}</strong></div>
+        <p class="requirements">${inline(phase.goal)}</p>
+        <ul class="plan-items">${phase.items.map(item).join('')}</ul>
+      </li>`,
+        )
+        .join('\n      ')}
+    </ol>
+  </section>`;
 }
 
 /** The upgrade plan: what to settle first, then one card per major. */

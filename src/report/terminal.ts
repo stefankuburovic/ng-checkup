@@ -96,6 +96,16 @@ export function renderTerminal(report: Report, options: TerminalOptions): string
     }
   }
 
+  const migration = report.migration;
+  if (migration) {
+    lines.push('');
+    lines.push(`${c.bold('Migration plan')}  ${migration.from} → Angular ${migration.to}, ${plural(migration.phases.length, 'phase')}`);
+    migration.phases.forEach((phase, index) => {
+      lines.push(`  ${c.bold(`${index + 1}. ${phase.title}`)}  ${c.dim(phase.goal)}`);
+      for (const item of phase.items) lines.push(`        · ${code(item.title)}${item.count !== undefined ? c.dim(` (${formatCount(item.count)})`) : ''}${item.command ? `  ${c.cyan(item.command)}` : ''}`);
+    });
+  }
+
   const plan = report.plan;
   if (plan) {
     lines.push('');

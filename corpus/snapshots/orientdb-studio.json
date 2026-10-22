@@ -1,0 +1,460 @@
+{
+  "repo": "orientechnologies/orientdb-studio",
+  "commit": "f2dbfbd0b747d621338bded969f6247c18d84083",
+  "project": {
+    "name": "orientdbstudio",
+    "kind": "unknown",
+    "angularVersion": "4.4.6",
+    "sourceFiles": 141,
+    "templateFiles": 254,
+    "linesOfCode": 10020
+  },
+  "score": 48,
+  "checks": [
+    {
+      "id": "angularjs",
+      "grade": "poor",
+      "summary": "Hybrid AngularJS 1.5.9 and Angular 4: 35% of components on Angular, 115 AngularJS components left.",
+      "measures": {
+        "angularjs-components": 115,
+        "angularjs-controllers": 88,
+        "angularjs-services": 34,
+        "angularjs-filters": 16,
+        "angularjs-templates": 179,
+        "scope-files": 20
+      },
+      "findings": [
+        {
+          "severity": "high",
+          "message": "AngularJS 1.5.9 is end of life since January 2022"
+        },
+        {
+          "severity": "low",
+          "message": "Move to AngularJS 1.8 before anything else (now 1.5.9)"
+        },
+        {
+          "severity": "medium",
+          "message": "88 controllers registered with `.controller()`, 83 bound with `ng-controller`",
+          "files": [
+            "src/controllers/aside-controller.js:7",
+            "src/controllers/aside-controller.js:13",
+            "src/controllers/configuration-controller.js:20"
+          ],
+          "count": 88
+        },
+        {
+          "severity": "medium",
+          "message": "5 directives use `compile`, `replace` or `terminal`",
+          "files": [
+            "src/directives/tabset.js:7",
+            "src/directives/tabset.js:54",
+            "src/directives/ui-codemirror.js:28"
+          ],
+          "count": 5
+        },
+        {
+          "severity": "medium",
+          "message": "`$scope` in 20 files",
+          "files": [
+            "src/components/schema/classesList.js:9",
+            "src/components/schema/edge/newEdgeModal.js:4",
+            "src/components/schema/generic/newGenericModal.js:4"
+          ],
+          "count": 20
+        },
+        {
+          "severity": "medium",
+          "message": "64 scope events (`$broadcast`, `$emit`, `$rootScope.$on`) used as a message bus",
+          "files": [
+            "src/app-legacy.js:185",
+            "src/app.config.js:162",
+            "src/controllers/aside-controller.js:16"
+          ],
+          "count": 15
+        },
+        {
+          "severity": "medium",
+          "message": "4 runtime `$compile` calls",
+          "files": [
+            "src/directives/graph.js:148",
+            "src/directives/widget.js:157"
+          ],
+          "count": 2
+        },
+        {
+          "severity": "low",
+          "message": "85 `$watch` calls",
+          "files": [
+            "src/controllers/configuration-controller.js:77",
+            "src/controllers/database-controller.js:86",
+            "src/controllers/ee-controller.js:154"
+          ],
+          "count": 12
+        },
+        {
+          "severity": "low",
+          "message": "`ng-include` in 25 templates",
+          "files": [
+            "src/index.html",
+            "src/views/database/auditing.html",
+            "src/views/database/browse.html"
+          ],
+          "count": 25
+        },
+        {
+          "severity": "medium",
+          "message": "6 AngularJS packages to replace"
+        },
+        {
+          "severity": "info",
+          "message": "Hybrid app on `UpgradeModule`: 35% of components on Angular"
+        }
+      ]
+    },
+    {
+      "id": "version",
+      "grade": "poor",
+      "summary": "Angular 4.4.6, 18 majors behind 22.",
+      "measures": {
+        "end-of-life-packages": 1,
+        "webpack-builders": 0,
+        "mismatched-angular-packages": 0
+      },
+      "findings": [
+        {
+          "severity": "high",
+          "message": "Angular 4 is 18 majors behind 22 and out of support"
+        },
+        {
+          "severity": "high",
+          "message": "`@angular/http` is end of life"
+        }
+      ]
+    },
+    {
+      "id": "deprecated-apis",
+      "grade": "good",
+      "summary": "Nothing deprecated as of Angular 4 is in use; APIs deprecated in later versions surface at each upgrade step.",
+      "measures": {
+        "deprecated-usages": 0,
+        "legacy-template-directives": 249,
+        "to-promise-calls": 0
+      },
+      "findings": []
+    },
+    {
+      "id": "dependencies",
+      "grade": "info",
+      "summary": "Dependencies are not installed and the npm registry was not used, so the packages that depend on Angular could not be read.",
+      "measures": {},
+      "findings": [
+        {
+          "severity": "info",
+          "message": "Install the dependencies, or run without --offline to read each package from the npm registry"
+        }
+      ]
+    },
+    {
+      "id": "change-detection",
+      "grade": "poor",
+      "summary": "Runs on zone.js; 0% of 61 components use OnPush.",
+      "measures": {
+        "eager-components": 61,
+        "ngzone-files": 28,
+        "zone-test-helpers": 0
+      },
+      "findings": [
+        {
+          "severity": "info",
+          "message": "Zoneless change detection needs Angular 20.2 or newer"
+        },
+        {
+          "severity": "medium",
+          "message": "61 components use eager change detection (100%)",
+          "files": [
+            "src/app/administration/dashboard.component.ts:43",
+            "src/app/administration/etl/etl.component.ts:12",
+            "src/app/administration/importmanager/importmanager.component.ts:10"
+          ],
+          "count": 61
+        },
+        {
+          "severity": "low",
+          "message": "28 files inject `NgZone`",
+          "files": [
+            "src/app/administration/dashboard.component.ts:1",
+            "src/app/administration/etl/etl.component.ts:2",
+            "src/app/administration/neo4jimporter/neo4jimporter.component.ts:1"
+          ],
+          "count": 28
+        }
+      ]
+    },
+    {
+      "id": "components",
+      "grade": "poor",
+      "summary": "61 components: 0% standalone, 0% signal inputs, 0% built-in control flow.",
+      "measures": {
+        "module-components": 61,
+        "decorator-inputs-outputs": 103,
+        "legacy-control-flow": 249
+      },
+      "findings": [
+        {
+          "severity": "medium",
+          "message": "61 components still declared in NgModules (1 NgModule in total)",
+          "files": [
+            "src/app/administration/dashboard.component.ts:43",
+            "src/app/administration/etl/etl.component.ts:12",
+            "src/app/administration/importmanager/importmanager.component.ts:10"
+          ],
+          "count": 61
+        },
+        {
+          "severity": "medium",
+          "message": "90 `@Input()` decorators and 13 `@Output()` decorators left",
+          "count": 103
+        },
+        {
+          "severity": "low",
+          "message": "249 uses of `*ngIf`, `*ngFor` and `[ngSwitch]`",
+          "count": 249
+        }
+      ]
+    },
+    {
+      "id": "state",
+      "grade": "info",
+      "summary": "No state-management library or signal usage found.",
+      "measures": {
+        "classic-ngrx-files": 0,
+        "behaviorsubject-services": 0,
+        "effect-decorators": 0
+      },
+      "findings": []
+    },
+    {
+      "id": "architecture",
+      "grade": "fair",
+      "summary": "No routes found, 3 files over 500 lines, 66 classes with constructor injection.",
+      "measures": {
+        "eager-routes": 0,
+        "very-large-files": 1,
+        "constructor-injection": 66,
+        "class-guards": 0
+      },
+      "findings": [
+        {
+          "severity": "medium",
+          "message": "3 files over 500 lines, 1 over 1 000",
+          "files": [
+            "src/app/administration/etl/etl.component.ts",
+            "src/app/util/graph/d3-graph/OGraph.ts",
+            "src/app/administration/teleporter/detailpanel/detailpanel.component.ts"
+          ],
+          "count": 3
+        },
+        {
+          "severity": "low",
+          "message": "66 classes inject through the constructor",
+          "files": [
+            "src/app/administration/dashboard.component.ts:57",
+            "src/app/administration/etl/etl.component.ts:77",
+            "src/app/administration/importmanager/importmanager.component.ts:35"
+          ],
+          "count": 66
+        }
+      ]
+    },
+    {
+      "id": "testing",
+      "grade": "poor",
+      "summary": "Karma, 0 spec files, 0% of components and services with a spec.",
+      "measures": {
+        "untested-files": 80
+      },
+      "findings": [
+        {
+          "severity": "high",
+          "message": "Unit tests run on Karma, which is deprecated"
+        },
+        {
+          "severity": "high",
+          "message": "No unit tests found"
+        },
+        {
+          "severity": "info",
+          "message": "No end-to-end test setup found"
+        }
+      ]
+    },
+    {
+      "id": "type-safety",
+      "grade": "poor",
+      "summary": "strictNullChecks off, strictTemplates off, 201 explicit any.",
+      "measures": {
+        "strict-flags-off": 3,
+        "explicit-any": 201,
+        "non-null-assertions": 0,
+        "ts-suppressions": 0,
+        "template-any-casts": 0,
+        "untyped-form-files": 0
+      },
+      "findings": [
+        {
+          "severity": "high",
+          "message": "`strictNullChecks` is off"
+        },
+        {
+          "severity": "high",
+          "message": "`strictTemplates` is off"
+        },
+        {
+          "severity": "medium",
+          "message": "`noImplicitAny` is off"
+        },
+        {
+          "severity": "medium",
+          "message": "201 explicit `any` in application code (20.1 per 1 000 lines)",
+          "files": [
+            "src/app/util/dual-list/dual-list.component.ts:4",
+            "src/app/administration/etl/etl.component.ts:10",
+            "src/app/administration/stats/cluster/overview/clusterstats.component.ts:37"
+          ],
+          "count": 80
+        }
+      ]
+    },
+    {
+      "id": "security",
+      "grade": "good",
+      "summary": "No sanitizer bypasses, direct DOM HTML writes or eval in 141 files; 3 sanitized [innerHTML] bindings.",
+      "measures": {
+        "unsafe-dom-writes": 0,
+        "dynamic-code": 0,
+        "sanitizer-bypasses": 0,
+        "inner-html-bindings": 3
+      },
+      "findings": [
+        {
+          "severity": "low",
+          "message": "3 `[innerHTML]` bindings in 2 templates",
+          "files": [
+            "src/app/administration/importmanager/importmanager.component.html",
+            "src/app/administration/newsbox/newsbox.component.html"
+          ],
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "circular-deps",
+      "grade": "good",
+      "summary": "No import cycles between application files.",
+      "measures": {
+        "files-in-cycles": 0
+      },
+      "findings": []
+    },
+    {
+      "id": "bundle",
+      "grade": "info",
+      "summary": "No build stats found, so the bundle size is not part of this report.",
+      "measures": {},
+      "findings": [
+        {
+          "severity": "info",
+          "message": "Run `ng build --stats-json` (or `nx build <app> --stats-json`) and re-run to include the bundle size"
+        }
+      ]
+    }
+  ],
+  "plan": {
+    "from": 4,
+    "to": 22,
+    "before": [],
+    "steps": [
+      {
+        "to": 5,
+        "items": []
+      },
+      {
+        "to": 6,
+        "items": []
+      },
+      {
+        "to": 7,
+        "items": []
+      },
+      {
+        "to": 8,
+        "items": []
+      },
+      {
+        "to": 9,
+        "items": []
+      },
+      {
+        "to": 10,
+        "items": []
+      },
+      {
+        "to": 11,
+        "items": []
+      },
+      {
+        "to": 12,
+        "items": []
+      },
+      {
+        "to": 13,
+        "items": []
+      },
+      {
+        "to": 14,
+        "items": []
+      },
+      {
+        "to": 15,
+        "items": []
+      },
+      {
+        "to": 16,
+        "items": [
+          "Convert NgModule components to standalone (61)"
+        ]
+      },
+      {
+        "to": 17,
+        "items": [
+          "Move templates to built-in control flow (249)"
+        ]
+      },
+      {
+        "to": 18,
+        "items": []
+      },
+      {
+        "to": 19,
+        "items": [
+          "Convert @Input() and @Output() to signal inputs and outputs (103)"
+        ]
+      },
+      {
+        "to": 20,
+        "items": []
+      },
+      {
+        "to": 21,
+        "items": [
+          "Move unit tests from Karma to Vitest",
+          "Prepare for zoneless: move components to OnPush, then drop zone.js (61)"
+        ]
+      },
+      {
+        "to": 22,
+        "items": []
+      }
+    ]
+  }
+}

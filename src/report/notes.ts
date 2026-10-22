@@ -83,7 +83,8 @@ function escapeHtml(text: string): string {
 
 /**
  * A starting point for the consultant's notes, prefilled from the report:
- * one row per upgrade step with what it involves, and an empty column for the
+ * one row per AngularJS migration phase and per upgrade step with what it
+ * involves, and an empty column for the
  * estimate, which only the consultant can fill. Guidance is in HTML comments,
  * which `renderNotes` drops, so a section left as it is renders as nothing
  * rather than as instructions the client should not see.
@@ -91,6 +92,7 @@ function escapeHtml(text: string): string {
 export function notesTemplate(report: import('../types.js').Report): string {
   const plan = report.plan;
   const rows: string[] = [];
+  for (const [index, phase] of (report.migration?.phases ?? []).entries()) rows.push(`| ${index + 1}. ${phase.title} | ${phase.items.map((item) => cellText(item.title, item.count)).join('; ')} | |`);
   if (plan && plan.before.length > 0) rows.push(`| Before the upgrade | ${plan.before.map((item) => cellText(item.title, item.count)).join('; ')} | |`);
   for (const step of plan?.steps ?? []) {
     const work = step.items.map((item) => cellText(item.title, item.count));

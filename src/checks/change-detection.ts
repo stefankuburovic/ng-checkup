@@ -38,7 +38,9 @@ export function changeDetectionCheck(context: AnalysisContext): CheckResult {
   const zoneHelpers = countCalls(specFiles(context), ...ZONE_TEST_HELPERS);
 
   const findings: Finding[] = [];
-  if (!zoneless && (major === undefined || major >= 20)) {
+  // Without @angular/core and without components there is nothing that runs on zone.js:
+  // an AngularJS app would otherwise be told to go zoneless.
+  if (!zoneless && (major === undefined ? components.length > 0 : major >= 20)) {
     findings.push({
       severity: 'medium',
       message: 'Change detection still runs on zone.js',

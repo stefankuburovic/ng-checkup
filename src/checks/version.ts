@@ -47,7 +47,10 @@ export function versionCheck(context: AnalysisContext): CheckResult {
       id: 'version',
       title: 'Angular version & tooling',
       grade: 'info',
-      summary: 'No `@angular/core` dependency found in package.json.',
+      summary:
+        context.angularJs.version || context.angularJs.files.length > 0
+          ? 'No `@angular/core` yet: the app runs on AngularJS (see AngularJS migration).'
+          : 'No `@angular/core` dependency found in package.json.',
       metrics: [{ label: 'Latest Angular', value: latestAngular.major, hint: latestLabel }],
       findings: [],
     };

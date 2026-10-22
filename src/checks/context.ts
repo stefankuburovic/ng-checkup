@@ -1,3 +1,4 @@
+import type { AngularJsFacts } from '../angularjs.js';
 import type { BundleStats } from '../bundle.js';
 import type ts from 'typescript';
 import type { PackageCompatibility } from '../compatibility.js';
@@ -19,6 +20,8 @@ export interface AnalysisContext {
   sources: SourceFileFacts[];
   /** External template files and inline `template:` strings. */
   templates: TemplateFact[];
+  /** AngularJS code, templates and version. Empty lists for an app without AngularJS. */
+  angularJs: AngularJsFacts;
   /** Empty when no typings could be read, neither installed nor from the registry. */
   deprecations: DeprecationIndex;
   /** Where the typings behind `deprecations` came from, and which imported packages had none. */

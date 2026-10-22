@@ -8,7 +8,7 @@ import type { Report } from './types.js';
 const IGNORED_DIRECTORIES = new Set(['node_modules', 'dist', 'coverage', 'tmp', 'out-tsc']);
 
 /** Extensions of the files a report is computed from: sources, templates, configs and lockfiles. */
-const WATCHED_EXTENSIONS = new Set(['.ts', '.mts', '.cts', '.html', '.json', '.lock', '.yaml']);
+const WATCHED_EXTENSIONS = new Set(['.ts', '.mts', '.cts', '.js', '.html', '.json', '.lock', '.yaml']);
 
 /** Options of `watchCheckup`. */
 export interface WatchOptions {

@@ -106,6 +106,13 @@ export interface Report {
   /** The upgrade plan to the latest Angular, when asked for (`--plan`) and there is a gap. */
   plan?: import('./plan.js').UpgradePlan;
   /**
+   * The migration plan from AngularJS, when asked for (`--plan`) and the
+   * repository has AngularJS code or packages. In a hybrid app on an old
+   * Angular it comes with `plan` as well: the migration names the Angular
+   * upgrade as one of its steps.
+   */
+  migration?: import('./migration.js').MigrationPlan;
+  /**
    * Set for a client report (`--client`): who it is for, who prepared it, and
    * the consultant's notes in Markdown. The HTML report then opens with a
    * cover, a management summary and the roadmap, and moves the area-by-area

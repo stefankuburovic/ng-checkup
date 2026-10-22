@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 import ts from 'typescript';
+import { scanAngularJsTemplate, type AngularJsTemplateStats } from './angularjs.js';
 import { isTestCode, toReportPath } from './files.js';
 
 /** One name brought in by an import or re-export. */
@@ -79,6 +80,8 @@ export interface TemplateFact {
   stats: TemplateStats;
   /** 1-based line of the first `*ngIf`/`*ngFor`/`[ngSwitch]`, undefined when there is none. */
   firstLegacyLine?: number;
+  /** AngularJS syntax in an external template; absent when there is none, which is every template of an Angular-only app. */
+  angularJs?: AngularJsTemplateStats;
 }
 
 /** Everything the checks need from one TypeScript file, gathered in a single AST pass. */
@@ -600,11 +603,13 @@ export function firstLegacyOffset(text: string): number | undefined {
 export function scanTemplateFile(root: string, absolutePath: string): TemplateFact {
   const text = readFileSync(absolutePath, 'utf8');
   const offset = firstLegacyOffset(text);
+  const angularJs = scanAngularJsTemplate(text);
   return {
     path: toReportPath(root, absolutePath),
     inline: false,
     stats: scanTemplate(text),
     firstLegacyLine: offset === undefined ? undefined : text.slice(0, offset).split('\n').length,
+    ...(angularJs.attributes > 0 || angularJs.apps > 0 || angularJs.cdnVersion ? { angularJs } : {}),
   };
 }
 

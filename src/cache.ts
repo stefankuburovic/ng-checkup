@@ -1,5 +1,6 @@
 import { statSync } from 'node:fs';
 import { join } from 'node:path';
+import type { AngularJsScan } from './angularjs.js';
 import type { PackageCompatibility } from './compatibility.js';
 import type { DeprecationIndex } from './deprecations.js';
 import type { SourceFileFacts, TemplateFact } from './scan.js';
@@ -17,7 +18,8 @@ import type { SourceFileFacts, TemplateFact } from './scan.js';
  *   be slow and impolite.
  */
 export interface AnalysisCache {
-  files: Map<string, { stamp: string; facts: SourceFileFacts | TemplateFact }>;
+  /** Keyed by absolute path; AngularJS scans under `angularjs:` plus the path, since a `.ts` file is scanned both ways. */
+  files: Map<string, { stamp: string; facts: CachedFacts }>;
   dependencies?: {
     stamp: string;
     deprecations: DeprecationIndex;
@@ -26,6 +28,9 @@ export interface AnalysisCache {
     latestAngular: { major: number; source: 'registry' | 'bundled' };
   };
 }
+
+/** What one file's scan produces, by kind of scan. */
+export type CachedFacts = SourceFileFacts | TemplateFact | { angularJs: AngularJsScan };
 
 /** An empty cache. */
 export function createAnalysisCache(): AnalysisCache {
@@ -51,12 +56,12 @@ export function dependencyStamp(root: string): string {
  * The cached value for `path` when its stamp still matches, else `compute()`
  * stored under the new stamp. Without a cache it just computes.
  */
-export function cachedFacts<T extends SourceFileFacts | TemplateFact>(cache: AnalysisCache | undefined, path: string, compute: () => T): T {
+export function cachedFacts<T extends CachedFacts>(cache: AnalysisCache | undefined, path: string, compute: () => T, key = path): T {
   if (!cache) return compute();
   const stamp = fileStamp(path);
-  const hit = cache.files.get(path);
+  const hit = cache.files.get(key);
   if (hit && hit.stamp === stamp) return hit.facts as T;
   const facts = compute();
-  cache.files.set(path, { stamp, facts });
+  cache.files.set(key, { stamp, facts });
   return facts;
 }

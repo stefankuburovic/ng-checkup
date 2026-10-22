@@ -1,5 +1,5 @@
 import type { CheckResult, Finding, Grade } from '../types.js';
-import { formatCount, plural, type AnalysisContext } from './context.js';
+import { applicationFiles, formatCount, plural, type AnalysisContext } from './context.js';
 
 /** How many tangles get a finding of their own; the rest are summarised in one line. */
 const LISTED_TANGLES = 5;
@@ -16,6 +16,11 @@ const LISTED_TANGLES = 5;
  */
 export function circularDepsCheck(context: AnalysisContext): CheckResult {
   const tangles = context.tangles;
+  // No TypeScript application code (an AngularJS app in plain JavaScript):
+  // "no cycles" would be a good grade earned by having nothing to look at.
+  if (applicationFiles(context).length === 0) {
+    return { id: 'circular-deps', title: 'Circular dependencies', grade: 'info', summary: 'No TypeScript application code to check.', metrics: [], findings: [] };
+  }
   const filesInTangles = tangles.reduce((sum, tangle) => sum + tangle.files.length, 0);
   const largest = tangles[0]?.files.length ?? 0;
 

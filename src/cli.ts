@@ -43,7 +43,8 @@ Options:
       --json             Print the report as JSON to stdout instead of the summary
   -v, --verbose          Print every finding with its files
       --plan             Add an upgrade plan to the latest Angular, one major
-                         at a time, with the migrations this code needs
+                         at a time, with the migrations this code needs, and
+                         the migration plan for AngularJS code
   -p, --project <name>   Analyse one project of an Angular CLI or Nx workspace.
                          Without it, a multi-project workspace also gets a
                          per-project table

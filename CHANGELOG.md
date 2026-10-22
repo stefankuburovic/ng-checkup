@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.10.0 (2026-10-22)
+
+- **AngularJS and hybrid apps.** A repository with AngularJS code or packages gets a thirteenth area, AngularJS migration, at the top of the report. It reads JavaScript as well as TypeScript, counts components, directives, controllers, services, filters and templates with AngularJS syntax, names what makes them hard to move (controllers, `$scope`, scope events, runtime `$compile`, `$watch`, `ng-include`, directives `UpgradeComponent` cannot wrap), maps AngularJS packages to their Angular replacements, and finds the version in `package.json`, the lockfile, `bower.json`, a CDN script tag or a checked-in `angular.js`. A hybrid app (`UpgradeModule`, `downgradeModule`, `UpgradeAdapter`) gets the share of components already on Angular. Six new measures, so a baseline keeps a running migration from growing back.
+- **Migration plan:** `--plan` adds `report.migration`, four phases from AngularJS to Angular with this codebase's counts, in every format and in the client report's roadmap and notes template.
+- An AngularJS app is no longer graded 100/100 for having no TypeScript: circular dependencies are `info` without TypeScript application code, and the zone.js finding needs `@angular/core` or components.
+- The corpus has four AngularJS repositories: the AngularJS tutorial app, an ES-module AngularJS app, a hybrid on Angular 4 and one on Angular 22. Its first run found a false positive before release: `ng-reflect-*` attributes pasted from dev tools into an Ionic template.
+
 ## 0.9.1 (2026-10-21)
 
 - Code Quality fingerprints ignore singular and plural as well as numbers. In the first real merge request, "1 component uses…" turning into "2 components use…" showed an unchanged file as resolved and new in the widget.

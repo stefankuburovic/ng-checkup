@@ -1,0 +1,172 @@
+{
+  "repo": "angular/angular-phonecat",
+  "commit": "ef6f6eb672ded472b4e442d598f5df40d0e0642c",
+  "project": {
+    "name": "angular-phonecat",
+    "kind": "unknown",
+    "sourceFiles": 0,
+    "templateFiles": 3,
+    "linesOfCode": 0
+  },
+  "score": 20,
+  "checks": [
+    {
+      "id": "angularjs",
+      "grade": "poor",
+      "summary": "AngularJS 1.8.0 app: 2 components, directives and controllers, 1 service and 2 templates to migrate.",
+      "measures": {
+        "angularjs-components": 2,
+        "angularjs-controllers": 0,
+        "angularjs-services": 1,
+        "angularjs-filters": 1,
+        "angularjs-templates": 2,
+        "scope-files": 0
+      },
+      "findings": [
+        {
+          "severity": "high",
+          "message": "AngularJS 1.8.0 is end of life since January 2022"
+        },
+        {
+          "severity": "medium",
+          "message": "4 AngularJS packages to replace"
+        },
+        {
+          "severity": "low",
+          "message": "The AngularJS code is plain JavaScript (10 files)"
+        }
+      ]
+    },
+    {
+      "id": "version",
+      "grade": "info",
+      "summary": "No `@angular/core` yet: the app runs on AngularJS (see AngularJS migration).",
+      "measures": {},
+      "findings": []
+    },
+    {
+      "id": "deprecated-apis",
+      "grade": "info",
+      "summary": "The Angular type definitions could not be read, neither installed nor from the npm registry, so deprecations are not checked.",
+      "measures": {
+        "legacy-template-directives": 0
+      },
+      "findings": [
+        {
+          "severity": "info",
+          "message": "Install the dependencies, or run without --offline so the typings of the exact versions can be downloaded"
+        }
+      ]
+    },
+    {
+      "id": "dependencies",
+      "grade": "info",
+      "summary": "No Angular dependency to check against.",
+      "measures": {},
+      "findings": []
+    },
+    {
+      "id": "change-detection",
+      "grade": "info",
+      "summary": "Runs on zone.js; 0% of 0 components use OnPush.",
+      "measures": {
+        "eager-components": 0,
+        "ngzone-files": 0,
+        "zone-test-helpers": 0
+      },
+      "findings": []
+    },
+    {
+      "id": "components",
+      "grade": "info",
+      "summary": "No `@Component` classes found.",
+      "measures": {},
+      "findings": []
+    },
+    {
+      "id": "state",
+      "grade": "info",
+      "summary": "No state-management library or signal usage found.",
+      "measures": {
+        "classic-ngrx-files": 0,
+        "behaviorsubject-services": 0,
+        "effect-decorators": 0
+      },
+      "findings": []
+    },
+    {
+      "id": "architecture",
+      "grade": "info",
+      "summary": "No application code to check.",
+      "measures": {
+        "eager-routes": 0,
+        "very-large-files": 0,
+        "constructor-injection": 0,
+        "class-guards": 0
+      },
+      "findings": []
+    },
+    {
+      "id": "testing",
+      "grade": "info",
+      "summary": "Karma, 0 spec files, 0% of components and services with a spec.",
+      "measures": {
+        "untested-files": 0
+      },
+      "findings": [
+        {
+          "severity": "high",
+          "message": "Unit tests run on Karma, which is deprecated"
+        },
+        {
+          "severity": "high",
+          "message": "End-to-end tests use Protractor, which is end of life"
+        }
+      ]
+    },
+    {
+      "id": "type-safety",
+      "grade": "info",
+      "summary": "No application tsconfig found.",
+      "measures": {
+        "explicit-any": 0,
+        "non-null-assertions": 0,
+        "ts-suppressions": 0,
+        "template-any-casts": 0,
+        "untyped-form-files": 0
+      },
+      "findings": []
+    },
+    {
+      "id": "security",
+      "grade": "info",
+      "summary": "No application code to check.",
+      "measures": {
+        "unsafe-dom-writes": 0,
+        "dynamic-code": 0,
+        "sanitizer-bypasses": 0,
+        "inner-html-bindings": 0
+      },
+      "findings": []
+    },
+    {
+      "id": "circular-deps",
+      "grade": "info",
+      "summary": "No TypeScript application code to check.",
+      "measures": {},
+      "findings": []
+    },
+    {
+      "id": "bundle",
+      "grade": "info",
+      "summary": "No build stats found, so the bundle size is not part of this report.",
+      "measures": {},
+      "findings": [
+        {
+          "severity": "info",
+          "message": "Run `ng build --stats-json` (or `nx build <app> --stats-json`) and re-run to include the bundle size"
+        }
+      ]
+    }
+  ]
+}

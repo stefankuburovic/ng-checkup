@@ -1,0 +1,195 @@
+{
+  "repo": "gothinkster/angularjs-realworld-example-app",
+  "commit": "08755ca543e13cb26bc7086d0596ad58567a6f78",
+  "project": {
+    "name": "conduit-angularjs",
+    "kind": "unknown",
+    "sourceFiles": 0,
+    "templateFiles": 20,
+    "linesOfCode": 0
+  },
+  "score": 20,
+  "checks": [
+    {
+      "id": "angularjs",
+      "grade": "poor",
+      "summary": "AngularJS 1.5.0-rc.2 app: 19 components, directives and controllers, 6 services and 18 templates to migrate.",
+      "measures": {
+        "angularjs-components": 19,
+        "angularjs-controllers": 7,
+        "angularjs-services": 6,
+        "angularjs-filters": 0,
+        "angularjs-templates": 18,
+        "scope-files": 4
+      },
+      "findings": [
+        {
+          "severity": "high",
+          "message": "AngularJS 1.5.0-rc.2 is end of life since January 2022"
+        },
+        {
+          "severity": "low",
+          "message": "Move to AngularJS 1.8 before anything else (now 1.5.0-rc.2)"
+        },
+        {
+          "severity": "medium",
+          "message": "7 controllers registered with `.controller()`",
+          "files": [
+            "src/js/article/index.js:13",
+            "src/js/auth/index.js:13",
+            "src/js/editor/index.js:13"
+          ],
+          "count": 7
+        },
+        {
+          "severity": "medium",
+          "message": "`$scope` in 4 files",
+          "files": [
+            "src/js/components/article-helpers/article-list.component.js:2",
+            "src/js/components/article-helpers/list-pagination.component.js:2",
+            "src/js/home/home.controller.js:2"
+          ],
+          "count": 4
+        },
+        {
+          "severity": "low",
+          "message": "1 `$watch` call",
+          "files": [
+            "src/js/layout/header.component.js:8"
+          ],
+          "count": 1
+        },
+        {
+          "severity": "medium",
+          "message": "1 AngularJS package to replace"
+        },
+        {
+          "severity": "low",
+          "message": "The AngularJS code is plain JavaScript (21 files)"
+        }
+      ]
+    },
+    {
+      "id": "version",
+      "grade": "info",
+      "summary": "No `@angular/core` yet: the app runs on AngularJS (see AngularJS migration).",
+      "measures": {},
+      "findings": []
+    },
+    {
+      "id": "deprecated-apis",
+      "grade": "info",
+      "summary": "The Angular type definitions could not be read, neither installed nor from the npm registry, so deprecations are not checked.",
+      "measures": {
+        "legacy-template-directives": 0
+      },
+      "findings": [
+        {
+          "severity": "info",
+          "message": "Install the dependencies, or run without --offline so the typings of the exact versions can be downloaded"
+        }
+      ]
+    },
+    {
+      "id": "dependencies",
+      "grade": "info",
+      "summary": "No Angular dependency to check against.",
+      "measures": {},
+      "findings": []
+    },
+    {
+      "id": "change-detection",
+      "grade": "info",
+      "summary": "Runs on zone.js; 0% of 0 components use OnPush.",
+      "measures": {
+        "eager-components": 0,
+        "ngzone-files": 0,
+        "zone-test-helpers": 0
+      },
+      "findings": []
+    },
+    {
+      "id": "components",
+      "grade": "info",
+      "summary": "No `@Component` classes found.",
+      "measures": {},
+      "findings": []
+    },
+    {
+      "id": "state",
+      "grade": "info",
+      "summary": "No state-management library or signal usage found.",
+      "measures": {
+        "classic-ngrx-files": 0,
+        "behaviorsubject-services": 0,
+        "effect-decorators": 0
+      },
+      "findings": []
+    },
+    {
+      "id": "architecture",
+      "grade": "info",
+      "summary": "No application code to check.",
+      "measures": {
+        "eager-routes": 0,
+        "very-large-files": 0,
+        "constructor-injection": 0,
+        "class-guards": 0
+      },
+      "findings": []
+    },
+    {
+      "id": "testing",
+      "grade": "info",
+      "summary": "No unit-test runner detected, 0 spec files, 0% of components and services with a spec.",
+      "measures": {
+        "untested-files": 0
+      },
+      "findings": []
+    },
+    {
+      "id": "type-safety",
+      "grade": "info",
+      "summary": "No application tsconfig found.",
+      "measures": {
+        "explicit-any": 0,
+        "non-null-assertions": 0,
+        "ts-suppressions": 0,
+        "template-any-casts": 0,
+        "untyped-form-files": 0
+      },
+      "findings": []
+    },
+    {
+      "id": "security",
+      "grade": "info",
+      "summary": "No application code to check.",
+      "measures": {
+        "unsafe-dom-writes": 0,
+        "dynamic-code": 0,
+        "sanitizer-bypasses": 0,
+        "inner-html-bindings": 0
+      },
+      "findings": []
+    },
+    {
+      "id": "circular-deps",
+      "grade": "info",
+      "summary": "No TypeScript application code to check.",
+      "measures": {},
+      "findings": []
+    },
+    {
+      "id": "bundle",
+      "grade": "info",
+      "summary": "No build stats found, so the bundle size is not part of this report.",
+      "measures": {},
+      "findings": [
+        {
+          "severity": "info",
+          "message": "Run `ng build --stats-json` (or `nx build <app> --stats-json`) and re-run to include the bundle size"
+        }
+      ]
+    }
+  ]
+}

@@ -1,6 +1,8 @@
 import { readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
+import { assembleAngularJs, scanAngularJsFile } from './angularjs.js';
 import { readBundleStats } from './bundle.js';
+import { angularJsCheck, hasAngularJs, summarizeAngularJs } from './checks/angularjs.js';
 import { bundleCheck } from './checks/bundle.js';
 import { architectureCheck } from './checks/architecture.js';
 import { changeDetectionCheck } from './checks/change-detection.js';
@@ -20,6 +22,7 @@ import { loadDeprecationIndex } from './typings.js';
 import { ignoreMatcher } from './config.js';
 import { collectFiles } from './files.js';
 import { buildImportGraph, findTanglesIn, readCompilerOptions, staticallyReachable } from './graph.js';
+import { buildMigrationPlan } from './migration.js';
 import { buildPlan } from './plan.js';
 import { scanSourceFile, scanTemplateFile } from './scan.js';
 import { overallScore } from './report/summary.js';
@@ -39,6 +42,7 @@ export { createAnalysisCache, type AnalysisCache } from './cache.js';
 export { overallScore, topPriorities } from './report/summary.js';
 export { CONFIG_FILE, loadConfig, type CheckupConfig } from './config.js';
 export { buildPlan, type PlanItem, type PlanRequirement, type UpgradePlan, type UpgradeStep } from './plan.js';
+export { buildMigrationPlan, type MigrationPhase, type MigrationPlan } from './migration.js';
 export { ANGULAR_VERSIONS, type AngularVersionInfo } from './angular-versions.js';
 export {
   BASELINE_FILE,
@@ -109,10 +113,12 @@ export async function runCheckup(root: string, options: CheckupOptions = {}): Pr
   const started = Date.now();
   const absoluteRoot = resolve(root);
   const context = await buildContext(absoluteRoot, options);
-  const checks = CHECKS.map((check) => check(context));
+  // AngularJS comes first when there is any: it blocks everything else.
+  const checks = [...(hasAngularJs(context) ? [angularJsCheck(context)] : []), ...CHECKS.map((check) => check(context))];
   const application = context.sources.filter((file) => !file.isSpec && !file.isGenerated);
   const generatedFiles = context.sources.filter((file) => file.isGenerated).length;
   const plan = options.plan ? buildPlan(context.workspace, checks, context.latestAngular.major, undefined, context.compatibility) : undefined;
+  const migration = options.plan ? buildMigrationPlan(summarizeAngularJs(context), context.latestAngular.major, plan?.steps.length ?? 0, context.workspace.dependencies) : undefined;
   const projects = options.project ? [] : projectBreakdown(context);
 
   return {
@@ -131,6 +137,7 @@ export async function runCheckup(root: string, options: CheckupOptions = {}): Pr
     checks,
     durationMs: Date.now() - started,
     ...(plan ? { plan } : {}),
+    ...(migration ? { migration } : {}),
     ...(projects.length >= 2 ? { projects } : {}),
   };
 }
@@ -180,6 +187,11 @@ function narrowContext(context: AnalysisContext, project: ProjectInfo, ownerOf: 
     workspace,
     sources: context.sources.filter((file) => ownerOf(file.path) === project),
     templates: context.templates.filter((template) => ownerOf(template.path) === project),
+    angularJs: {
+      ...context.angularJs,
+      files: context.angularJs.files.filter((file) => ownerOf(file.path) === project),
+      templates: context.angularJs.templates.filter((template) => ownerOf(template.path) === project),
+    },
     tangles: context.tangles.filter((tangle) => tangle.files.every((path) => ownerOf(path) === project)),
     bundles: context.bundles.filter((bundle) => bundle.project === project.name),
     appCompilerOptions: readCompilerOptions(workspace.appTsconfig),
@@ -194,10 +206,11 @@ export async function buildContext(root: string, options: CheckupOptions): Promi
   const { cache } = options;
   const sources = files.typescript.map((path) => cachedFacts(cache, path, () => scanSourceFile(root, path)));
   const templates = [...files.html.map((path) => cachedFacts(cache, path, () => scanTemplateFile(root, path))), ...sources.flatMap((file) => file.inlineTemplates)];
+  const angularJsScans = [...files.javascript, ...files.typescript].map((path) => cachedFacts(cache, path, () => ({ angularJs: scanAngularJsFile(root, path) }), `angularjs:${path}`).angularJs);
   // Drop entries for files that no longer exist, so a deleted file stops counting.
   if (cache) {
-    const present = new Set([...files.typescript, ...files.html]);
-    for (const path of cache.files.keys()) if (!present.has(path)) cache.files.delete(path);
+    const present = new Set([...files.typescript, ...files.html, ...files.javascript]);
+    for (const key of cache.files.keys()) if (!present.has(key.replace(/^angularjs:/, ''))) cache.files.delete(key);
   }
   const appCompilerOptions = readCompilerOptions(workspace.appTsconfig);
 
@@ -218,6 +231,7 @@ export async function buildContext(root: string, options: CheckupOptions): Promi
     workspace,
     sources,
     templates,
+    angularJs: assembleAngularJs(root, angularJsScans, templates, { exact: workspace.versions['angular'], declared: workspace.dependencies['angular'] }),
     deprecations: dependencies.deprecations,
     typings: dependencies.typings,
     tangles: findTanglesIn(graph),

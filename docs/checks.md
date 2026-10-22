@@ -1,9 +1,12 @@
-# The twelve checks
+# The checks
+
+Twelve checks run on every repository. A thirteenth, [AngularJS migration](#angularjs), runs first when the repository has AngularJS code or packages.
 
 Every check grades one area **good**, **fair**, **poor** or **info**. `info` means there was nothing to grade (no components, no tests) or an input was missing (no `node_modules`), and it never counts against the score.
 
 The score is the average of the graded areas: good counts 100, fair 60, poor 20.
 
+- [AngularJS migration](#angularjs) (only with AngularJS)
 - [Angular version & tooling](#version)
 - [Deprecated APIs](#deprecated-apis)
 - [Third-party compatibility](#dependencies)
@@ -22,6 +25,20 @@ In a monorepo every project also gets its own grade on the code checks (everythi
 The id in parentheses is what the JSON report uses.
 
 ---
+
+## AngularJS migration (`angularjs`) <a id="angularjs"></a>
+
+Only in a report whose repository has AngularJS: code, templates, or the `angular` or `@angular/upgrade` package. For every other Angular app it would be a line saying "not applicable", so it is left out.
+
+**Looks at:** JavaScript and TypeScript files. Registrations (`.component`, `.directive`, `.controller`, `.service`, `.factory`, `.provider`, `.filter`) are counted when their call chain starts at `angular.module(…)`, directly or through a variable assigned from it; a registration on a module from another file (`app.controller(…)`) counts once the repository shows AngularJS elsewhere, so `Vue.component(…)` in a Vue app never does. Spec files and checked-in copies of AngularJS (recognised by their license header) are left out, and so are `vendor`, `bower_components` and minified files. Templates count when they hold `ng-*="…"` attributes, except the bootstrap ones (`ng-app`) and the `ng-reflect-*` attributes Angular itself writes into the DOM.
+
+**Hybrid apps:** `UpgradeModule`, `downgradeModule` or `UpgradeAdapter` imported from `@angular/upgrade`. "Migrated" is the share of Angular components among all components, directives and controllers; a `.directive('x', downgradeComponent(…))` or `.factory('x', downgradeInjectable(…))` registration is Angular code and counts as migrated.
+
+**Findings:** end of life (high), a version before 1.8, controllers and `ng-controller`, directives using `compile`, `replace: true` or `terminal: true` (which `UpgradeComponent` rejects), `$scope`, scope events (`$rootScope.$broadcast/$emit/$on`, `$scope.$broadcast/$emit`), runtime `$compile`, `$watch`, `ng-include`, AngularJS packages with their replacement, `UpgradeAdapter`, Bower, plain JavaScript, and packages left over without code.
+
+**Grade:** poor while AngularJS code is left; fair for a hybrid app with at least 80% of its components on Angular, and for leftover packages without code.
+
+**Plan:** with `--plan`, `report.migration` holds four phases (prepare on AngularJS, run both frameworks, move bottom up, remove AngularJS) with a count per item. Items the code does not need are left out.
 
 ## Angular version & tooling (`version`) <a id="version"></a>
 
@@ -258,6 +275,12 @@ The largest packages in the initial bundle are listed with their size, from the 
 
 | Key | Counts |
 | --- | --- |
+| `angularjs.angularjs-components` | AngularJS components, directives and controllers |
+| `angularjs.angularjs-controllers` | AngularJS controllers |
+| `angularjs.angularjs-filters` | AngularJS filters |
+| `angularjs.angularjs-services` | AngularJS services, factories and providers |
+| `angularjs.angularjs-templates` | Templates with AngularJS syntax |
+| `angularjs.scope-files` | Files using `$scope` |
 | `architecture.class-guards` | Class-based guards and interceptors |
 | `architecture.constructor-injection` | Classes with constructor injection |
 | `architecture.eager-routes` | Eagerly loaded routes (in files loaded at startup) |

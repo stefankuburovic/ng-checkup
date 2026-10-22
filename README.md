@@ -4,7 +4,7 @@
 
 **A one-minute modernization report for any Angular codebase.**
 
-Point it at a repository and it tells you how far the code is from current Angular, what will break on the next upgrade, and where the work is. Twelve areas get a grade, from the Angular version and third-party packages to security and bundle size, every finding names the files, and the HTML report is one self-contained page you can hand to your team lead.
+Point it at a repository and it tells you how far the code is from current Angular, what will break on the next upgrade, and where the work is. Twelve areas get a grade, from the Angular version and third-party packages to security and bundle size (and a thirteenth for AngularJS code still waiting to be migrated), every finding names the files, and the HTML report is one self-contained page you can hand to your team lead.
 
 ```bash
 npx ng-checkup
@@ -24,6 +24,7 @@ npx ng-checkup
 - [Baseline: adopt it on legacy code](#baseline-adopt-it-on-legacy-code)
 - [Watch mode](#watch-mode)
 - [Upgrade plan](#upgrade-plan)
+- [AngularJS and hybrid apps](#angularjs-and-hybrid-apps)
 - [Monorepos](#monorepos)
 - [Client report](#client-report)
 - [What it checks](#what-it-checks)
@@ -184,6 +185,28 @@ Upgrade plan  12 → 22, 10 steps, one major at a time
 
 The plan is in every format, including the HTML report ([example](https://stefankuburovic.github.io/ng-checkup/example.html#plan-title)) and the JSON (`report.plan`).
 
+## AngularJS and hybrid apps
+
+```bash
+npx ng-checkup github:orientechnologies/orientdb-studio --plan
+```
+
+When a repository still has AngularJS (1.x), a thirteenth area comes first in the report, **AngularJS migration**. It reads the JavaScript as well as the TypeScript, in every registration style real apps use (`angular.module('app').component(…)` chains, modules held in variables, ES-module AngularJS), and counts what there is to move: components, directives and controllers, services, filters, and templates with AngularJS syntax. It names what makes a piece hard to move: controllers and `ng-controller`, `$scope`, scope events used as a message bus, runtime `$compile`, `$watch`, `ng-include`, and directives using `compile`, `replace` or `terminal`, which `UpgradeComponent` cannot wrap. AngularJS packages get their Angular replacement (`angular-route`, `angular-translate`, AngularJS Material, ...), and the version comes from `package.json`, the lockfile, `bower.json`, a CDN script tag or a checked-in `angular.js`.
+
+In a **hybrid** app (`UpgradeModule`, `downgradeModule` or the old `UpgradeAdapter`) it measures how far the migration has come: the share of components already on Angular, and what crosses the border in each direction. An Angular class registered for AngularJS with `downgradeComponent` or `downgradeInjectable` counts as migrated.
+
+```text
+[POOR]  AngularJS migration   Hybrid AngularJS 1.5.9 and Angular 4: 35% of components on Angular, 115 AngularJS components left.
+         high   AngularJS 1.5.9 is end of life since January 2022
+         medium 88 controllers registered with `.controller()`, 83 bound with `ng-controller`
+         medium 5 directives use `compile`, `replace` or `terminal`
+         medium 64 scope events (`$broadcast`, `$emit`, `$rootScope.$on`) used as a message bus
+```
+
+With `--plan` the report adds the **migration plan**, in the order of the Angular upgrade guide and with this codebase's counts on every item: prepare on AngularJS (1.8, TypeScript, controllers to components, state off `$scope`), run Angular next to AngularJS, move the code bottom up (services, filters, components, templates, packages), remove AngularJS. A hybrid app on an old Angular gets the Angular upgrade plan next to it, and the client report puts both in its roadmap.
+
+Every count is a [measure](https://github.com/stefankuburovic/ng-checkup/blob/main/docs/checks.md#measures), so a [baseline](#baseline-adopt-it-on-legacy-code) in CI holds a running migration to one rule: AngularJS only ever shrinks.
+
 ## Monorepos
 
 In an Angular CLI workspace with several projects or an Nx workspace, the report adds a table with one row per project, worst score first (here [nx-examples](https://github.com/nrwl/nx-examples), shortened):
@@ -224,6 +247,7 @@ The codebase is named by its repository and commit, never by a path on your disk
 
 | Area | It looks at | Poor when |
 | --- | --- | --- |
+| [**AngularJS migration**](https://github.com/stefankuburovic/ng-checkup/blob/main/docs/checks.md#angularjs) (only with AngularJS code or packages) | AngularJS components, directives, controllers, services, filters and templates; `$scope`, scope events, `$compile`, directives `UpgradeComponent` cannot wrap; AngularJS packages; hybrid progress | any AngularJS code left, unless a hybrid app has 80% of its components on Angular |
 | [**Angular version & tooling**](https://github.com/stefankuburovic/ng-checkup/blob/main/docs/checks.md#version) | installed vs. latest Angular, mixed `@angular/*` majors, webpack builder, end-of-life packages | three or more majors behind, i.e. out of support |
 | [**Deprecated APIs**](https://github.com/stefankuburovic/ng-checkup/blob/main/docs/checks.md#deprecated-apis) | every imported Angular/NgRx symbol your **installed** version tags `@deprecated`, plus `*ngIf` / `*ngFor` in templates | something deprecated two majors ago is still used |
 | [**Third-party compatibility**](https://github.com/stefankuburovic/ng-checkup/blob/main/docs/checks.md#dependencies) | the `@angular/core` peer range of every installed package (PrimeNG, Kendo, ng-bootstrap, NGXS, ...), the release that supports the next majors, npm deprecations | a package does not accept the installed Angular, or no release supports the latest |
@@ -282,7 +306,8 @@ Options:
       --json             Print the report as JSON to stdout instead of the summary
   -v, --verbose          Print every finding with its files
       --plan             Add an upgrade plan to the latest Angular, one major
-                         at a time, with the migrations this code needs
+                         at a time, with the migrations this code needs, and
+                         the migration plan for AngularJS code
   -p, --project <name>   Analyse one project of an Angular CLI or Nx workspace.
                          Without it, a multi-project workspace also gets a
                          per-project table
@@ -441,7 +466,7 @@ Package names and versions, and only to the public npm registry: the latest `@an
 
 **Why is bundle size "info"?** It reads the stats file of your last build instead of running one. `ng build --stats-json` writes it; run the checkup after that.
 
-**Which Angular versions?** Angular 2 and newer (not AngularJS). Checks whose rules changed between versions (standalone, OnPush, zoneless defaults) apply the rules of the version you run.
+**Which Angular versions?** Angular 2 and newer, and AngularJS 1.x on its way there: AngularJS code gets its own area and a [migration plan](#angularjs-and-hybrid-apps). Checks whose rules changed between versions (standalone, OnPush, zoneless defaults) apply the rules of the version you run.
 
 ## Roadmap
 

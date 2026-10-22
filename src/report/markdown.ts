@@ -42,6 +42,16 @@ export function renderMarkdown(report: Report): string {
     lines.push('');
   }
 
+  const migration = report.migration;
+  if (migration) {
+    lines.push(`## Migration plan: ${migration.from} → Angular ${migration.to}`, '', `${plural(migration.phases.length, 'phase')}, each shipping on its own.`, '');
+    migration.phases.forEach((phase, index) => {
+      lines.push(`### ${index + 1}. ${phase.title}`, '', `_${phase.goal}_`, '');
+      for (const item of phase.items) lines.push(`- **${item.title}**${item.count !== undefined ? ` (${formatCount(item.count)})` : ''}${item.command ? `: \`${item.command}\`` : ''}${item.detail ? `. ${item.detail}` : ''}`);
+      lines.push('');
+    });
+  }
+
   const plan = report.plan;
   if (plan) {
     lines.push(`## Upgrade plan: Angular ${plan.from} → ${plan.to}`, '', `${plural(plan.steps.length, 'step')}, one major at a time, as \`ng update\` requires.`, '');

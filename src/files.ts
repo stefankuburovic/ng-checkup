@@ -18,12 +18,28 @@ const SKIPPED_DIRECTORIES = new Set(['node_modules', 'dist', 'coverage', 'out-ts
  */
 const MAX_FILE_BYTES = 1_000_000;
 
+/**
+ * Folders whose JavaScript is someone else's: Bower and JSPM installs and
+ * checked-in libraries. Only JavaScript is skipped there; a TypeScript file
+ * in a `vendor` folder is still the team's code. A copy of AngularJS in one
+ * of them is not lost: `scanAngularJsFile` reads its version from the
+ * license header, and the file walk keeps `angular.js` files for that reason.
+ */
+const VENDOR_DIRECTORIES = new Set(['bower_components', 'jspm_packages', 'vendor', 'vendors']);
+
 /** Everything `collectFiles` found, as absolute paths. */
 export interface CollectedFiles {
   /** `.ts` files, without `.d.ts` declaration files. */
   typescript: string[];
   /** `.html` files, which in an Angular repository are almost all component templates. */
   html: string[];
+  /**
+   * `.js` files outside vendor folders (see `VENDOR_DIRECTORIES`), without
+   * minified builds and without a `.ts` file of the same name next to them
+   * (compiler output written beside its source). Read only for AngularJS
+   * code, which is mostly plain JavaScript.
+   */
+  javascript: string[];
   /** Every `project.json`, which is how an Nx workspace describes its projects. */
   projectJsons: string[];
 }
@@ -41,18 +57,20 @@ export interface CollectedFiles {
  *   what makes ignoring a large generated folder cheap.
  */
 export function collectFiles(root: string, isIgnored?: (relativePath: string) => boolean): CollectedFiles {
-  const result: CollectedFiles = { typescript: [], html: [], projectJsons: [] };
+  const result: CollectedFiles = { typescript: [], html: [], javascript: [], projectJsons: [] };
   walk(root, root, result, isIgnored);
   result.typescript.sort();
   result.html.sort();
   result.projectJsons.sort();
+  const compiled = new Set(result.typescript.map((path) => path.replace(/\.ts$/, '.js')));
+  result.javascript = result.javascript.filter((path) => !compiled.has(path)).sort();
   return result;
 }
 
 /**
  * The recursive half of `collectFiles`. Mutates `into`.
  */
-function walk(root: string, directory: string, into: CollectedFiles, isIgnored?: (relativePath: string) => boolean): void {
+function walk(root: string, directory: string, into: CollectedFiles, isIgnored?: (relativePath: string) => boolean, inVendor = false): void {
   let entries;
   try {
     entries = readdirSync(directory, { withFileTypes: true });
@@ -64,7 +82,7 @@ function walk(root: string, directory: string, into: CollectedFiles, isIgnored?:
     if (isIgnored?.(toReportPath(root, path))) continue;
     if (entry.isDirectory()) {
       if (entry.name.startsWith('.') || SKIPPED_DIRECTORIES.has(entry.name)) continue;
-      walk(root, path, into, isIgnored);
+      walk(root, path, into, isIgnored, inVendor || VENDOR_DIRECTORIES.has(entry.name));
       continue;
     }
     if (!entry.isFile()) continue;
@@ -74,6 +92,11 @@ function walk(root: string, directory: string, into: CollectedFiles, isIgnored?:
       if (isWithinSizeLimit(path)) into.typescript.push(path);
     } else if (entry.name.endsWith('.html')) {
       if (isWithinSizeLimit(path)) into.html.push(path);
+    } else if (/^angular(\.min)?\.js$/.test(entry.name)) {
+      // A copy of AngularJS, minified or over the size limit: kept for the version in its header.
+      into.javascript.push(path);
+    } else if (entry.name.endsWith('.js') && !inVendor && !/[.-]min\.js$/.test(entry.name)) {
+      if (isWithinSizeLimit(path)) into.javascript.push(path);
     }
   }
 }
@@ -101,7 +124,7 @@ export function toReportPath(root: string, absolute: string): string {
  * `*.test.ts` covers Jest and Vitest setups that follow the other convention.
  */
 export function isSpecFile(path: string): boolean {
-  return /\.(spec|test)\.ts$/.test(path);
+  return /\.(spec|test)\.[jt]s$/.test(path);
 }
 
 /**
@@ -115,7 +138,7 @@ export function isSpecFile(path: string): boolean {
 export function isTestCode(path: string): boolean {
   return (
     isSpecFile(path) ||
-    /[.-](e2e-spec|spec|cy|po|mock|mocks)\.ts$/.test(path) ||
-    /(^|\/)(e2e|cypress|test-config|__mocks__|playwright)\//.test(path)
+    /[.-](e2e-spec|spec|cy|po|mock|mocks|scenario)\.[jt]s$/.test(path) ||
+    /(^|\/)(e2e|e2e-tests|cypress|test-config|__mocks__|playwright)\//.test(path)
   );
 }
