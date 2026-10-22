@@ -36,7 +36,7 @@ export function renderTerminal(report: Report, options: TerminalOptions): string
 
   const lines: string[] = [];
   const { project } = report;
-  lines.push(`${c.bold(report.tool.name)} ${c.dim(report.tool.version)}  ${c.bold(project.name)} ${c.dim(`· ${kindLabel(project.kind)}${project.angularVersion ? ` · Angular ${project.angularVersion}` : ''}`)}`);
+  lines.push(`${c.bold(report.tool.name)} ${c.dim(report.tool.version)}  ${c.bold(project.name)} ${c.dim(`· ${kindLabel(project.kind)}${project.workspaceFolder ? ` in ${project.workspaceFolder}` : ''}${project.angularVersion ? ` · Angular ${project.angularVersion}` : ''}`)}`);
   lines.push(c.dim(`${`${plural(project.sourceFiles, 'TypeScript file')}${project.javascriptFiles ? `, ${plural(project.javascriptFiles, 'JavaScript file')}` : ''}`}, ${plural(project.templateFiles, 'template')}, ${plural(project.linesOfCode, 'line')} of application code${project.generatedFiles ? ` (${plural(project.generatedFiles, 'generated file')} left out)` : ''}, analysed in ${formatDuration(report.durationMs)}`));
   lines.push('');
 

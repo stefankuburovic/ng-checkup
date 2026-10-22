@@ -76,6 +76,51 @@ export interface WorkspaceInfo {
   appTsconfig?: string;
   /** The tsconfig holding repository-wide `paths`, used to resolve imports for the dependency graph. */
   rootTsconfig?: string;
+  /**
+   * The folder, relative to the analysed root, the Angular workspace was read
+   * from when it is not the root itself (see `resolveWorkspace`); `root` then
+   * points there too. Absent for a workspace at the root.
+   */
+  subfolder?: string;
+  /** Angular workspaces in subfolders, relative to the root, when there are several and none at the root. */
+  nestedWorkspaces?: string[];
+}
+
+/**
+ * The workspace to analyse: the root's, or the one Angular workspace in a
+ * subfolder when the root is none.
+ *
+ * Repositories that are not JavaScript projects at heart keep their Angular
+ * app in a folder of its own: privacyIDEA, a Python server, has its web UI in
+ * `privacyidea/static` with its own `angular.json` and `package.json`. Read
+ * from the root, such a repository had no Angular version, no tsconfig and no
+ * build targets, so half the checks graded `info` and the routes all looked
+ * eager. When the root has no `angular.json`, no Nx workspace and no
+ * `@angular/core`, and exactly one subfolder has an `angular.json`, that
+ * folder becomes the workspace: its package.json, lockfile, node_modules,
+ * tsconfig and targets, with project roots made relative to the analysed
+ * root again. Every file of the repository is still scanned. Dependencies of
+ * the root's `package.json` that the subfolder does not declare are kept,
+ * so an AngularJS app at the root still has its `angular` version.
+ *
+ * With several such subfolders nothing is chosen; `nestedWorkspaces` lists
+ * them so the report can say which to run on.
+ */
+export function resolveWorkspace(root: string, projectJsons: string[], nestedAngularJsons: string[]): WorkspaceInfo {
+  const atRoot = readWorkspace(root, projectJsons);
+  if (atRoot.kind !== 'unknown' || atRoot.angular.major !== undefined || nestedAngularJsons.length === 0) return atRoot;
+  const folders = nestedAngularJsons.map((path) => dirname(path));
+  if (folders.length > 1) return { ...atRoot, nestedWorkspaces: folders.map((folder) => relative(root, folder).split(/[\\/]/).join('/')) };
+  const folder = folders[0]!;
+  const prefix = relative(root, folder).split(/[\\/]/).join('/');
+  const inner = readWorkspace(folder, []);
+  return {
+    ...inner,
+    dependencies: { ...atRoot.dependencies, ...inner.dependencies },
+    versions: { ...atRoot.versions, ...inner.versions },
+    projects: inner.projects.map((project) => ({ ...project, root: project.root ? `${prefix}/${project.root}` : prefix })),
+    subfolder: prefix,
+  };
 }
 
 /**

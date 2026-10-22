@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.11.1 (2026-10-22)
+
+- An Angular app in a subfolder is found: when the root has no `angular.json`, no Nx workspace and no `@angular/core`, and exactly one subfolder has an `angular.json`, the workspace is read from there (package.json, lockfile, tsconfig, build targets), and the report header names the folder. Before, a repository like privacyIDEA (a Python server with its Angular UI in `privacyidea/static`) had no Angular version, no tsconfig, and every route counted as eager. With several such subfolders, the version area names them.
+- The CI flow diagram is in the README.
+
 ## 0.11.0 (2026-10-22)
 
 - **Primo VE to NDE.** A repository with an Ex Libris Primo VE customization package gets a Primo NDE migration area instead of the AngularJS one: the hooks to rebuild in the NDE custom module, view by view, `parentCtrl` reads with the paths read most, third-party integrations (BrowZine/LibKey, Altmetric, Unpaywall, LibChat, analytics, …), static home pages and the central package of a network. `--plan` gives the move to NDE in four phases, also in the client report. NDE is announced as the only Primo UI from January 2028, and VE customizations do not carry over.

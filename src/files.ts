@@ -42,6 +42,8 @@ export interface CollectedFiles {
   javascript: string[];
   /** Every `project.json`, which is how an Nx workspace describes its projects. */
   projectJsons: string[];
+  /** Every `angular.json` below the root (not the root's own): Angular workspaces in subfolders. */
+  nestedAngularJsons: string[];
 }
 
 /**
@@ -57,11 +59,12 @@ export interface CollectedFiles {
  *   what makes ignoring a large generated folder cheap.
  */
 export function collectFiles(root: string, isIgnored?: (relativePath: string) => boolean): CollectedFiles {
-  const result: CollectedFiles = { typescript: [], html: [], javascript: [], projectJsons: [] };
+  const result: CollectedFiles = { typescript: [], html: [], javascript: [], projectJsons: [], nestedAngularJsons: [] };
   walk(root, root, result, isIgnored);
   result.typescript.sort();
   result.html.sort();
   result.projectJsons.sort();
+  result.nestedAngularJsons.sort();
   const compiled = new Set(result.typescript.map((path) => path.replace(/\.ts$/, '.js')));
   result.javascript = result.javascript.filter((path) => !compiled.has(path)).sort();
   return result;
@@ -88,6 +91,8 @@ function walk(root: string, directory: string, into: CollectedFiles, isIgnored?:
     if (!entry.isFile()) continue;
     if (entry.name === 'project.json') {
       into.projectJsons.push(path);
+    } else if (entry.name === 'angular.json' && directory !== root) {
+      into.nestedAngularJsons.push(path);
     } else if (entry.name.endsWith('.ts') && !entry.name.endsWith('.d.ts')) {
       if (isWithinSizeLimit(path)) into.typescript.push(path);
     } else if (entry.name.endsWith('.html')) {

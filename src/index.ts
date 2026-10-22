@@ -28,7 +28,7 @@ import { buildPlan } from './plan.js';
 import { scanSourceFile, scanTemplateFile } from './scan.js';
 import { overallScore } from './report/summary.js';
 import type { CheckupOptions, ProjectSummary, Report } from './types.js';
-import { applicationEntries, asRecord, majorOf, owningProject, readJson, readWorkspace, restrictToProject, type ProjectInfo } from './workspace.js';
+import { applicationEntries, asRecord, majorOf, owningProject, readJson, resolveWorkspace, restrictToProject, type ProjectInfo } from './workspace.js';
 
 export type * from './types.js';
 // The renderers and the score are public so a script can turn a report from
@@ -145,6 +145,7 @@ export async function runCheckup(root: string, options: CheckupOptions = {}): Pr
       linesOfCode: application.reduce((sum, file) => sum + file.linesOfCode, 0) + javascript.reduce((sum, file) => sum + file.linesOfCode, 0),
       ...(generatedFiles > 0 ? { generatedFiles } : {}),
       ...(javascript.length > 0 ? { javascriptFiles: javascript.length } : {}),
+      ...(context.workspace.subfolder ? { workspaceFolder: context.workspace.subfolder } : {}),
     },
     checks,
     durationMs: Date.now() - started,
@@ -214,7 +215,7 @@ function narrowContext(context: AnalysisContext, project: ProjectInfo, ownerOf: 
 /** Gathers everything the checks read. Exported for tests that want to inspect the facts. */
 export async function buildContext(root: string, options: CheckupOptions): Promise<AnalysisContext> {
   const files = collectFiles(root, ignoreMatcher(options.ignore));
-  const workspace = readWorkspace(root, files.projectJsons);
+  const workspace = resolveWorkspace(root, files.projectJsons, files.nestedAngularJsons);
   const { cache } = options;
   const sources = files.typescript.map((path) => cachedFacts(cache, path, () => scanSourceFile(root, path)));
   const templates = [...files.html.map((path) => cachedFacts(cache, path, () => scanTemplateFile(root, path))), ...sources.flatMap((file) => file.inlineTemplates)];
@@ -226,12 +227,12 @@ export async function buildContext(root: string, options: CheckupOptions): Promi
   }
   const appCompilerOptions = readCompilerOptions(workspace.appTsconfig);
 
-  const stamp = dependencyStamp(root);
+  const stamp = dependencyStamp(workspace.root);
   let dependencies = cache?.dependencies?.stamp === stamp ? cache.dependencies : undefined;
   if (!dependencies) {
     const latestAngular: AnalysisContext['latestAngular'] = options.offline ? { major: BUNDLED_LATEST_ANGULAR_MAJOR, source: 'bundled' } : await fetchLatestAngularMajor();
     const offline = options.offline ?? false;
-    const [{ index, typings }, compatibility] = await Promise.all([loadDeprecationIndex(root, workspace, sources, offline), readCompatibility(workspace, latestAngular.major, offline)]);
+    const [{ index, typings }, compatibility] = await Promise.all([loadDeprecationIndex(workspace.root, workspace, sources, offline), readCompatibility(workspace, latestAngular.major, offline)]);
     dependencies = { stamp, latestAngular, deprecations: index, typings, compatibility };
     if (cache) cache.dependencies = dependencies;
   }

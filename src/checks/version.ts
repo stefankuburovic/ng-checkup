@@ -47,8 +47,9 @@ export function versionCheck(context: AnalysisContext): CheckResult {
       id: 'version',
       title: 'Angular version & tooling',
       grade: 'info',
-      summary:
-        context.angularJs.version || context.angularJs.files.length > 0
+      summary: workspace.nestedWorkspaces
+        ? `No Angular workspace at the root; ${plural(workspace.nestedWorkspaces.length, 'subfolder')} ${workspace.nestedWorkspaces.length === 1 ? 'has' : 'have'} one: ${workspace.nestedWorkspaces.map((folder) => `\`${folder}\``).join(', ')}. Run ng-checkup on one of them (\`npx ng-checkup ${workspace.nestedWorkspaces[0]}\`).`
+        : context.angularJs.version || context.angularJs.files.length > 0
           ? context.angularJs.files.some((file) => file.primo?.viewCustom)
             ? 'No `@angular/core`: a Primo VE customization package, on AngularJS (see Primo NDE migration).'
             : 'No `@angular/core` yet: the app runs on AngularJS (see AngularJS migration).'

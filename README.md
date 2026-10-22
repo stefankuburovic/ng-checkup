@@ -235,6 +235,8 @@ Projects  5, worst first, graded on their own code
 
 Each project is graded on the files it owns (a nested library keeps its own) with its own tsconfig. The Angular version and the third-party packages are shared, so they are graded once, for the workspace. Projects that import nothing from Angular (React apps, Node services, Cypress e2e folders) get no row.
 
+**An Angular app in a subfolder.** A repository whose root is no Angular workspace (a Python or Java server with its web UI in `server/static`, say) is analysed from its root all the same: when exactly one subfolder has an `angular.json`, ng-checkup reads the workspace there (its `package.json`, lockfile, tsconfig and build targets) and the header says `Angular CLI in server/static`. With several such subfolders it names them, and you run it on the one you mean: `npx ng-checkup server/static`.
+
 `--project <name>` narrows the whole report to one project, which is how a team owning one app runs it in CI:
 
 ```bash

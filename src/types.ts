@@ -99,6 +99,8 @@ export interface Report {
      * left out; their lines are part of `linesOfCode`. Absent when there are none.
      */
     javascriptFiles?: number;
+    /** The subfolder the Angular workspace was read from, when it is not the root (see `resolveWorkspace`). */
+    workspaceFolder?: string;
   };
   checks: CheckResult[];
   durationMs: number;

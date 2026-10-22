@@ -18,7 +18,7 @@ export function renderHtml(report: Report): string {
   const { project } = report;
   const score = overallScore(report);
   const priorities = topPriorities(report);
-  const meta = [kindLabel(project.kind), project.angularVersion ? `Angular ${project.angularVersion}` : undefined, `${plural(project.sourceFiles, 'TypeScript file')}${project.javascriptFiles ? `, ${plural(project.javascriptFiles, 'JavaScript file')}` : ''}`, plural(project.templateFiles, 'template'), plural(project.linesOfCode, 'line') + ' of code', project.generatedFiles ? `${plural(project.generatedFiles, 'generated file')} left out` : undefined]
+  const meta = [`${kindLabel(project.kind)}${project.workspaceFolder ? ` in ${project.workspaceFolder}` : ''}`, project.angularVersion ? `Angular ${project.angularVersion}` : undefined, `${plural(project.sourceFiles, 'TypeScript file')}${project.javascriptFiles ? `, ${plural(project.javascriptFiles, 'JavaScript file')}` : ''}`, plural(project.templateFiles, 'template'), plural(project.linesOfCode, 'line') + ' of code', project.generatedFiles ? `${plural(project.generatedFiles, 'generated file')} left out` : undefined]
     .filter(Boolean)
     .join(' · ');
 
