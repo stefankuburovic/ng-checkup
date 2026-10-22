@@ -1,4 +1,5 @@
 import { join } from 'node:path';
+import { scanAngularJsTemplate } from '../src/angularjs.js';
 import { scanSourceFile, scanTemplate, scanTemplateFile } from '../src/scan.js';
 import { removeTemp, writeTemp } from './helpers.js';
 
@@ -135,6 +136,27 @@ describe('scanTemplate', () => {
     const root = writeTemp({ 'a.html': '<p>one</p>\n<p>two</p>\n<p *ngFor="let x of y"></p>\n' });
     try {
       expect(scanTemplateFile(root, join(root, 'a.html')).firstLegacyLine).toBe(3);
+    } finally {
+      removeTemp(root);
+    }
+  });
+
+  it('ignores markup inside HTML comments, and keeps the line numbers after them', () => {
+    const template = [
+      '<!-- <span *ngIf="adUri">Kennen Sie schon?</span> -->',
+      '<!--',
+      '  <li *ngFor="let x of xs" [innerHTML]="x"></li>',
+      '  <div ng-repeat="y in ys" ng-controller="Old"></div>',
+      '-->',
+      '@if (a) {}',
+      '<p *ngIf="b"></p>',
+      '<!-- unterminated <p *ngIf="c"></p>',
+    ].join('\n');
+    expect(scanTemplate(template)).toMatchObject({ ngIf: 1, ngFor: 0, ifBlocks: 1, innerHtmlBindings: 0 });
+    expect(scanAngularJsTemplate(template)).toMatchObject({ attributes: 0, controllers: 0 });
+    const root = writeTemp({ 'a.html': template });
+    try {
+      expect(scanTemplateFile(root, join(root, 'a.html')).firstLegacyLine).toBe(7);
     } finally {
       removeTemp(root);
     }

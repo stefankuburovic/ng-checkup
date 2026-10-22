@@ -49,7 +49,7 @@
       "summary": "1 deprecated symbol in 20 files.",
       "measures": {
         "deprecated-usages": 20,
-        "legacy-template-directives": 227,
+        "legacy-template-directives": 226,
         "to-promise-calls": 0
       },
       "findings": [
@@ -120,7 +120,7 @@
       "measures": {
         "module-components": 28,
         "decorator-inputs-outputs": 49,
-        "legacy-control-flow": 227
+        "legacy-control-flow": 226
       },
       "findings": [
         {
@@ -140,8 +140,8 @@
         },
         {
           "severity": "low",
-          "message": "227 uses of `*ngIf`, `*ngFor` and `[ngSwitch]`",
-          "count": 227
+          "message": "226 uses of `*ngIf`, `*ngFor` and `[ngSwitch]`",
+          "count": 226
         }
       ]
     },
@@ -327,7 +327,7 @@
         "to": 17,
         "items": [
           "Convert NgModule components to standalone (28)",
-          "Move templates to built-in control flow (227)"
+          "Move templates to built-in control flow (226)"
         ]
       },
       {

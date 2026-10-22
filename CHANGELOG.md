@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.10.1 (2026-10-22)
+
+- Templates: markup inside HTML comments (`<!-- … -->`) is no longer counted. Commented-out `*ngIf`/`*ngFor`, `[innerHTML]` bindings and AngularJS attributes were reported as live code; on a 460-template app fully on built-in control flow, all 33 `*ngIf`/`*ngFor` reported as deprecated sat in comments. Line numbers after a comment are unchanged. On the corpus: 4, 1 and 1 fewer legacy directives in three repositories.
+- README links the GitLab CI/CD Catalog component.
+
 ## 0.10.0 (2026-10-22)
 
 - **AngularJS and hybrid apps.** A repository with AngularJS code or packages gets a thirteenth area, AngularJS migration, at the top of the report. It reads JavaScript as well as TypeScript, counts components, directives, controllers, services, filters and templates with AngularJS syntax, names what makes them hard to move (controllers, `$scope`, scope events, runtime `$compile`, `$watch`, `ng-include`, directives `UpgradeComponent` cannot wrap), maps AngularJS packages to their Angular replacements, and finds the version in `package.json`, the lockfile, `bower.json`, a CDN script tag or a checked-in `angular.js`. A hybrid app (`UpgradeModule`, `downgradeModule`, `UpgradeAdapter`) gets the share of components already on Angular. Six new measures, so a baseline keeps a running migration from growing back.

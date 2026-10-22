@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import ts from 'typescript';
 import { scanAngularJsTemplate, type AngularJsTemplateStats } from './angularjs.js';
 import { isTestCode, toReportPath } from './files.js';
+import { withoutHtmlComments } from './template-text.js';
 
 /** One name brought in by an import or re-export. */
 export interface ImportBinding {
@@ -577,8 +578,9 @@ function templateTextOf(value: ts.Expression): { text: string; start: number } |
   return undefined;
 }
 
-/** Counts control flow in one template's text. */
-export function scanTemplate(text: string): TemplateStats {
+/** Counts control flow in one template's text. Commented-out markup is not counted (see `withoutHtmlComments`). */
+export function scanTemplate(template: string): TemplateStats {
+  const text = withoutHtmlComments(template);
   const count = (pattern: RegExp): number => (text.match(pattern) ?? []).length;
   return {
     ngIf: count(/\*ngIf\s*=|\[ngIf\]\s*=/g),
@@ -593,9 +595,9 @@ export function scanTemplate(text: string): TemplateStats {
   };
 }
 
-/** Character offset of the first legacy structural directive in a template, or undefined. */
+/** Character offset of the first legacy structural directive outside a comment, or undefined. */
 export function firstLegacyOffset(text: string): number | undefined {
-  const match = /\*ngIf\s*=|\[ngIf\]\s*=|\*ngFor\s*=|\[ngForOf\]\s*=|\[ngSwitch\]\s*=/.exec(text);
+  const match = /\*ngIf\s*=|\[ngIf\]\s*=|\*ngFor\s*=|\[ngForOf\]\s*=|\[ngSwitch\]\s*=/.exec(withoutHtmlComments(text));
   return match?.index;
 }
 

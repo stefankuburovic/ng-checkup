@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import ts from 'typescript';
 import { isTestCode, toReportPath } from './files.js';
+import { withoutHtmlComments } from './template-text.js';
 
 /** The AngularJS registration methods that define something a migration has to move. */
 export type RegistrationKind = 'component' | 'directive' | 'controller' | 'service' | 'factory' | 'provider' | 'filter';
@@ -296,8 +297,10 @@ export interface AngularJsTemplateStats {
  * Counts AngularJS syntax in a template. Only attributes with a value are
  * counted (`ng-repeat="…"`): `class="a ng-hide b"` would otherwise match, and
  * Angular's own `<ng-container>`/`<ng-template>` are elements, not attributes.
+ * Commented-out markup is not counted either (see `withoutHtmlComments`).
  */
-export function scanAngularJsTemplate(text: string): AngularJsTemplateStats {
+export function scanAngularJsTemplate(template: string): AngularJsTemplateStats {
+  const text = withoutHtmlComments(template);
   const count = (pattern: RegExp): number => (text.match(pattern) ?? []).length;
   const cdn = /<script[^>]+src=["'][^"']*angular(?:js|\.js)?[/@](1\.\d+\.\d+)[^"']*["']/i.exec(text);
   return {

@@ -35,7 +35,7 @@ ng-checkup:
     NG_CHECKUP_PATH: .
     NG_CHECKUP_FAIL_ON: ''
     NG_CHECKUP_ARGS: ''
-    NG_CHECKUP_VERSION: 0.10.0
+    NG_CHECKUP_VERSION: 0.10.1
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
