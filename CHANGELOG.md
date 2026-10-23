@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.0 (2026-10-23)
+
+- **What the next major breaks.** The deprecated-APIs area downloads the next Angular major's type definitions for the `@angular/*` and `@ngrx/*` packages the code imports and compares them with the installed ones. An imported name the next major no longer exports is a `high` finding (that import stops compiling after `ng update`), and the upgrade plan's first step lists it; a name or enum member the next major newly deprecates is a `low` finding that does not change the grade. On the corpus: `Resolve` deprecated in Angular 15 for go-data, `ChangeDetectionStrategy.Default` and `withFetch` deprecated in 22 for rx-angular; online, OrientDB Studio's `Class` import is gone in Angular 5.
+- **During an Angular RC**, a project on the latest major is compared with npm's `next` prerelease, so the report says what the coming major breaks before it ships.
+- `BUNDLED_LATEST_ANGULAR_MAJOR` is read from the version snapshot, and `scripts/update-angular-versions.mjs` falls back to the newest stable release of a major whose `vN-lts` tag is not set yet. Supporting a new major starts with one script run; the rest is in `docs/new-angular-major.md`.
+- `compareNextMajor: false` turns the comparison off, for runs that must be reproducible (the corpus uses it).
+
 ## 1.0.1 (2026-10-23)
 
 - History charts put the points on a time axis. A month without a commit has no point, and evenly spaced points drew a five-month pause as one step; the axis now reads by year for a long history and by month for a short one, with the last point marked "now".
