@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs';
+import { ANGULAR_VERSIONS } from './angular-versions.js';
 import { dirname, resolve } from 'node:path';
 import { assembleAngularJs, scanAngularJsFile } from './angularjs.js';
 import { readBundleStats } from './bundle.js';
@@ -68,8 +69,13 @@ export { renderHistoryHtml, renderHistoryMarkdown } from './report/history.js';
  * The newest Angular major this release of the tool knows about. Used only
  * when the registry cannot be reached or `--offline` is set, and the report
  * says so next to the number, because it goes stale with every Angular release.
+ *
+ * Read from the registry snapshot rather than written down, so that
+ * `node scripts/update-angular-versions.mjs` is the whole of supporting a new
+ * major's numbers: a separate constant was one more place to forget on the
+ * day a major ships.
  */
-export const BUNDLED_LATEST_ANGULAR_MAJOR = 22;
+export const BUNDLED_LATEST_ANGULAR_MAJOR = Math.max(...ANGULAR_VERSIONS.map((entry) => entry.major));
 
 /**
  * The checks in report order: the upgrade blockers first (version,

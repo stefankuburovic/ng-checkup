@@ -10,8 +10,9 @@
  *
  *   node scripts/update-angular-versions.mjs
  *
- * It uses the registry's `vN-lts` dist-tags (the last release of each major)
- * and `latest` for the newest one.
+ * It uses the registry's `vN-lts` dist-tags (the last release of each major),
+ * the newest stable version of a major the tag has not reached yet, and
+ * `latest` for the newest one.
  */
 import { execFileSync } from 'node:child_process';
 import { writeFileSync } from 'node:fs';
@@ -29,11 +30,25 @@ function view(spec, field) {
 
 const tags = view('@angular/core', 'dist-tags');
 const latestMajor = Number(String(tags.latest).split('.')[0]);
+const published = view('@angular/core', 'versions') ?? [];
+
+/**
+ * The newest stable release of a major, for a major without a `vN-lts` tag.
+ * The tag can lag: on the day a new major ships, the previous one may not be
+ * tagged yet, and skipping it would drop a major from the snapshot and every
+ * upgrade plan that passes through it.
+ */
+function newestStable(major) {
+  return published
+    .filter((version) => !version.includes('-') && Number(version.split('.')[0]) === major)
+    .sort((left, right) => right.localeCompare(left, undefined, { numeric: true }))[0];
+}
+
 const entries = [];
 for (let major = 4; major <= latestMajor; major++) {
-  const tag = major === latestMajor ? 'latest' : `v${major}-lts`;
-  if (!(tag in tags)) continue;
-  const version = tags[tag];
+  // Prereleases (`next`) never go in: the snapshot holds released majors, and a running checkup reads `next` itself.
+  const version = major === latestMajor ? tags.latest : (tags[`v${major}-lts`] ?? newestStable(major));
+  if (!version) continue;
   const core = `@angular/core@${version}`;
   const peers = view(core, 'peerDependencies') ?? {};
   entries.push({
