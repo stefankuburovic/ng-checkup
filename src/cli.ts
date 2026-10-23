@@ -6,7 +6,7 @@ import { parseArgs } from 'node:util';
 import { BASELINE_FILE, baselineIncreases, compareWithBaseline, createBaseline, readBaseline, serializeBaseline } from './baseline.js';
 import { createAnalysisCache } from './cache.js';
 import { loadConfig, REPORT_FORMATS, type CheckupConfig } from './config.js';
-import { ProjectNotFoundError, runCheckup, TOOL } from './index.js';
+import { BUNDLED_LATEST_ANGULAR_MAJOR, fetchLatestAngularMajor, ProjectNotFoundError, runCheckup, TOOL } from './index.js';
 import { planInit, type CiChoice, type InitPlan } from './init.js';
 import { cloneRemote, describeCheckout, parseRemote, type RemoteRepository } from './remote.js';
 import { renderHtml } from './report/html.js';
@@ -18,10 +18,13 @@ import { renderSarif } from './report/sarif.js';
 import { renderTerminal } from './report/terminal.js';
 import type { Grade, Report } from './types.js';
 import { describeProgress, watchCheckup } from './watch.js';
+import { renderSiteTerminal, type SiteReport } from './report/site.js';
+import { assessSite, probeSite } from './site.js';
 
 const HELP = `Usage: ng-checkup [path | repository] [options]
        ng-checkup init [path] [init options]
        ng-checkup baseline [path] [--force]
+       ng-checkup url <address> [--json] [--offline]
 
 A one-minute modernization report for an Angular codebase. Reads the code,
 never changes it, and sends nothing anywhere except package names to the npm
@@ -76,6 +79,13 @@ Init options (ng-checkup init):
 Baseline options (ng-checkup baseline):
       --force            Accept measures that went up since the last baseline
 
+Url (ng-checkup url <address>):
+                         Which framework a public web app runs, from what a
+                         browser downloads: AngularJS and Angular with their
+                         versions, zone.js, React, Vue, Next.js, Nuxt. Reads
+                         the page and up to 12 scripts of the same site
+      --json             Print the result as JSON
+
 Examples:
   npx ng-checkup
   npx ng-checkup ../my-app --report checkup.html
@@ -86,7 +96,8 @@ Examples:
   npx ng-checkup --client "Acme GmbH" --notes acme.md --report acme.html
   npx ng-checkup --fail-on poor --report checkup.md
   npx ng-checkup init
-  npx ng-checkup baseline && npx ng-checkup --fail-on regression`;
+  npx ng-checkup baseline && npx ng-checkup --fail-on regression
+  npx ng-checkup url https://app.example.com`;
 
 /** Grades in order of how bad they are, for `--fail-on`. */
 const SEVERITY_ORDER: Grade[] = ['good', 'fair', 'poor'];
@@ -354,6 +365,7 @@ export function describeInitPlan(plan: InitPlan, dryRun: boolean): string {
 async function main(argv: string[]): Promise<number> {
   if (argv[0] === 'init') return mainInit(argv.slice(1));
   if (argv[0] === 'baseline') return mainBaseline(argv.slice(1));
+  if (argv[0] === 'url') return mainUrl(argv.slice(1));
 
   let parsed: ReturnType<typeof parseCliArguments>;
   try {
@@ -563,6 +575,53 @@ export async function writeBaseline(args: BaselineArguments): Promise<string> {
 }
 
 /** Prints a user-facing error with the hint to `--help` and returns exit code 2. */
+/** Parsed arguments of `ng-checkup url`. */
+export interface UrlArguments {
+  address: string;
+  json: boolean;
+  offline: boolean;
+  color: boolean;
+}
+
+/** Parses the arguments after `url`: one address, `--json`, `--offline`, `--no-color`. */
+export function parseUrlArguments(argv: string[], environment: NodeJS.ProcessEnv = process.env, isTty = Boolean(process.stdout.isTTY)): UrlArguments | 'help' {
+  const { values, positionals } = parseArgs({
+    args: argv,
+    allowPositionals: true,
+    options: { json: { type: 'boolean' }, offline: { type: 'boolean' }, 'no-color': { type: 'boolean' }, help: { type: 'boolean', short: 'h' } },
+  });
+  if (values.help) return 'help';
+  if (positionals.length !== 1) throw new Error(`ng-checkup url takes one address, got ${positionals.length}`);
+  return { address: positionals[0]!, json: values.json ?? false, offline: values.offline ?? false, color: !values['no-color'] && environment['NO_COLOR'] === undefined && isTty };
+}
+
+/**
+ * `ng-checkup url <address>`: probes the site (see `probeSite`) and prints
+ * what runs there. Exit code 2 when the page cannot be loaded; a site with
+ * no recognisable framework is a result, not an error.
+ */
+async function mainUrl(argv: string[]): Promise<number> {
+  let parsed: UrlArguments | 'help';
+  try {
+    parsed = parseUrlArguments(argv);
+  } catch (error) {
+    return usageError(error);
+  }
+  if (parsed === 'help') {
+    process.stdout.write(`${HELP}\n`);
+    return 0;
+  }
+  try {
+    const latestAngular: SiteReport['latestAngular'] = parsed.offline ? { major: BUNDLED_LATEST_ANGULAR_MAJOR, source: 'bundled' } : await fetchLatestAngularMajor();
+    const probe = await probeSite(parsed.address);
+    const report: SiteReport = { tool: TOOL, generatedAt: new Date().toISOString(), probe, latestAngular, findings: assessSite(probe, latestAngular.major) };
+    process.stdout.write(parsed.json ? `${JSON.stringify(report, null, 2)}\n` : `${renderSiteTerminal(report, { color: parsed.color })}\n`);
+    return 0;
+  } catch (error) {
+    return usageError(error);
+  }
+}
+
 function usageError(error: unknown): number {
   process.stderr.write(`ng-checkup: ${error instanceof Error ? error.message : String(error)}\nRun ng-checkup --help for usage.\n`);
   return 2;

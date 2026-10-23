@@ -26,6 +26,7 @@ npx ng-checkup
 - [Upgrade plan](#upgrade-plan)
 - [AngularJS and hybrid apps](#angularjs-and-hybrid-apps)
 - [Primo VE to NDE](#primo-ve-to-nde)
+- [A live site](#a-live-site)
 - [Monorepos](#monorepos)
 - [Client report](#client-report)
 - [What it checks](#what-it-checks)
@@ -222,6 +223,27 @@ Libraries on Ex Libris Primo VE customize it with an AngularJS package, and thos
 
 A `js/custom.js` built from the view's other files and copies outside the view folders are not counted twice. With `--plan`, the plan has four phases (decide what NDE still needs and set up the module, branding and home pages, rebuild the hooks, test in proxy mode and switch view by view), and the client report puts them in its roadmap.
 
+## A live site
+
+```bash
+npx ng-checkup url https://app.example.com
+```
+
+```text
+ng-checkup  https://my.example-saas.de/  Login
+Read the page and 5 scripts (36.7 MB) from my.example-saas.de
+
+  AngularJS 1.8.3        seen in vendor.bundle.js
+  React 19.2.3           seen in react.bundle.js
+
+  high   AngularJS 1.8.3 is end of life since January 2022
+         It runs next to React, so a migration is under way. Until it is finished, the app ships a framework without security fixes.
+```
+
+Which framework a public web app runs, without its code: the page and the scripts of the same site it loads, including the chunks they import, up to 12 requests. It recognises AngularJS and Angular with their versions (from the license header, the version object or `new Version("…")` in the bundle, and `ng-version`), whether zone.js is loaded, and React, Vue, Next.js and Nuxt, also several at once. Third-party scripts are skipped (a chat widget built with React does not make a site a React app), except AngularJS from a public CDN. It reads only what any browser downloads: nothing is submitted, nothing behind a sign-in is reached. `--json` prints the result for scripts.
+
+Useful before a first conversation: what a company's product runs on, how far behind it is, and whether a migration has started.
+
 ## Monorepos
 
 In an Angular CLI workspace with several projects or an Nx workspace, the report adds a table with one row per project, worst score first (here [nx-examples](https://github.com/nrwl/nx-examples), shortened):
@@ -308,6 +330,7 @@ Defaults that changed between versions are applied per version: a component with
 Usage: ng-checkup [path | repository] [options]
        ng-checkup init [path] [init options]
        ng-checkup baseline [path] [--force]
+       ng-checkup url <address> [--json] [--offline]
 
 Arguments:
   path                   Repository root (default: current directory)
@@ -356,6 +379,13 @@ Init options (ng-checkup init):
 
 Baseline options (ng-checkup baseline):
       --force            Accept measures that went up since the last baseline
+
+Url (ng-checkup url <address>):
+                         Which framework a public web app runs, from what a
+                         browser downloads: AngularJS and Angular with their
+                         versions, zone.js, React, Vue, Next.js, Nuxt. Reads
+                         the page and up to 12 scripts of the same site
+      --json             Print the result as JSON
 ```
 
 Exit codes: `0` done, `1` `--fail-on` tripped, `2` usage error (including `--fail-on regression` without a baseline). Areas graded `info` never fail a run.

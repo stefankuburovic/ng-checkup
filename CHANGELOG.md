@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.12.0 (2026-10-23)
+
+- **`ng-checkup url <address>`**: which framework a public web app runs, from what a browser downloads. Reads the page and up to 12 scripts of the same site, following the chunks they import, and recognises AngularJS and Angular with versions (license header, version object, `new Version(...)` including template-literal builds, `ng-version`), zone.js, React with its version, Vue, Next.js and Nuxt, also several in one app. Third-party scripts are skipped, except AngularJS from a public CDN; `--json` for scripts. Checked on angular.dev, material.angular.dev, angularjs.org, react.dev, vuejs.org and nuxt.com.
+
 ## 0.11.1 (2026-10-22)
 
 - An Angular app in a subfolder is found: when the root has no `angular.json`, no Nx workspace and no `@angular/core`, and exactly one subfolder has an `angular.json`, the workspace is read from there (package.json, lockfile, tsconfig, build targets), and the report header names the folder. Before, a repository like privacyIDEA (a Python server with its Angular UI in `privacyidea/static`) had no Angular version, no tsconfig, and every route counted as eager. With several such subfolders, the version area names them.

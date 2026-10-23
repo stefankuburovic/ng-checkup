@@ -11,7 +11,8 @@ export interface TerminalOptions {
 }
 
 /** A tiny ANSI palette; every function is the identity when colour is off. */
-function palette(enabled: boolean) {
+/** ANSI styles, or identity functions when `enabled` is false. */
+export function palette(enabled: boolean) {
   const wrap = (open: number, close: number) => (text: string) => (enabled ? `\u001b[${open}m${text}\u001b[${close}m` : text);
   return { bold: wrap(1, 22), dim: wrap(2, 22), red: wrap(31, 39), green: wrap(32, 39), yellow: wrap(33, 39), cyan: wrap(36, 39), gray: wrap(90, 39) };
 }

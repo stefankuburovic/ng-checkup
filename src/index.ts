@@ -273,7 +273,7 @@ export async function buildContext(root: string, options: CheckupOptions): Promi
  * fallback when the request fails or takes longer than three seconds. A slow
  * or offline network must never stall a run that is otherwise local.
  */
-async function fetchLatestAngularMajor(): Promise<AnalysisContext['latestAngular']> {
+export async function fetchLatestAngularMajor(): Promise<AnalysisContext['latestAngular']> {
   try {
     const response = await fetch('https://registry.npmjs.org/@angular/core/latest', { signal: AbortSignal.timeout(3000) });
     if (response.ok) {
