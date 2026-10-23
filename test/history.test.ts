@@ -81,7 +81,8 @@ describe('history', () => {
     expect(html).toContain('*ngIf / *ngFor / [ngSwitch] uses (-1)');
     expect(html).not.toMatch(/<script|https?:\/\/(?!www\.w3\.org)/);
     expect(renderHistoryForFile(report, 'history.md')).toContain('| *ngIf / *ngFor / [ngSwitch] uses | 3 | 2 | -1 |');
-    expect(JSON.parse(renderHistoryForFile(report, 'history.json')).points).toHaveLength(3);
+    // The month before last, then HEAD as the clean working tree: HEAD is not counted twice.
+    expect(JSON.parse(renderHistoryForFile(report, 'history.json')).points).toHaveLength(2);
   });
 
   it('places points by date, so a long pause without commits shows as one', () => {
@@ -91,7 +92,7 @@ describe('history', () => {
     // 207 of the 1 089 days fall between the first two points: about a fifth of the 580-unit axis, not half.
     expect(xs).toEqual([44, 44 + Math.round((207 / 1089) * 580 * 10) / 10, 624]);
     // Three years read by year, and the last point is "now".
-    expect([...html.matchAll(/text-anchor="middle">([^<]+)</g)].map((match) => match[1])).toEqual(['2024', '2025', '2026', 'now']);
+    expect([...html.matchAll(/y="160" text-anchor="(?:middle|end)">([^<]+)</g)].map((match) => match[1])).toEqual(['2024', '2025', '2026', 'now']);
   });
 
   it('refuses outside git and in a shallow clone, saying what to do', async () => {

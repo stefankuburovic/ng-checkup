@@ -19,7 +19,7 @@ import { renderTerminal } from './report/terminal.js';
 import type { Grade, Report } from './types.js';
 import { describeProgress, watchCheckup } from './watch.js';
 import { renderSiteTerminal, type SiteReport } from './report/site.js';
-import { collectHistory, type HistoryReport } from './history.js';
+import { collectHistory, HistoryUnavailableError, type HistoryReport } from './history.js';
 import { renderHistoryHtml, renderHistoryMarkdown, renderHistoryTerminal } from './report/history.js';
 import { assessSite, probeSite } from './site.js';
 
@@ -62,6 +62,8 @@ Options:
       --notes <file.md>  Your recommendations, estimates and price, in Markdown,
                          placed after the roadmap. A missing file is created as
                          a template prefilled with the upgrade steps
+      --history          Add the last twelve months from git to the client
+                         report: the score and the measures that moved most
   -w, --watch            Re-run on every change and show how the score and the
                          measures moved since the watch started
       --fail-on <grade>  Exit with code 1 if any area is graded <grade> or worse
@@ -141,6 +143,8 @@ export interface CliArguments {
   skip?: string[];
   /** `--client`, `--prepared-by`, `--notes`: the client report. */
   client?: { name: string; preparedBy?: string; notes?: string };
+  /** `--history`: add the last twelve months from git to the client report. */
+  history?: boolean;
   watch: boolean;
   color: boolean;
   config?: string;
@@ -204,6 +208,7 @@ export function parseCliArguments(argv: string[], environment: NodeJS.ProcessEnv
       client: { type: 'string' },
       'prepared-by': { type: 'string' },
       notes: { type: 'string' },
+      history: { type: 'boolean' },
       config: { type: 'string' },
       'no-color': { type: 'boolean' },
       help: { type: 'boolean', short: 'h' },
@@ -228,6 +233,8 @@ export function parseCliArguments(argv: string[], environment: NodeJS.ProcessEnv
 
   if ((values.notes !== undefined || values['prepared-by'] !== undefined) && values.client === undefined) throw new Error('--notes and --prepared-by belong to a client report; add --client "<name>"');
   if (values.client !== undefined && values.client.trim() === '') throw new Error('--client needs the client name');
+  if (values.history && values.client === undefined) throw new Error('--history adds the history to a client report; add --client "<name>", or run ng-checkup history for the history alone');
+  if (values.history && remote) throw new Error('--history reads the git history, which the shallow clone of a remote repository does not have; clone it in full and run it there');
   const preparedBy = values['prepared-by'] ?? environment['NG_CHECKUP_PREPARED_BY'];
 
   let maxExamples: number | undefined;
@@ -251,6 +258,7 @@ export function parseCliArguments(argv: string[], environment: NodeJS.ProcessEnv
     ...(values.only !== undefined ? { only: idList(values.only) } : {}),
     ...(values.skip !== undefined ? { skip: idList(values.skip) } : {}),
     ...(values.client !== undefined ? { client: { name: values.client.trim(), ...(preparedBy ? { preparedBy } : {}), ...(values.notes !== undefined ? { notes: resolve(values.notes) } : {}) } } : {}),
+    ...(values.history ? { history: true } : {}),
     watch: values.watch ?? false,
     color: !values['no-color'] && environment['NO_COLOR'] === undefined && isTty,
     config: values.config,
@@ -475,6 +483,25 @@ async function mainCheckup(parsed: CliArguments, rootLabel?: string): Promise<nu
     }
     report.client = { ...client, ...(notes !== undefined ? { notes } : {}) };
     if (!settings.reports.some((target) => /\.html?$/i.test(target))) notesMessage = [notesMessage, 'The client report is an HTML page: add --report <file>.html to write it.'].filter(Boolean).join('\n');
+  }
+  if (parsed.history) {
+    // History is a section of the report, not its reason: a repository without usable git history still gets the rest.
+    try {
+      const progress = Boolean(process.stderr.isTTY);
+      report.history = await collectHistory(parsed.root, {
+        points: 12,
+        ignore: analysisIgnores(parsed.root, settings),
+        only: settings.only,
+        skip: settings.skip,
+        onProgress: (done, total, label) => {
+          if (progress) process.stderr.write(`\r\u001b[2KHistory ${done + 1}/${total}: ${label}`);
+        },
+      });
+      if (progress) process.stderr.write('\r\u001b[2K');
+    } catch (error) {
+      if (!(error instanceof HistoryUnavailableError)) throw error;
+      notesMessage = [notesMessage, `No history in the report: ${error.message}.`].filter(Boolean).join('\n');
+    }
   }
   writeReports(report, settings.reports);
 

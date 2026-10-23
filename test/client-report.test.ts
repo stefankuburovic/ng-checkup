@@ -66,6 +66,35 @@ describe('the client report', () => {
     for (const check of report.checks) expect(html).toContain(`id="${check.id}"`);
   });
 
+  it('adds the history, hotspots, known vulnerabilities and the next major to the summary pages', async () => {
+    const report = await runCheckup(fixture('legacy-app'), { offline: true, plan: true });
+    report.client = { name: 'Acme' };
+    const point = (date: string, score: number, anys: number) => ({ commit: date, date, score, angularVersion: '15.2.0', linesOfCode: 100, measures: { 'type-safety.explicit-any': anys } });
+    report.history = { tool: report.tool, generatedAt: '2026-10-23T00:00:00Z', root: 'legacy-app', labels: { 'type-safety.explicit-any': 'Explicit any' }, points: [point('2025-10-30', 40, 30), point('2026-10-23', 52, 12)] };
+    const security = report.checks.find((check) => check.id === 'security')!;
+    security.metrics.push({ label: 'Known vulnerabilities', value: '7', hint: 'in 20 direct dependencies checked' });
+    const deprecated = report.checks.find((check) => check.id === 'deprecated-apis')!;
+    deprecated.metrics.push({ label: 'Angular 16', value: '2 removed, 1 deprecated', hint: 'imports, compared with 16.2.12' });
+    report.checks.find((check) => check.id === 'architecture')!.findings.push({ severity: 'medium', message: 'Hotspots: large files changed most often', detail: 'app.component.ts (1 200 lines, 40 commits), over the last year of history.', files: [{ path: 'src/app/app.component.ts' }], count: 1 });
+    const html = renderHtml(report);
+    expect(html).toContain('How the code got here');
+    expect(html).toContain('Over the last 12 months, the score went from 40 to 52.');
+    expect(html).toContain('Explicit any (-18)');
+    expect(html).toContain('<dt>Known vulnerabilities</dt><dd>7</dd>');
+    expect(html).toContain('<dt>Next: Angular 16</dt><dd>2 removed</dd>');
+    expect(html).toContain('Where refactoring pays off first');
+    expect(html).toContain('<code>src/app/app.component.ts</code>');
+    // The story comes before the action list, the hotspots after the roadmap.
+    expect(html.indexOf('How the code got here')).toBeLessThan(html.indexOf('id="actions-title"'));
+    expect(html.indexOf('id="roadmap-title"')).toBeLessThan(html.indexOf('Where refactoring pays off first'));
+  });
+
+  it('accepts --history only with a client report and a local checkout', () => {
+    expect(parseCliArguments(['.', '--client', 'Acme', '--history'], {}, false)).toMatchObject({ history: true });
+    expect(() => parseCliArguments(['.', '--history'], {}, false)).toThrow('--history adds the history to a client report');
+    expect(() => parseCliArguments(['github:acme/shop', '--client', 'Acme', '--history'], {}, false)).toThrow('shallow clone');
+  });
+
   it('builds a notes template from the plan, with an empty estimate per step', async () => {
     const report = await runCheckup(fixture('legacy-app'), { offline: true, plan: true });
     const template = notesTemplate({ ...report, client: { name: 'Acme' } });

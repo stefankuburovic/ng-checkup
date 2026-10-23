@@ -127,6 +127,12 @@ export interface Report {
    */
   client?: { name: string; preparedBy?: string; notes?: string };
   /**
+   * The score and measures month by month from git (`--client … --history`),
+   * shown in the client report as "How the code got here". Attached by the
+   * CLI after the run, since collecting it runs the checkup once per month.
+   */
+  history?: import('./history.js').HistoryReport;
+  /**
    * One row per project that owns source files, worst score first. Present
    * only for a whole-workspace run of a workspace with two or more projects.
    */

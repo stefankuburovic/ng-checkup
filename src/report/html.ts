@@ -1,5 +1,9 @@
 import { formatCount, plural } from '../checks/context.js';
 import type { CheckResult, Finding, Grade, Report } from '../types.js';
+
+export { escape };
+import { CHART_STYLES, historySection } from './charts.js';
+import { escape } from './escape.js';
 import { renderNotes } from './notes.js';
 import { formatDuration, formatLocation, gradeLabel, kindLabel, migrationTarget, overallScore, projectAreas, remainingCount, SCORE_EXPLANATION, severityLabel, topPriorities } from './summary.js';
 
@@ -123,6 +127,10 @@ function renderClientHtml(report: Report, client: NonNullable<Report['client']>)
     urgent.length > 0 ? `The most urgent: ${urgent.map(({ finding }) => clause(finding.message)).join('; ')}.` : undefined,
   ].filter((sentence): sentence is string => sentence !== undefined);
   const date = report.generatedAt.slice(0, 10);
+  // Two figures 1.0 and 1.1 added: known vulnerabilities, and what the next major removes among the imports.
+  const vulnerabilities = report.checks.find((check) => check.id === 'security')?.metrics.find((metric) => metric.label === 'Known vulnerabilities');
+  const nextMajor = report.checks.find((check) => check.id === 'deprecated-apis')?.metrics.find((metric) => /^Angular \d+$/.test(metric.label));
+  const hotspots = report.checks.find((check) => check.id === 'architecture')?.findings.find((finding) => finding.message.startsWith('Hotspots'));
   const places = (finding: Finding): string => (finding.count !== undefined ? formatCount(finding.count) : finding.files && finding.files.length > 0 ? formatCount(finding.files.length) : '-');
 
   return `<!doctype html>
@@ -132,7 +140,7 @@ function renderClientHtml(report: Report, client: NonNullable<Report['client']>)
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="generator" content="${escape(`${report.tool.name} ${report.tool.version}`)}">
 <title>${escape(checkName)}: ${escape(client.name)}</title>
-<style>${STYLES}${CLIENT_STYLES}</style>
+<style>${STYLES}${CLIENT_STYLES}${report.history ? CHART_STYLES : ''}</style>
 </head>
 <body>
 <main>
@@ -163,6 +171,8 @@ function renderClientHtml(report: Report, client: NonNullable<Report['client']>)
               ['Angular', project.angularVersion ?? '-', plan ? `latest is ${plan.to}` : ''],
               ['Upgrade steps', plan ? formatCount(plan.steps.length) : '-', 'one major at a time'],
             ]),
+        ...(vulnerabilities && vulnerabilities.value !== 'not checked' ? [['Known vulnerabilities', String(vulnerabilities.value), 'in direct dependencies, from osv.dev']] : []),
+        ...(nextMajor ? [[`Next: ${nextMajor.label}`, `${String(nextMajor.value).split(',')[0]}`, 'imports the next major no longer exports']] : []),
         ['To act on', formatCount(actions.length), `${formatCount(actions.filter(({ finding }) => finding.severity === 'high').length)} high priority`],
         ['Code', formatCount(project.linesOfCode), `lines in ${formatCount(project.sourceFiles + (project.javascriptFiles ?? 0))} files`],
       ]
@@ -170,6 +180,8 @@ function renderClientHtml(report: Report, client: NonNullable<Report['client']>)
         .join('\n      ')}
     </dl>
   </section>
+
+  ${historySection(report.history)}
 
   ${
     actions.length === 0
@@ -217,6 +229,16 @@ function renderClientHtml(report: Report, client: NonNullable<Report['client']>)
       </tbody>
     </table></div>
     <p class="check-summary">Counts are places in the code each change touches. Commands and details per step are in the appendix.</p>
+  </section>`
+      : ''
+  }
+
+  ${
+    hotspots
+      ? `<section aria-labelledby="hotspots-title">
+    <h2 id="hotspots-title" class="section-title">Where refactoring pays off first</h2>
+    <p class="check-summary">${inline(hotspots.detail ?? '')}</p>
+    <ul class="files">${(hotspots.files ?? []).map((file) => `<li><code>${escape(formatLocation(file))}</code></li>`).join('')}</ul>
   </section>`
       : ''
   }
@@ -392,10 +414,6 @@ function inline(text: string): string {
   return escape(text).replace(/`([^`]+)`/g, '<code>$1</code>');
 }
 
-/** HTML-escapes text for element content and double-quoted attributes. */
-export function escape(text: string): string {
-  return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-}
 
 /** Extra rules for the client report: the cover, the lead paragraph, notes, and page breaks for print. */
 const CLIENT_STYLES = `

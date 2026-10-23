@@ -67,13 +67,22 @@ export async function collectHistory(root: string, options: { points?: number; i
 
   const count = Math.max(1, options.points ?? 12);
   const now = new Date();
+  // Counted back from the last commit, not from today: a repository nobody has committed to for two years
+  // would otherwise get twelve months that all resolve to its last commit, and a history of one point.
+  const head = git('rev-parse', 'HEAD');
+  const headDate = new Date(git('show', '-s', '--format=%cI', 'HEAD'));
+  const anchor = headDate < now ? headDate : now;
+  // A clean working tree is HEAD; the last point then stands for both, dated at the commit.
+  const clean = git('status', '--porcelain', '--', '.') === '';
   const commits: Array<{ commit: string; date: string }> = [];
   for (let monthsBack = count; monthsBack >= 1; monthsBack--) {
-    const before = new Date(now.getFullYear(), now.getMonth() - monthsBack + 1, 1).toISOString().slice(0, 10);
+    const before = new Date(anchor.getFullYear(), anchor.getMonth() - monthsBack + 1, 1).toISOString().slice(0, 10);
     const commit = git('rev-list', '-1', '--first-parent', `--before=${before}`, 'HEAD');
-    if (!commit || commits.some((entry) => entry.commit === commit)) continue;
+    if (!commit || (clean && commit === head) || commits.some((entry) => entry.commit === commit)) continue;
     commits.push({ commit, date: git('show', '-s', '--format=%cs', commit) });
   }
+  // With uncommitted changes the last commit is a state of its own, between the last month and the working tree.
+  if (!clean && !commits.some((entry) => entry.commit === head)) commits.push({ commit: head, date: headDate.toISOString().slice(0, 10) });
 
   const checkup: CheckupOptions = { offline: true, ignore: options.ignore, only: options.only, skip: options.skip };
   const points: HistoryPoint[] = [];
@@ -102,26 +111,8 @@ export async function collectHistory(root: string, options: { points?: number; i
     }
   }
   options.onProgress?.(commits.length, total, 'working tree');
-  record(await runCheckup(root, checkup), 'working tree', now.toISOString().slice(0, 10));
+  record(await runCheckup(root, checkup), 'working tree', (clean ? headDate : now).toISOString().slice(0, 10));
   return { tool: TOOL, generatedAt: now.toISOString(), root: prefix ? `${basename(top)}/${prefix.replace(/\/$/, '')}` : basename(top), points, labels };
 }
 
-/**
- * The measures that moved the most between the first and the last point,
- * by absolute change, for the charts: a history of 40 measures where 35 sit
- * still reads better as the five that did not. A label recorded by two
- * checks appears once, under the first key.
- */
-export function movedMeasures(report: HistoryReport, limit = 6): Array<{ key: string; label: string; first: number; last: number }> {
-  const first = report.points[0];
-  const last = report.points.at(-1);
-  if (!first || !last) return [];
-  return Object.keys(report.labels)
-    .filter((key) => first.measures[key] !== undefined && last.measures[key] !== undefined)
-    .map((key) => ({ key, label: report.labels[key]!, first: first.measures[key]!, last: last.measures[key]! }))
-    .filter((entry) => entry.first !== entry.last)
-    .sort((left, right) => Math.abs(right.last - right.first) - Math.abs(left.last - left.first) || left.key.localeCompare(right.key))
-    // Two checks record legacy `*ngIf` under the same label; one chart of it is enough.
-    .filter((entry, index, all) => all.findIndex((other) => other.label === entry.label) === index)
-    .slice(0, limit);
-}
+export { movedMeasures } from './report/charts.js';

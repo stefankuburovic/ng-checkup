@@ -304,11 +304,13 @@ The baseline always covers the whole workspace, so `--project` runs do not compa
 For consultants and tech leads who hand the result to someone else: `--client` turns the HTML report into a deliverable for a paid Health Check or an upgrade proposal.
 
 ```bash
-npx ng-checkup github:acme/shop --client "Acme GmbH" --prepared-by "Jane Doe, jane.dev" --notes acme.md --report acme-health-check.html
+npx ng-checkup --client "Acme GmbH" --prepared-by "Jane Doe, jane.dev" --notes acme.md --history --report acme-health-check.html
 ```
 
 - **For management, in front:** a cover, a summary in sentences ("Angular 17.1.1, 5 majors behind 22. Of 10 graded areas, 3 are poor…"), the key figures, a table of what to act on with the number of places each touches, and the roadmap one major at a time.
 - **Your recommendations next:** `--notes` is a Markdown file for what the tool cannot know: your summary, estimates and price. The first run creates it as a template, prefilled with one row per upgrade step and an empty estimate column; fill it in and run the same command again. Guidance in the template sits in HTML comments and never reaches the client, and a section left empty is left out.
+- **How the code got here,** with `--history`: the score and the measures that moved most over the last twelve months, as charts, from the git history of a local checkout.
+- **Where to start:** the known vulnerabilities and what the next Angular major removes among the imports in the key figures, and the hotspots (large files changed most often) as the place a refactoring pays off first.
 - **The full report as an appendix,** for the team.
 - **Print to PDF** from the browser: the cover, the recommendations and the appendix each start on a new page.
 
@@ -393,6 +395,8 @@ Options:
       --notes <file.md>  Your recommendations, estimates and price, in Markdown,
                          placed after the roadmap. A missing file is created as
                          a template prefilled with the upgrade steps
+      --history          Add the last twelve months from git to the client
+                         report: the score and the measures that moved most
   -w, --watch            Re-run on every change and show how the score and the
                          measures moved since the watch started
       --fail-on <grade>  Exit with code 1 if any area is graded <grade> or worse

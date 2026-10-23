@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.2.0 (2026-10-23)
+
+- **Health Check report 2.0** (`--client`):
+  - `--history` adds "How the code got here": the score and the measures that moved most over the last twelve months, as charts, from the git history of a local checkout. A repository without usable history still gets the rest of the report.
+  - The key figures show the known vulnerabilities of the direct dependencies and how many imports the next Angular major removes.
+  - "Where refactoring pays off first" lists the hotspots, the large files changed most often.
+- `ng-checkup history` counts its months back from the last commit, not from today, so a repository nobody has committed to for a while still gets one point per month; a clean working tree is no longer counted twice as HEAD and "now", and "now" labels the last point only when it is recent.
+- Charts live in their own module and are shared by the history page and the client report.
+
 ## 1.1.0 (2026-10-23)
 
 - **What the next major breaks.** The deprecated-APIs area downloads the next Angular major's type definitions for the `@angular/*` and `@ngrx/*` packages the code imports and compares them with the installed ones. An imported name the next major no longer exports is a `high` finding (that import stops compiling after `ng update`), and the upgrade plan's first step lists it; a name or enum member the next major newly deprecates is a `low` finding that does not change the grade. On the corpus: `Resolve` deprecated in Angular 15 for go-data, `ChangeDetectionStrategy.Default` and `withFetch` deprecated in 22 for rx-angular; online, OrientDB Studio's `Class` import is gone in Angular 5.
