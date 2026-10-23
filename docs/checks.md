@@ -85,10 +85,15 @@ There is no hand-kept list. The report shows exactly what the installed version 
 | --- | --- |
 | good | nothing deprecated in use |
 | fair | deprecated APIs in use, all deprecated less than two majors ago |
-| poor | an API deprecated two or more majors before the installed version, which any upgrade may remove |
+| poor | an API deprecated two or more majors before the installed version, which any upgrade may remove; or an import the next major no longer exports |
 | info | dependencies are not installed |
 
-On an old version this check only knows what *that* version deprecates. APIs deprecated later show up at each upgrade step, which is what the [version check](#version) is for.
+**The next major.** The check also downloads the type definitions of the next Angular major (the newest release of it) for the `@angular/*` and `@ngrx/*` packages your code imports, and compares them with the installed ones:
+
+- an imported name the next major **no longer exports** is a `high` finding: that import stops compiling after `ng update`, so it is replaced before that step. The upgrade plan's first step lists the same names;
+- an imported name or enum member the next major **newly deprecates** is a `low` finding. It still works after the upgrade, so it does not change the grade; it is advance notice of what to replace within the following two majors.
+
+A name counts as removed only when the installed typings export it and the next major's do not, so a name neither version shows readably is never reported as removed. When the project is on the latest major and npm's `next` tag is a prerelease of the one after, that prerelease is compared instead: during an Angular RC, the report already says what the new major breaks. Offline, only typings already in the cache are compared, and without them nothing is said.
 
 **Fixing it:** each finding quotes Angular's replacement. For templates: `ng generate @angular/core:control-flow`.
 

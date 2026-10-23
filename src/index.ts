@@ -22,6 +22,7 @@ import { cachedFacts, dependencyStamp } from './cache.js';
 import { readChurn } from './churn.js';
 import { lookUpVulnerabilities } from './vulnerabilities.js';
 import { loadDeprecationIndex } from './typings.js';
+import { nextMajorChanges } from './next-major.js';
 import { ignoreMatcher } from './config.js';
 import { collectFiles } from './files.js';
 import { buildImportGraph, findTanglesIn, readCompilerOptions, staticallyReachable } from './graph.js';
@@ -159,7 +160,7 @@ export async function runCheckup(root: string, options: CheckupOptions = {}): Pr
   const generatedFiles = context.sources.filter((file) => file.isGenerated).length;
   // AngularJS code is mostly JavaScript; without it an AngularJS app or a Primo package reported 0 lines.
   const javascript = context.angularJs.files.filter((file) => file.language === 'js' && !file.isSpec);
-  const plan = options.plan ? buildPlan(context.workspace, allChecks, context.latestAngular.major, undefined, context.compatibility) : undefined;
+  const plan = options.plan ? buildPlan(context.workspace, allChecks, context.latestAngular.major, undefined, context.compatibility, context.nextMajor) : undefined;
   const checks = allChecks.filter((check) => keep(check.id));
   const migration = !options.plan
     ? undefined
@@ -278,6 +279,8 @@ export async function buildContext(root: string, options: CheckupOptions): Promi
     if (cache) cache.dependencies = dependencies;
   }
   const { latestAngular } = dependencies;
+  // Not part of the dependency cache: it depends on what the code imports, which changes between watch runs. The typings it reads are cached on disk.
+  const nextMajor = options.compareNextMajor === false ? undefined : await nextMajorChanges(workspace, sources, latestAngular.major, options.offline ?? false);
   const graph = buildImportGraph(sources, readCompilerOptions(workspace.rootTsconfig));
   const eagerFiles = staticallyReachable(graph, applicationEntries(workspace));
 
@@ -292,6 +295,7 @@ export async function buildContext(root: string, options: CheckupOptions): Promi
     tangles: findTanglesIn(graph),
     ...(eagerFiles.size > 0 ? { eagerFiles } : {}),
     latestAngular,
+    ...(nextMajor ? { nextMajor } : {}),
     compatibility: dependencies.compatibility,
     ...(dependencies.vulnerabilities ? { vulnerabilities: dependencies.vulnerabilities } : {}),
     bundles: readBundleStats(workspace),

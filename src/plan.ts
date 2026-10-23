@@ -1,5 +1,6 @@
 import { ANGULAR_VERSIONS, type AngularVersionInfo } from './angular-versions.js';
 import type { PackageCompatibility } from './compatibility.js';
+import type { NextMajorChanges } from './next-major.js';
 import type { CheckResult } from './types.js';
 import type { WorkspaceInfo } from './workspace.js';
 
@@ -59,6 +60,11 @@ export interface UpgradePlan {
  * the code does not need is left out, which is what makes the plan read as
  * this project's and not as the Angular changelog.
  *
+ * The first step also lists the imports its major removes, from
+ * `nextMajor`: only the next major's typings are compared, since those are
+ * what the team meets first and downloading every intermediate major's would
+ * make a ten-step plan slow.
+ *
  * Deliberately gives no time estimate. Counts are measured; days would be a
  * guess dressed up as data.
  *
@@ -71,6 +77,7 @@ export function buildPlan(
   target: number,
   versions: AngularVersionInfo[] = ANGULAR_VERSIONS,
   compatibility: PackageCompatibility[] = [],
+  nextMajor?: NextMajorChanges,
 ): UpgradePlan | undefined {
   const from = workspace.angular.major;
   if (from === undefined || from >= target) return undefined;
@@ -183,8 +190,21 @@ export function buildPlan(
     if (info.rxjs && has('rxjs')) requirements.push(track(requirement('RxJS', info.rxjs, moved.has('RxJS') ? undefined : current.rxjs)));
     if (info.zoneJs && has('zone.js') && !zoneless) requirements.push(track(requirement('zone.js', info.zoneJs, moved.has('zone.js') ? undefined : current.zoneJs)));
 
+    const removedHere = nextMajor && nextMajor.major === major && !nextMajor.prerelease ? nextMajor.removed : [];
     const items: PlanItem[] = [
       ...packageItems(major),
+      ...(removedHere.length > 0
+        ? [
+            {
+              title: `Replace the ${removedHere.length === 1 ? 'import' : `${removedHere.length} imports`} Angular ${major} removes`,
+              detail: `${removedHere
+                .slice(0, 6)
+                .map((change) => `${change.name} from ${change.module}`)
+                .join(', ')}${removedHere.length > 6 ? `, and ${removedHere.length - 6} more` : ''}. The ${major} typings no longer export them; the deprecated-APIs section lists the files.`,
+              count: new Set(removedHere.flatMap((change) => change.refs.map((ref) => ref.path))).size,
+            },
+          ]
+        : []),
       ...(unknown ? [{ title: 'Check the requirements for this major', detail: 'It was released after this version of ng-checkup. Node.js and TypeScript ranges: angular.dev/reference/versions.' }] : []),
       ...(ngrx.length > 0 && major >= 8 ? [{ title: `Update NgRx to ${major} in the same step`, command: `ng update ${ngrx.map((name) => `${name}@${major}`).join(' ')}`, detail: 'NgRx versions follow Angular majors. If that major is not released yet, wait for it before this step.' }] : []),
       ...(has('@angular/flex-layout') && major === 16

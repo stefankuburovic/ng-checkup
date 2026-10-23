@@ -51,7 +51,8 @@ for (const entry of repos) {
   const directory = checkout(entry);
   await prefetchTypings(directory);
   const started = Date.now();
-  const report = await runCheckup(directory, { offline: true, plan: true, maxExamples: 3 });
+  // compareNextMajor off: the next major's latest release moves with every Angular patch, and the snapshots must not.
+  const report = await runCheckup(directory, { offline: true, plan: true, maxExamples: 3, compareNextMajor: false });
   const snapshot = `${JSON.stringify(normalise(entry, report), null, 2)}\n`;
   const path = join(SNAPSHOTS, `${entry.name}.json`);
   const previous = existsSync(path) ? readFileSync(path, 'utf8') : undefined;

@@ -22,6 +22,19 @@ export interface EntryDeprecations {
 /** Import path to its deprecated exports. */
 export type DeprecationIndex = Map<string, EntryDeprecations>;
 
+/** Everything one import path exports, deprecated or not, plus its deprecations. */
+export interface EntryApi extends EntryDeprecations {
+  /** Every name the entry point exports, types included. */
+  names: Set<string>;
+}
+
+/**
+ * Import path to its whole public API. What `nextMajorChanges` compares
+ * between two versions of a package: a name the code imports that the newer
+ * version no longer exports is a compile error after `ng update`.
+ */
+export type ApiIndex = Map<string, EntryApi>;
+
 /**
  * Package scopes whose type definitions are indexed. Both publish their public
  * API as bundled `.d.ts` files with `@deprecated` tags kept, and both are where
@@ -81,11 +94,26 @@ export function isIndexedPackage(name: string): boolean {
  */
 export function buildDeprecationIndexFrom(packages: Array<[name: string, directory: string]>): DeprecationIndex {
   const index: DeprecationIndex = new Map();
+  for (const [specifier, api] of buildApiIndexFrom(packages)) {
+    // The names stay out: the deprecation index is kept in the analysis cache, and a few thousand names per entry are dead weight there.
+    if (api.symbols.size > 0 || api.members.size > 0) index.set(specifier, { symbols: api.symbols, members: api.members });
+  }
+  return index;
+}
+
+/**
+ * The whole public API of the given packages, entry point by entry point,
+ * read the same way as the deprecation index (and from the same kind of
+ * directory). An entry point that exports nothing readable is still listed,
+ * with an empty set, so "the entry point is gone" and "it exports nothing I
+ * can read" stay distinguishable.
+ */
+export function buildApiIndexFrom(packages: Array<[name: string, directory: string]>): ApiIndex {
+  const index: ApiIndex = new Map();
   for (const [name, packageDirectory] of packages) {
+    const reader = new DtsReader();
     for (const [entry, typesPath] of typeEntriesOf(packageDirectory)) {
-      const specifier = entry === '.' ? name : `${name}/${entry.slice(2)}`;
-      const deprecations = new DtsReader().exportsOf(typesPath);
-      if (deprecations.symbols.size > 0 || deprecations.members.size > 0) index.set(specifier, deprecations);
+      index.set(entry === '.' ? name : `${name}/${entry.slice(2)}`, reader.exportsOf(typesPath));
     }
   }
   return index;
@@ -153,13 +181,18 @@ function legacyEntriesOf(directory: string, entry: string, depth: number): Array
  * per file, which matters because many entry points share the same chunks.
  */
 class DtsReader {
-  private readonly cache = new Map<string, EntryDeprecations>();
+  private readonly cache = new Map<string, EntryApi>();
 
-  /** The deprecated names `path` exports, under the names it exports them as. */
-  exportsOf(path: string, depth = 0): EntryDeprecations {
+  /**
+   * The names `path` exports, and the deprecated ones among them, under the
+   * names it exports them as. A name counts as exported when an export
+   * statement names it; whether it resolves is the compiler's business, and
+   * Angular's published typings compile.
+   */
+  exportsOf(path: string, depth = 0): EntryApi {
     const cached = this.cache.get(path);
     if (cached) return cached;
-    const result: EntryDeprecations = { symbols: new Map(), members: new Map() };
+    const result: EntryApi = { symbols: new Map(), members: new Map(), names: new Set() };
     // Set before recursing, so a re-export cycle between chunks ends here instead of overflowing.
     this.cache.set(path, result);
     if (depth > 8 || !existsSync(path)) return result;
@@ -195,6 +228,7 @@ class DtsReader {
           if (target) {
             for (const [name, info] of target.symbols) result.symbols.set(name, info);
             for (const [name, info] of target.members) result.members.set(name, info);
+            for (const name of target.names) result.names.add(name);
           }
           continue;
         }
@@ -202,6 +236,7 @@ class DtsReader {
         for (const element of clause.elements) {
           const original = (element.propertyName ?? element.name).text;
           const exported = element.name.text;
+          result.names.add(exported);
           if (target) {
             exportAs(target, original, exported);
           } else if (local.symbols.has(original) || [...local.members.keys()].some((key) => key.startsWith(`${original}.`))) {
@@ -215,7 +250,10 @@ class DtsReader {
       }
       // `export declare class X` and friends, exported under their own name.
       if (ts.canHaveModifiers(statement) && ts.getModifiers(statement)?.some((modifier) => modifier.kind === ts.SyntaxKind.ExportKeyword)) {
-        for (const name of declaredNames(statement)) exportAs(local, name, name);
+        for (const name of declaredNames(statement)) {
+          result.names.add(name);
+          exportAs(local, name, name);
+        }
       }
     }
     return result;

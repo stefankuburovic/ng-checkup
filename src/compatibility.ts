@@ -133,6 +133,8 @@ export async function readCompatibility(workspace: WorkspaceInfo, target: number
 /** The parts of an npm packument the check reads. */
 export interface Packument {
   latest: string;
+  /** The `next` dist-tag: a prerelease of the coming version, when the package publishes one. */
+  next?: string;
   versions: Record<string, { angularRange?: string; deprecated?: string }>;
 }
 
@@ -158,7 +160,8 @@ export async function fetchPackument(name: string): Promise<Packument | undefine
       const deprecated = record['deprecated'];
       versions[version] = { angularRange: typeof peer === 'string' ? peer : undefined, deprecated: typeof deprecated === 'string' ? deprecated : undefined };
     }
-    return { latest, versions };
+    const next = asRecord(body['dist-tags'])['next'];
+    return { latest, ...(typeof next === 'string' ? { next } : {}), versions };
   } catch {
     return undefined;
   }

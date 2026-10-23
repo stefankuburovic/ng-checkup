@@ -161,6 +161,12 @@ export interface CheckupOptions {
   only?: string[];
   /** Check ids to leave out of the report and the score (`--skip bundle`). */
   skip?: string[];
+  /**
+   * Compare the imports with the next Angular major's typings (default true).
+   * The corpus turns it off: which release of the next major is "the latest"
+   * moves with every patch Angular publishes, and a snapshot must not.
+   */
+  compareNextMajor?: boolean;
   /** Reuse results between runs (`--watch`); see `createAnalysisCache`. */
   cache?: import('./cache.js').AnalysisCache;
   /**

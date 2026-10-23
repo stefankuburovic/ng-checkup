@@ -5,6 +5,7 @@ import type ts from 'typescript';
 import type { PackageCompatibility } from '../compatibility.js';
 import type { DeprecationIndex } from '../deprecations.js';
 import type { DependencyTangle } from '../graph.js';
+import type { NextMajorChanges } from '../next-major.js';
 import type { TypingsSource } from '../typings.js';
 import type { VulnerabilityScan } from '../vulnerabilities.js';
 import type { SourceFileFacts, TemplateFact } from '../scan.js';
@@ -44,6 +45,12 @@ export interface AnalysisContext {
   churn: Churn | ChurnUnavailable;
   /** Known vulnerabilities of the direct dependencies, from osv.dev. Undefined offline or when OSV did not answer. */
   vulnerabilities?: VulnerabilityScan;
+  /**
+   * What the next Angular major removes or deprecates among the APIs the code
+   * imports (see `nextMajorChanges`). Undefined when there is no next major to
+   * compare with, or its typings could not be had.
+   */
+  nextMajor?: NextMajorChanges;
   /** Newest Angular major, and whether it came from the registry or the tool's bundled fallback. */
   latestAngular: { major: number; source: 'registry' | 'bundled' };
   /** Effective options of the application tsconfig, `extends` resolved. */

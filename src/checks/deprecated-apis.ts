@@ -115,22 +115,65 @@ export function deprecatedApisCheck(context: AnalysisContext): CheckResult {
     });
   }
 
+  // What the next major removes or newly deprecates among the imports: visible before `ng update`, not after.
+  const next = context.nextMajor;
+  const nextLabel = next ? `Angular ${next.major}${next.prerelease ? ` (${next.version}, a prerelease)` : ''}` : '';
+  const listChanges = (changes: NonNullable<typeof next>['removed'], withReason: boolean): string =>
+    `${changes
+      .slice(0, 8)
+      .map((change) => {
+        // Some tags lose their code span in the parsed comment and read just "use"; a reason that short says nothing.
+        const reason = change.info?.message.replace(/\.$/, '') ?? '';
+        return `\`${change.name}\` from ${change.module} (${plural(change.refs.length, 'file')})${withReason && reason.length >= 12 ? `: ${reason}` : ''}`;
+      })
+      .join('; ')}${changes.length > 8 ? `; and ${changes.length - 8} more` : ''}.`;
+  const filesOf = (changes: NonNullable<typeof next>['removed']): FileRef[] => {
+    const refs: FileRef[] = [];
+    for (const change of changes) for (const ref of change.refs) if (!refs.some((existing) => existing.path === ref.path)) refs.push(ref);
+    return refs;
+  };
+  if (next && next.removed.length > 0) {
+    const refs = filesOf(next.removed);
+    findings.unshift({
+      severity: 'high',
+      message: `${plural(next.removed.length, 'imported API')} removed in ${nextLabel}, imported in ${plural(refs.length, 'file')}`,
+      detail: `${listChanges(next.removed, false)} The ${next.major} type definitions no longer export ${next.removed.length === 1 ? 'it, so the import stops' : 'them, so each import stops'} compiling after \`ng update\`; replace ${next.removed.length === 1 ? 'it' : 'them'} before that step. Read from the published typings of ${next.version}.`,
+      files: refs.slice(0, context.maxExamples),
+      count: refs.length,
+    });
+  }
+  if (next && next.deprecated.length > 0) {
+    const refs = filesOf(next.deprecated);
+    findings.push({
+      severity: 'low',
+      message: `${plural(next.deprecated.length, 'imported API')} deprecated in ${nextLabel}`,
+      detail: `${listChanges(next.deprecated, true)} Not deprecated in the installed version yet, so nothing above flags them; they still work after the upgrade and go away two majors later.`,
+      files: refs.slice(0, context.maxExamples),
+      count: refs.length,
+    });
+  }
+
   const affectedFiles = new Set(sorted.flatMap((usage) => usage.refs.map((ref) => ref.path)));
-  const grade: Grade = findings.length === 0 ? 'good' : findings.some((finding) => finding.severity === 'high') ? 'poor' : 'fair';
+  // What the next major only deprecates (low) is advance notice, not a problem with the code today, so it does not grade.
+  const graded = findings.filter((finding) => finding.severity !== 'low');
+  const grade: Grade = graded.length === 0 ? 'good' : graded.some((finding) => finding.severity === 'high') ? 'poor' : 'fair';
 
   return {
     id: 'deprecated-apis',
     title: 'Deprecated APIs',
     grade,
     summary:
-      findings.length === 0
-        ? current !== undefined && current < context.latestAngular.major
-          ? `Nothing deprecated as of Angular ${current} is in use; APIs deprecated in later versions surface at each upgrade step.`
-          : 'No deprecated Angular or NgRx API in use.'
+      graded.length === 0
+        ? `${
+            current !== undefined && current < context.latestAngular.major
+              ? `Nothing deprecated as of Angular ${current} is in use; APIs deprecated in later versions surface at each upgrade step.`
+              : 'No deprecated Angular or NgRx API in use.'
+          }${next && next.deprecated.length > 0 ? ` ${plural(next.deprecated.length, 'import')} ${next.deprecated.length === 1 ? 'becomes' : 'become'} deprecated in Angular ${next.major}.` : ''}`
         : `${[
             usages.size > 0 ? `${plural(usages.size, 'deprecated symbol')} in ${plural(affectedFiles.size, 'file')}` : undefined,
             rxjsMajor !== undefined && rxjsMajor >= 7 && toPromiseCalls > 0 ? plural(toPromiseCalls, '`.toPromise()` call') : undefined,
             ngIf && legacyUses > 0 ? 'deprecated control flow in templates' : undefined,
+            next && next.removed.length > 0 ? `${plural(next.removed.length, 'import')} removed in Angular ${next.major}` : undefined,
           ]
             .filter(Boolean)
             .join(', ')
@@ -139,6 +182,7 @@ export function deprecatedApisCheck(context: AnalysisContext): CheckResult {
       { label: 'Deprecated symbols', value: usages.size },
       { label: 'Files affected', value: formatCount(affectedFiles.size) },
       { label: 'Legacy template directives', value: formatCount(legacyUses), hint: ngIf ? 'deprecated' : 'not deprecated in this version' },
+      ...(next ? [{ label: `Angular ${next.major}`, value: `${formatCount(next.removed.length)} removed, ${formatCount(next.deprecated.length)} deprecated`, hint: `imports, compared with ${next.version}` }] : []),
     ],
     findings,
     measures: [
