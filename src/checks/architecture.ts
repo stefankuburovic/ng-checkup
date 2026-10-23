@@ -5,6 +5,14 @@ import { applicationFiles, formatCount, percent, plural, type AnalysisContext } 
 const LARGE_FILE = 500;
 /** Lines of code from which a file counts against the grade. */
 const VERY_LARGE_FILE = 1000;
+/**
+ * A hotspot is at least this large… The thresholds keep the list to files
+ * that matter on a large app (on a 1 600-file app, 200 lines and 5 commits
+ * named 147 files, which is a list nobody acts on).
+ */
+const HOTSPOT_LINES = 300;
+/** …and was changed in at least this many commits of the last year. */
+const HOTSPOT_COMMITS = 10;
 
 /**
  * How the code is put together: lazy loading, oversized files, and the
@@ -61,6 +69,26 @@ export function architectureCheck(context: AnalysisContext): CheckResult {
       count: large.length,
     });
   }
+  // Hotspots: large files that also change often, ranked by size times commits.
+  const churn = typeof context.churn === 'object' ? context.churn : undefined;
+  const hotspots = churn
+    ? files
+        .map((file) => ({ file, commits: churn.files.get(file.path) ?? 0 }))
+        .filter(({ file, commits }) => file.linesOfCode >= HOTSPOT_LINES && commits >= HOTSPOT_COMMITS)
+        .sort((left, right) => right.file.linesOfCode * right.commits - left.file.linesOfCode * left.commits)
+    : [];
+  if (hotspots.length > 0) {
+    findings.push({
+      severity: hotspots.some(({ file }) => file.linesOfCode >= LARGE_FILE) ? 'medium' : 'low',
+      message: `Hotspots: ${hotspots.length > 5 ? 'the ' : ''}large files changed most often${hotspots.length > 5 ? ` (top 5 of ${formatCount(hotspots.length)})` : ''}`,
+      detail: `${hotspots
+        .slice(0, 5)
+        .map(({ file, commits }) => `${file.path.split('/').pop()} (${formatCount(file.linesOfCode)} lines, ${plural(commits, 'commit')})`)
+        .join(', ')}, over the last year of history. A file that is both large and edited all the time costs its size on every change; these are where splitting or a refactor pays back first, more than the largest file nobody touches.`,
+      files: hotspots.slice(0, max).map(({ file }) => ({ path: file.path })),
+      count: hotspots.length,
+    });
+  }
   if (classGuards.length > 0) {
     findings.push({
       severity: 'low',
@@ -102,6 +130,9 @@ export function architectureCheck(context: AnalysisContext): CheckResult {
       { label: 'Large files', value: formatCount(large.length), hint: `over ${formatCount(LARGE_FILE)} lines` },
       { label: 'Constructor injection', value: formatCount(constructorInjections.length), hint: `classes; ${formatCount(injectCalls)} inject() calls` },
       { label: 'Class guards', value: formatCount(classGuards.length), hint: 'and interceptors' },
+      churn
+        ? { label: 'Hotspots', value: formatCount(hotspots.length), hint: `from ${plural(churn.commits, 'commit')} in the last year` }
+        : { label: 'Hotspots', value: '-', hint: context.churn === 'shallow clone' ? 'shallow clone: no history (fetch-depth: 0)' : `${context.churn}` },
     ],
     findings,
     measures: [

@@ -19,6 +19,7 @@ import { testingCheck } from './checks/testing.js';
 import { typeSafetyCheck } from './checks/type-safety.js';
 import { versionCheck } from './checks/version.js';
 import { cachedFacts, dependencyStamp } from './cache.js';
+import { readChurn } from './churn.js';
 import { lookUpVulnerabilities } from './vulnerabilities.js';
 import { loadDeprecationIndex } from './typings.js';
 import { ignoreMatcher } from './config.js';
@@ -282,6 +283,7 @@ export async function buildContext(root: string, options: CheckupOptions): Promi
     sources,
     templates,
     angularJs,
+    churn: readChurn(root),
     deprecations: dependencies.deprecations,
     typings: dependencies.typings,
     tangles: findTanglesIn(graph),

@@ -1,5 +1,6 @@
 import type { AngularJsFacts } from '../angularjs.js';
 import type { BundleStats } from '../bundle.js';
+import type { Churn, ChurnUnavailable } from '../churn.js';
 import type ts from 'typescript';
 import type { PackageCompatibility } from '../compatibility.js';
 import type { DeprecationIndex } from '../deprecations.js';
@@ -39,6 +40,8 @@ export interface AnalysisContext {
   bundles: BundleStats[];
   /** Installed third-party packages that depend on Angular. Empty without node_modules. */
   compatibility: PackageCompatibility[];
+  /** Commits per file over the last year from git, or why there is no history to read (see `readChurn`). */
+  churn: Churn | ChurnUnavailable;
   /** Known vulnerabilities of the direct dependencies, from osv.dev. Undefined offline or when OSV did not answer. */
   vulnerabilities?: VulnerabilityScan;
   /** Newest Angular major, and whether it came from the registry or the tool's bundled fallback. */
