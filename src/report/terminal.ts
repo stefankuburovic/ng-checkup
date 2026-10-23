@@ -22,7 +22,8 @@ export function palette(enabled: boolean) {
  *
  * By default it shows one line per check and the top priorities, which fits a
  * screen and is what someone running the tool for the first time wants;
- * `verbose` adds every finding with its example files. The file reports
+ * `verbose` adds every finding with its example files, and keeps the top
+ * priorities at the end. The file reports
  * (`--report x.html`) always carry everything, so the terminal never has to.
  */
 export function renderTerminal(report: Report, options: TerminalOptions): string {
@@ -124,8 +125,9 @@ export function renderTerminal(report: Report, options: TerminalOptions): string
     }
   }
 
+  // Shown with --verbose too: the full list above says what there is, this says where to start.
   const priorities = topPriorities(report);
-  if (!options.verbose && priorities.length > 0) {
+  if (priorities.length > 0) {
     lines.push('');
     lines.push(c.bold('Top priorities'));
     priorities.forEach(({ check, finding }, index) => {

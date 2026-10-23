@@ -95,6 +95,14 @@ describe('renderTerminal', () => {
     expect(renderTerminal(report, { color: false, verbose: false })).not.toContain('A low one');
     expect(renderTerminal(report, { color: false, verbose: true })).toContain('A low one');
   });
+
+  it('keeps the top priorities in verbose mode, after every finding', () => {
+    const verbose = renderTerminal(report, { color: false, verbose: true });
+    expect(verbose).toContain('Top priorities');
+    expect(verbose.indexOf('A low one')).toBeLessThan(verbose.indexOf('Top priorities'));
+    // The hint to --verbose is only for the short form.
+    expect(verbose).not.toContain('Every finding with its files: --verbose');
+  });
 });
 
 describe('renderSarif', () => {
