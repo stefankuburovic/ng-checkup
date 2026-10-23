@@ -23,6 +23,7 @@ npx ng-checkup
 - [Configuration](#configuration)
 - [Baseline: adopt it on legacy code](#baseline-adopt-it-on-legacy-code)
 - [Watch mode](#watch-mode)
+- [History](#history)
 - [Upgrade plan](#upgrade-plan)
 - [AngularJS and hybrid apps](#angularjs-and-hybrid-apps)
 - [Primo VE to NDE](#primo-ve-to-nde)
@@ -117,6 +118,8 @@ npx ng-checkup init --ci gitlab    # pick the CI instead of detecting it (github
 | `ignore` | paths left out of the analysis; a path matches everything below it, `*` stays within a folder, `**` crosses folders | |
 | `baseline` | the baseline file, relative to the config file (default `ng-checkup.baseline.json` in the root) | |
 | `plan` | add the upgrade plan to every run | `--plan` |
+| `only` | report only these areas, by [check id](https://github.com/stefankuburovic/ng-checkup/blob/main/docs/checks.md) (`["security", "dependencies"]`) | `--only` |
+| `skip` | leave these areas out of the report, the score and the baseline | `--skip` |
 
 An unknown key or a wrong type stops the run with an error, so a typo cannot silently switch off a CI threshold. Use `--config path/to/file.json` for a file elsewhere.
 
@@ -157,6 +160,35 @@ Score 72 -> 76 (+4 since the watch started)
 ```
 
 Only the changed files are parsed again, and the registry is asked again only when `package.json` or a lockfile changes, so a run after a save takes a fraction of the first one. Keep it open next to the editor while working through a refactor; run `npx ng-checkup baseline` in another terminal to lock a drop in, and the next run compares against it.
+
+## History
+
+```bash
+npx ng-checkup history --report history.html
+```
+
+```text
+ng-checkup 1.0.0  history of angular-realworld-example-app, 19 points (shortened)
+
+  date        commit   Angular   score     lines
+  2023-10-30  0d28f5c  16.2.11      60     1 407
+  2023-12-19  bcc6d42  17.0.7       64     1 360
+  2024-05-24  932dff0  18.0.0       68     1 441
+  2025-05-29  a420aa2  20.0.0       72     1 401
+  2025-11-10  987b634  20.3.9       76     1 356
+  2026-01-30  6809ae9  21.1.1       91     1 471
+  2026-10-23  now      21.2.12      91     1 709
+
+Moved most since the first point
+      -27  *ngIf / *ngFor / [ngSwitch] uses (27 -> 0)
+      -16  Components with eager change detection (16 -> 0)
+       -9  Components and services without a spec (27 -> 18)
+       -7  Explicit any in application code (7 -> 0)
+```
+
+How the score and every measure moved over the last months, without having to collect it as you go. It takes the last commit of each month from git (`--points 12` months by default; a month without a commit is skipped), extracts it into a temporary folder with `git archive`, runs the checkup offline on it, and ends with the working tree as it is, uncommitted changes included. Your checkout is never touched. The HTML report has a chart of the score and one per measure that moved most; `.md` and `.json` work too.
+
+It is the slide for "what did the refactoring buy us", and the first thing to look at on a codebase you inherit: whether the debt is shrinking or growing. A shallow clone has no history, so in CI fetch it in full (`fetch-depth: 0`).
 
 ## Upgrade plan
 
@@ -294,14 +326,14 @@ The codebase is named by its repository and commit, never by a path on your disk
 | [**Change detection**](https://github.com/stefankuburovic/ng-checkup/blob/main/docs/checks.md#change-detection) | zoneless or zone.js, OnPush coverage, `NgZone`, zone-only test helpers | zone.js with less than half the components on OnPush |
 | [**Components & templates**](https://github.com/stefankuburovic/ng-checkup/blob/main/docs/checks.md#components) | standalone, signal inputs and outputs, built-in control flow, `@defer` | average adoption below 40% |
 | [**State management**](https://github.com/stefankuburovic/ng-checkup/blob/main/docs/checks.md#state) | classic NgRx, NgRx signal store, signals, `BehaviorSubject` services | the removed `@Effect()` decorator |
-| [**Architecture**](https://github.com/stefankuburovic/ng-checkup/blob/main/docs/checks.md#architecture) | eager vs. lazy routes (following `loadChildren` into lazy modules), files over 500 and 1 000 lines, constructor injection, class-based guards and interceptors | ten eager routes and none lazy, or three files over 1 000 lines |
+| [**Architecture**](https://github.com/stefankuburovic/ng-checkup/blob/main/docs/checks.md#architecture) | eager vs. lazy routes (following `loadChildren` into lazy modules), files over 500 and 1 000 lines, hotspots (large files changed most often, from git), constructor injection, class-based guards and interceptors | ten eager routes and none lazy, or three files over 1 000 lines |
 | [**Testing**](https://github.com/stefankuburovic/ng-checkup/blob/main/docs/checks.md#testing) | Karma / Jest / Vitest, specs next to components and services, Protractor / Playwright / Cypress | Karma, Protractor or no specs |
 | [**Type safety**](https://github.com/stefankuburovic/ng-checkup/blob/main/docs/checks.md#type-safety) | `strictNullChecks`, `strictTemplates`, `noImplicitAny`, `any`, `x!`, `@ts-ignore`, `$any()` | both `strictNullChecks` and `strictTemplates` off |
-| [**Security**](https://github.com/stefankuburovic/ng-checkup/blob/main/docs/checks.md#security) | `bypassSecurityTrust*`, HTML written straight into the DOM (`innerHTML =`, `insertAdjacentHTML`, `Renderer2.setProperty`), `eval`, `[innerHTML]` bindings | HTML written into the DOM past the sanitizer, or `eval` |
+| [**Security**](https://github.com/stefankuburovic/ng-checkup/blob/main/docs/checks.md#security) | known vulnerabilities of the dependencies (from [osv.dev](https://osv.dev), AngularJS included), `bypassSecurityTrust*`, HTML written straight into the DOM (`innerHTML =`, `insertAdjacentHTML`, `Renderer2.setProperty`), `eval`, `[innerHTML]` bindings | a high or critical advisory in a runtime dependency, HTML written into the DOM past the sanitizer, or `eval` |
 | [**Circular dependencies**](https://github.com/stefankuburovic/ng-checkup/blob/main/docs/checks.md#circular-deps) | import cycles through relative paths, barrels and tsconfig `paths` | more than three groups or ten files in loops |
 | [**Bundle size**](https://github.com/stefankuburovic/ng-checkup/blob/main/docs/checks.md#bundle) | the initial bundle from the last `ng build --stats-json` (esbuild or webpack) against the build's budget, its largest packages, lazy chunks | over the `initial` error budget (1 MB by default) |
 
-Each finding says why it matters and which `ng generate` migration fixes it. **[Every check, its grading and its fix →](https://github.com/stefankuburovic/ng-checkup/blob/main/docs/checks.md)**
+`--only security,dependencies` reports just those areas, and `--skip bundle` leaves one out; the score is then the average of what is left. Each finding says why it matters and which `ng generate` migration fixes it. **[Every check, its grading and its fix →](https://github.com/stefankuburovic/ng-checkup/blob/main/docs/checks.md)**
 
 Defaults that changed between versions are applied per version: a component without `standalone` is standalone from Angular 19, one without `changeDetection` is OnPush from 22, and an app without a zone provider is zoneless from 21.
 
@@ -331,6 +363,7 @@ Usage: ng-checkup [path | repository] [options]
        ng-checkup init [path] [init options]
        ng-checkup baseline [path] [--force]
        ng-checkup url <address> [--json] [--offline]
+       ng-checkup history [path] [--points <n>] [--report <file>] [--json]
 
 Arguments:
   path                   Repository root (default: current directory)
@@ -369,7 +402,7 @@ Options:
                          (security,testing); the rest stay out of the score
       --skip <ids>       Leave these areas out of the report and the score
       --max-examples <n> Example files listed per finding (default 5)
-      --offline          Do not look up the latest Angular version online
+      --offline          Nothing online: no npm registry, no osv.dev lookup
       --config <file>    Config file (default: ng-checkup.config.json in the root)
       --no-color         Plain output (also off when NO_COLOR is set or not a TTY)
   -h, --help             Show this help
@@ -389,6 +422,16 @@ Url (ng-checkup url <address>):
                          versions, zone.js, React, Vue, Next.js, Nuxt. Reads
                          the page and up to 12 scripts of the same site
       --json             Print the result as JSON
+
+History (ng-checkup history [path]):
+                         How the score and the measures moved over the last
+                         months: checks out one commit per month into a
+                         temporary folder (the working tree is never touched),
+                         runs the checkup offline on each, and ends with now.
+                         Needs the full git history, not a shallow clone
+      --points <n>       Months back (default 12)
+  -r, --report <file>    Write it as .html (with charts), .md or .json
+      --json             Print it as JSON
 ```
 
 Exit codes: `0` done, `1` `--fail-on` tripped, `2` usage error (including `--fail-on regression` without a baseline). Areas graded `info` never fail a run.
@@ -501,11 +544,11 @@ for (const check of report.checks) {
 await writeFile('checkup.md', renderMarkdown(report));
 ```
 
-`runCheckup` never writes anything. Its options mirror the flags (`offline`, `plan`, `project`, `ignore`, `maxExamples`), plus `cache` from `createAnalysisCache()` to make repeated runs incremental. `renderHtml`, `renderMarkdown`, `renderSarif`, `overallScore`, `topPriorities`, `loadConfig`, `planInit` (what `init` would change, without writing it) and the baseline functions (`createBaseline`, `compareWithBaseline`, `readBaseline`, `serializeBaseline`) are exported too, along with the `Report`, `CheckResult`, `Finding` and `Grade` types. `Report` is also the schema of the JSON output.
+`runCheckup` never writes anything. Its options mirror the flags (`offline`, `plan`, `project`, `ignore`, `only`, `skip`, `maxExamples`), plus `cache` from `createAnalysisCache()` to make repeated runs incremental. `renderHtml`, `renderMarkdown`, `renderSarif`, `overallScore`, `topPriorities`, `loadConfig`, `planInit` (what `init` would change, without writing it), `collectHistory` with `renderHistoryHtml` and `renderHistoryMarkdown`, and the baseline functions (`createBaseline`, `compareWithBaseline`, `readBaseline`, `serializeBaseline`) are exported too, along with the `Report`, `CheckResult`, `Finding` and `Grade` types. `Report` is also the schema of the JSON output.
 
 ## What leaves your machine
 
-Package names and versions, and only to the public npm registry: the latest `@angular/core` version (three-second timeout); for every third-party package that depends on Angular, its public metadata, to find the release that supports the next Angular and whether it is deprecated (eight at a time, four-second timeout each); and, when `node_modules` is missing, the published tarballs of the `@angular/*`, `@ngrx/*` and `rxjs` versions your code imports, of which only `package.json` and `.d.ts` files are kept, in `~/.cache/ng-checkup` (`NG_CHECKUP_CACHE` moves it). `--offline` skips all of it and uses only what is already cached; the report then compares against the newest major this release knows and says so. A remote repository argument also clones it from its host. No source, no file names, no telemetry. The tool reads files and writes only the reports you ask for.
+Package names and versions, to two public services. To the npm registry: the latest `@angular/core` version (three-second timeout); for every third-party package that depends on Angular, its public metadata, to find the release that supports the next Angular and whether it is deprecated (eight at a time, four-second timeout each); and, when `node_modules` is missing, the published tarballs of the `@angular/*`, `@ngrx/*` and `rxjs` versions your code imports, of which only `package.json` and `.d.ts` files are kept, in `~/.cache/ng-checkup` (`NG_CHECKUP_CACHE` moves it). To [osv.dev](https://osv.dev): the direct dependencies with their exact versions, to look up known vulnerabilities (eight-second timeout). `--offline` skips all of it and uses only what is already cached; the report then compares against the newest major this release knows and says so. A remote repository argument also clones it from its host. No source, no file names, no telemetry. The tool reads files and writes only the reports you ask for.
 
 ## How it works
 
@@ -535,7 +578,6 @@ Package names and versions, and only to the public npm registry: the latest `@an
 ## Roadmap
 
 - Per-project baselines for monorepos
-- Change frequency from git history, to rank large files by how often they change
 - A VS Code extension showing findings inline
 
 Ideas and bug reports are welcome in [issues](https://github.com/stefankuburovic/ng-checkup/issues).

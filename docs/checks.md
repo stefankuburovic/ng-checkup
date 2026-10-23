@@ -23,7 +23,7 @@ The score is the average of the graded areas: good counts 100, fair 60, poor 20.
 
 In a monorepo every project also gets its own grade on the code checks (everything except the version and third-party checks, which the projects share); see [Monorepos](../README.md#monorepos).
 
-The id in parentheses is what the JSON report uses.
+The id in parentheses is what the JSON report uses, and what `--only` and `--skip` take: `--only security,dependencies` reports those two areas, `--skip bundle` leaves one out. Every check still runs, but a left-out area is not in the report, the score or the baseline.
 
 ---
 
@@ -180,6 +180,8 @@ A `component:` route counts as eager only in a file the app loads at startup: ev
 
 Constructor injection and class-based guards are reported as low findings but never change the grade: they work, they are only the older style. `inject()` and functional guards are what current Angular and its migrations produce.
 
+**Hotspots.** In a git repository with its history, the check also reads how often each file changed in the last twelve months (`git log`, merges left out, limited to the analysed folder). A file of at least 300 lines changed in at least 10 commits is a hotspot, ranked by lines times commits, and the five worst are listed: that is where a refactoring pays off first, since the file is read and edited all the time. Hotspots never change the grade and are not a baseline measure, because the count moves with how busy the team is, not with the code. In a shallow clone (`fetch-depth: 1` in CI, a remote repository argument) there is one commit of history, and the report says so instead of ranking nothing.
+
 **Fixing it:** `loadComponent: () => import('./x').then((m) => m.X)` per route; `ng generate @angular/core:inject` for constructors; functional guards (`CanActivateFn`) and interceptors (`HttpInterceptorFn` with `withInterceptors`). Large files are split by responsibility, the largest first.
 
 ---
@@ -222,7 +224,11 @@ A flag the tsconfig does not set takes the default of the version you run: `stri
 
 ## Security (`security`) <a id="security"></a>
 
-**What it reads:** the places where code steps around Angular's built-in XSS protection, in application files (specs are left out):
+**What it reads:** the published advisories for the dependencies, and the places where code steps around Angular's built-in XSS protection.
+
+**Known vulnerabilities.** Every direct dependency at its exact version (installed, or pinned in the lockfile) is looked up in [OSV](https://osv.dev), which carries the GitHub advisories for npm. AngularJS loaded from Bower, a CDN or a checked-in copy is looked up as the npm package `angular`. The finding lists each package with its CVE ids and the nearest fixed version; dependencies used only in `devDependencies` get a separate low finding, since they never reach users. Direct dependencies only: the full tree is `npm audit`'s job, and the direct ones are those the codebase chose and can upgrade. Offline, or when osv.dev does not answer within eight seconds, the lookup is skipped and the report says "not checked". It is not a baseline measure: the count grows when an advisory is published, not when the code gets worse.
+
+**Escape hatches,** in application files (specs are left out):
 
 - `bypassSecurityTrustHtml`, `…Style`, `…Script`, `…Url`, `…ResourceUrl` calls;
 - HTML written straight into the DOM: assignments to `innerHTML` / `outerHTML`, `insertAdjacentHTML`, `document.write`, `Renderer2.setProperty(el, 'innerHTML', …)`;
@@ -235,11 +241,11 @@ Angular sanitizes every bound value, so an Angular app is safe from cross-site s
 
 | Grade | When |
 | --- | --- |
-| good | none of the above, apart from `[innerHTML]` bindings (which Angular sanitizes) |
-| fair | `bypassSecurityTrust*` calls: each needs a look at where its value comes from |
-| poor | HTML written into the DOM past the sanitizer, or `eval` / `new Function`: these skip sanitization for every value |
+| good | none of the above, apart from `[innerHTML]` bindings (which Angular sanitizes), and no known vulnerability in a runtime dependency |
+| fair | `bypassSecurityTrust*` calls: each needs a look at where its value comes from; or a moderate advisory in a runtime dependency |
+| poor | HTML written into the DOM past the sanitizer, or `eval` / `new Function`: these skip sanitization for every value; or a high or critical advisory in a runtime dependency |
 
-**Fixing it:** bind HTML with `[innerHTML]` instead of writing it to the element; sanitize user content with an allow-list sanitizer such as DOMPurify before trusting it; replace `eval` with a lookup table or `JSON.parse`.
+**Fixing it:** upgrade a vulnerable package to the fixed version the finding names (AngularJS advisories name none: 1.8.3 is the last release, and the fix is the migration); bind HTML with `[innerHTML]` instead of writing it to the element; sanitize user content with an allow-list sanitizer such as DOMPurify before trusting it; replace `eval` with a lookup table or `JSON.parse`.
 
 ---
 
