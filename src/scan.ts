@@ -126,8 +126,16 @@ export interface SourceFileFacts {
    * or Jest, which is what the testing check reports them for.
    */
   jasmineCalls: number;
-  /** Lines of every `any` type annotation or `as any`. */
+  /** Lines of every `any` type annotation or `as any`, except those an eslint directive exempts (see `suppressedAnyLines`). */
   anyLines: number[];
+  /**
+   * Lines of an `any` that an eslint directive switches `no-explicit-any` off
+   * for: `eslint-disable-next-line`, `eslint-disable-line`, or a
+   * `/* eslint-disable *\/` … `/* eslint-enable *\/` block, naming the rule
+   * or no rule at all. Kept apart because that is what a team's own lint
+   * count leaves out, and a report that counts them reads as contradicting it.
+   */
+  suppressedAnyLines: number[];
   /** Lines of every `x!` non-null assertion. */
   nonNullLines: number[];
   /** `x!: T` property declarations, which skip definite-assignment checking. */
@@ -205,6 +213,7 @@ export function scanSourceFile(root: string, absolutePath: string): SourceFileFa
     memberAccesses: new Map(),
     jasmineCalls: 0,
     anyLines: [],
+    suppressedAnyLines: [],
     nonNullLines: [],
     definiteAssignments: 0,
     typeSuppressions: (text.match(/@ts-(ignore|expect-error|nocheck)\b/g) ?? []).length,
@@ -217,7 +226,8 @@ export function scanSourceFile(root: string, absolutePath: string): SourceFileFa
     constructorInjections: [],
     classGuards: [],
     inlineTemplates: [],
-  };
+  };  const anyExempt = lintExemptLines(text, '@typescript-eslint/no-explicit-any');
+
 
   /** Imported bindings by local name: what `signal` in this file actually refers to. */
   const locals = new Map<string, { module: string; imported: string }>();
@@ -300,7 +310,8 @@ export function scanSourceFile(root: string, absolutePath: string): SourceFileFa
       const binding = locals.get(node.expression.text);
       if (binding && binding.imported !== '*') record(facts.memberAccesses, `${binding.module}#${binding.imported}.${node.name.text}`, lineOf(node));
     } else if (node.kind === ts.SyntaxKind.AnyKeyword) {
-      facts.anyLines.push(lineOf(node));
+      const line = lineOf(node);
+      (anyExempt(line) ? facts.suppressedAnyLines : facts.anyLines).push(line);
     } else if (ts.isNonNullExpression(node)) {
       facts.nonNullLines.push(lineOf(node));
     } else if (ts.isPropertyDeclaration(node) && node.exclamationToken) {
@@ -620,4 +631,40 @@ function countLinesOfCode(text: string): number {
   let count = 0;
   for (const line of text.split('\n')) if (line.trim() !== '') count++;
   return count;
+}
+
+/**
+ * A predicate over 1-based lines: true where an eslint directive switches
+ * `rule` off. Understands `eslint-disable-next-line`, `eslint-disable-line`
+ * and `eslint-disable` … `eslint-enable` blocks (to the end of the file when
+ * never re-enabled), in line or block comments, with a rule list or none
+ * (which disables every rule), and with a `-- reason` after the list.
+ *
+ * Read from the text with a regular expression rather than from the
+ * TypeScript comment ranges: directives sit between statements, inside
+ * object literals and in class bodies, and a line-based reading finds them
+ * all the same way eslint does.
+ */
+export function lintExemptLines(text: string, rule: string): (line: number) => boolean {
+  const lines = text.split('\n');
+  const exempt = new Set<number>();
+  const names = (list: string): boolean => {
+    const rules = list.split('--')[0]!.replace(/\*\/.*$/, '').split(',').map((entry) => entry.trim()).filter(Boolean);
+    return rules.length === 0 || rules.includes(rule);
+  };
+  let blockFrom: number | undefined;
+  lines.forEach((content, index) => {
+    const line = index + 1;
+    const directive = /(?:\/\/|\/\*)\s*eslint-(disable-next-line|disable-line|disable|enable)\b([^\n]*)/.exec(content);
+    if (!directive || !names(directive[2] ?? '')) return;
+    if (directive[1] === 'disable-next-line') exempt.add(line + 1);
+    else if (directive[1] === 'disable-line') exempt.add(line);
+    else if (directive[1] === 'disable') blockFrom ??= line;
+    else if (blockFrom !== undefined) {
+      for (let covered = blockFrom; covered <= line; covered++) exempt.add(covered);
+      blockFrom = undefined;
+    }
+  });
+  if (blockFrom !== undefined) for (let covered = blockFrom; covered <= lines.length; covered++) exempt.add(covered);
+  return (line) => exempt.has(line);
 }

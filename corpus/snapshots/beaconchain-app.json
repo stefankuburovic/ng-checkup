@@ -192,9 +192,9 @@
     {
       "id": "testing",
       "grade": "poor",
-      "summary": "Karma, 31 spec files, 60% of components and services with a spec.",
+      "summary": "Karma, 31 spec files, 65% of components and services with a spec, 0% of stores and utilities.",
       "measures": {
-        "untested-files": 19
+        "untested-files": 17
       },
       "findings": [
         {
@@ -210,10 +210,10 @@
     {
       "id": "type-safety",
       "grade": "poor",
-      "summary": "strictNullChecks off, strictTemplates off, 5 explicit any.",
+      "summary": "strictNullChecks off, strictTemplates off, 0 explicit any.",
       "measures": {
         "strict-flags-off": 3,
-        "explicit-any": 5,
+        "explicit-any": 0,
         "non-null-assertions": 0,
         "ts-suppressions": 0,
         "template-any-casts": 0,
@@ -233,8 +233,8 @@
           "message": "`noImplicitAny` is off"
         },
         {
-          "severity": "low",
-          "message": "5 explicit `any` in application code (0.4 per 1 000 lines)",
+          "severity": "info",
+          "message": "5 more `any` on lines with an eslint-disable for `no-explicit-any`",
           "files": [
             "src/app/app.module.ts:37",
             "src/app/pipes/delegater.pipi.ts:30",

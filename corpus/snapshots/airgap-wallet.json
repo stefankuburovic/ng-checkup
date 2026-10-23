@@ -215,9 +215,9 @@
     {
       "id": "testing",
       "grade": "poor",
-      "summary": "Karma, 33 spec files, 21% of components and services with a spec.",
+      "summary": "Karma, 33 spec files, 25% of components and services with a spec, 0% of stores and utilities.",
       "measures": {
-        "untested-files": 106
+        "untested-files": 101
       },
       "findings": [
         {
@@ -226,13 +226,13 @@
         },
         {
           "severity": "medium",
-          "message": "79% of components and services have no spec file next to them",
+          "message": "75% of components and services have no spec",
           "files": [
             "src/app/components/account-edit-popover/account-edit-popover.component.ts",
             "src/app/components/animated-number/animated-number.ts",
             "src/app/components/card-actionable/card-actionable.ts"
           ],
-          "count": 106
+          "count": 101
         },
         {
           "severity": "high",

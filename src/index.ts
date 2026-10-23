@@ -26,7 +26,7 @@ import { loadDeprecationIndex } from './typings.js';
 import { nextMajorChanges } from './next-major.js';
 import { ignoreMatcher } from './config.js';
 import { collectFiles } from './files.js';
-import { buildImportGraph, findTanglesIn, readCompilerOptions, staticallyReachable } from './graph.js';
+import { buildImportGraph, filesImportedBySpecs, findTanglesIn, readCompilerOptions, staticallyReachable } from './graph.js';
 import { buildMigrationPlan, buildPrimoPlan } from './migration.js';
 import { buildPlan } from './plan.js';
 import { scanSourceFile, scanTemplateFile } from './scan.js';
@@ -299,6 +299,7 @@ export async function buildContext(root: string, options: CheckupOptions): Promi
     deprecations: dependencies.deprecations,
     typings: dependencies.typings,
     tangles: findTanglesIn(graph),
+    specImports: filesImportedBySpecs(sources, readCompilerOptions(workspace.rootTsconfig)),
     ...(eagerFiles.size > 0 ? { eagerFiles } : {}),
     latestAngular,
     ...(nextMajor ? { nextMajor } : {}),

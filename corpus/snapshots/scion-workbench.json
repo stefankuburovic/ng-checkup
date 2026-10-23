@@ -166,9 +166,9 @@
     {
       "id": "testing",
       "grade": "poor",
-      "summary": "Karma, 62 spec files, 4% of components and services with a spec.",
+      "summary": "Karma, 62 spec files, 15% of components and services with a spec, 50% of stores and utilities.",
       "measures": {
-        "untested-files": 246
+        "untested-files": 216
       },
       "findings": [
         {
@@ -177,13 +177,13 @@
         },
         {
           "severity": "medium",
-          "message": "96% of components and services have no spec file next to them",
+          "message": "85% of components and services have no spec",
           "files": [
             "apps/workbench-client-testing-app-common/src/lib/dialog-opener-page/dialog-opener-page.component.ts",
             "apps/workbench-client-testing-app-common/src/lib/message-box-opener-page/message-box-opener-page.component.ts",
             "apps/workbench-client-testing-app-common/src/lib/messaging-page/messaging-page.component.ts"
           ],
-          "count": 246
+          "count": 216
         }
       ]
     },

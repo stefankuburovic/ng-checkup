@@ -44,6 +44,9 @@ export function typeSafetyCheck(context: AnalysisContext): CheckResult {
   const linesOfCode = application.reduce((sum, file) => sum + file.linesOfCode, 0);
   const anyCount = application.reduce((sum, file) => sum + file.anyLines.length, 0);
   const anyDensity = linesOfCode === 0 ? 0 : (anyCount / linesOfCode) * 1000;
+  // `any` a lint directive exempts: what the team decided to keep, reported apart so the count above matches its own `no-explicit-any`.
+  const exemptFiles = application.filter((file) => file.suppressedAnyLines.length > 0).sort((left, right) => right.suppressedAnyLines.length - left.suppressedAnyLines.length);
+  const exemptAny = exemptFiles.reduce((sum, file) => sum + file.suppressedAnyLines.length, 0);
   const nonNull = application.reduce((sum, file) => sum + file.nonNullLines.length, 0);
   const suppressions = context.sources.reduce((sum, file) => sum + file.typeSuppressions, 0);
   const templateAnyCasts = context.templates.reduce((sum, template) => sum + template.stats.anyCasts, 0);
@@ -78,6 +81,15 @@ export function typeSafetyCheck(context: AnalysisContext): CheckResult {
       detail: 'Files with the most are listed first. Each `any` switches type checking off for everything that flows through it.',
       files: examples.slice(0, context.maxExamples).map((file) => ({ path: file.path, line: file.anyLines[0] })),
       count: examples.length,
+    });
+  }
+  if (exemptAny > 0) {
+    findings.push({
+      severity: 'info',
+      message: `${formatCount(exemptAny)} more \`any\` on lines with an eslint-disable for \`no-explicit-any\``,
+      detail: `Left out of the count${anyCount > 0 ? ' above' : ''}, the way \`no-explicit-any\` leaves them out, so the two numbers agree: these are the ones the code says are on purpose (a disable comment on the line, the line before, or a disable/enable block around it). They still switch type checking off where they stand, so each disable is worth a reason after \`--\`.`,
+      files: exemptFiles.slice(0, context.maxExamples).map((file) => ({ path: file.path, line: file.suppressedAnyLines[0] })),
+      count: exemptFiles.length,
     });
   }
   if (nonNull > 0) {
@@ -119,7 +131,7 @@ export function typeSafetyCheck(context: AnalysisContext): CheckResult {
       { label: 'strictNullChecks', value: on(strictNullChecks), hint: source(options.strictNullChecks !== undefined || strictWritten, `TypeScript ${typescriptMajor ?? '?'}`) },
       { label: 'strictTemplates', value: on(strictTemplates), hint: source(typeof explicitStrictTemplates === 'boolean', `Angular ${angularMajor ?? '?'}`) },
       { label: 'noImplicitAny', value: on(noImplicitAny), hint: source(options.noImplicitAny !== undefined || strictWritten, `TypeScript ${typescriptMajor ?? '?'}`) },
-      { label: 'Explicit any', value: formatCount(anyCount), hint: `${anyDensity.toFixed(1)} per 1 000 lines` },
+      { label: 'Explicit any', value: formatCount(anyCount), hint: `${anyDensity.toFixed(1)} per 1 000 lines${exemptAny > 0 ? `; ${formatCount(exemptAny)} more under eslint-disable` : ''}` },
       { label: 'Non-null assertions', value: formatCount(nonNull) },
     ],
     findings,

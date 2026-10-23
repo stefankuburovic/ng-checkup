@@ -189,7 +189,7 @@
     {
       "id": "testing",
       "grade": "poor",
-      "summary": "Karma, 0 spec files, 0% of components and services with a spec.",
+      "summary": "Karma, 0 spec files, 0% of components and services with a spec, 0% of stores and utilities.",
       "measures": {
         "untested-files": 63
       },

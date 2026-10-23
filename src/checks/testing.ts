@@ -8,14 +8,22 @@ import { applicationFiles, formatCount, percent, plural, specFiles, type Analysi
 type Runner = 'Karma' | 'Jest' | 'Vitest';
 
 /**
- * The unit-test runner, how much of the code has a spec next to it, and the
- * end-to-end setup.
+ * The unit-test runner, how much of the code has a spec, and the end-to-end
+ * setup.
  *
- * "Has a spec next to it" is a proxy for coverage, not coverage: it counts a
- * component or service as tested when `x.spec.ts` sits beside `x.ts`. It needs
- * no test run and no coverage report, which is what lets this tool run in a
- * minute on a repository it has never seen; real coverage is lower or higher
- * depending on what those specs assert.
+ * "Has a spec" is a proxy for coverage, not coverage: a file counts as tested
+ * when `x.spec.ts` sits beside `x.ts`, or when any spec imports it (directly
+ * or through a barrel). The second half matters for stores and utilities,
+ * whose specs often live in a folder of their own and are where the real
+ * logic coverage of a codebase is; counting by neighbour alone reported such
+ * a codebase as barely tested. It needs no test run and no coverage report,
+ * which is what lets this tool run in a minute on a repository it has never
+ * seen; real coverage is lower or higher depending on what the specs assert.
+ *
+ * Stores and utilities are counted beside components and services, in a
+ * metric of their own, and the grade reads all of them together. The
+ * baseline measure stays components and services only: widening it would
+ * make every existing baseline fail on the upgrade without a line changing.
  */
 export function testingCheck(context: AnalysisContext): CheckResult {
   const { workspace } = context;
@@ -24,8 +32,18 @@ export function testingCheck(context: AnalysisContext): CheckResult {
   const specs = specFiles(context).filter((file) => isSpecFile(file.path));
   const testable = applicationFiles(context).filter((file) => file.components.length > 0 || file.injectables > 0);
   const specPaths = new Set(specs.map((file) => file.path));
-  const untested = testable.filter((file) => !specPaths.has(file.path.replace(/\.ts$/, '.spec.ts')));
+  const hasSpec = (file: (typeof testable)[number]): boolean => specPaths.has(file.path.replace(/\.ts$/, '.spec.ts')) || context.specImports.has(file.path);
+  const untested = testable.filter((file) => !hasSpec(file));
   const coverage = percent(testable.length - untested.length, testable.length);
+  // Signal stores and utility files: logic without a component or an @Injectable class, where specs are cheapest and count most.
+  const logic = applicationFiles(context).filter(
+    (file) =>
+      file.components.length === 0 &&
+      file.injectables === 0 &&
+      (file.calls.has('@ngrx/signals#signalStore') || /(^|\/)(utilities|utils|helpers)\//.test(file.path) || /\.(utility|util|helper)s?\.ts$/.test(file.path)),
+  );
+  const logicTested = logic.filter(hasSpec).length;
+  const overall = percent(testable.length - untested.length + logicTested, testable.length + logic.length);
   const jasmineCalls = specs.reduce((sum, file) => sum + file.jasmineCalls, 0);
 
   const protractor = 'protractor' in workspace.dependencies || workspace.targets.some((target) => target.builder.endsWith(':protractor'));
@@ -48,8 +66,8 @@ export function testingCheck(context: AnalysisContext): CheckResult {
   } else if (testable.length > 0 && coverage < 60) {
     findings.push({
       severity: coverage < 30 ? 'medium' : 'low',
-      message: `${100 - coverage}% of components and services have no spec file next to them`,
-      detail: 'Counted by file name (`x.spec.ts` beside `x.ts`), so a spec kept elsewhere is missed and a spec that asserts nothing still counts. It is a lower bound on where an upgrade would be verified by hand.',
+      message: `${100 - coverage}% of components and services have no spec`,
+      detail: 'A file counts as tested when `x.spec.ts` sits beside it or any spec imports it, so a spec that asserts nothing still counts. It is a lower bound on where an upgrade would be verified by hand.',
       files: untested.slice(0, context.maxExamples).map((file) => ({ path: file.path })),
       count: untested.length,
     });
@@ -60,17 +78,18 @@ export function testingCheck(context: AnalysisContext): CheckResult {
     findings.push({ severity: 'info', message: 'No end-to-end test setup found', detail: 'Neither Playwright nor Cypress is a dependency. A handful of smoke tests over the main flows is the cheapest safety net for an upgrade.' });
   }
 
-  const grade: Grade = testable.length === 0 ? 'info' : runners.has('Karma') || protractor || specs.length === 0 ? 'poor' : coverage < 30 ? 'fair' : 'good';
+  const grade: Grade = testable.length === 0 ? 'info' : runners.has('Karma') || protractor || specs.length === 0 ? 'poor' : overall < 30 ? 'fair' : 'good';
 
   return {
     id: 'testing',
     title: 'Testing',
     grade,
-    summary: `${runners.size > 0 ? [...runners].join(' + ') : 'No unit-test runner detected'}, ${plural(specs.length, 'spec file')}, ${coverage}% of components and services with a spec.`,
+    summary: `${runners.size > 0 ? [...runners].join(' + ') : 'No unit-test runner detected'}, ${plural(specs.length, 'spec file')}, ${coverage}% of components and services with a spec${logic.length > 0 ? `, ${percent(logicTested, logic.length)}% of stores and utilities` : ''}.`,
     metrics: [
       { label: 'Unit-test runner', value: runners.size > 0 ? [...runners].join(' + ') : 'none' },
       { label: 'Spec files', value: formatCount(specs.length) },
       { label: 'With a spec', value: `${coverage}%`, hint: `${formatCount(testable.length - untested.length)} of ${plural(testable.length, 'component/service file')}` },
+      ...(logic.length > 0 ? [{ label: 'Stores and utilities with a spec', value: `${percent(logicTested, logic.length)}%`, hint: `${formatCount(logicTested)} of ${plural(logic.length, 'file')}` }] : []),
       { label: 'End-to-end', value: e2e ?? 'none' },
     ],
     findings,

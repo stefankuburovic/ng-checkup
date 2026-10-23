@@ -9,7 +9,7 @@
     "templateFiles": 198,
     "linesOfCode": 181196
   },
-  "score": 36,
+  "score": 40,
   "checks": [
     {
       "id": "version",
@@ -139,7 +139,7 @@
     },
     {
       "id": "architecture",
-      "grade": "poor",
+      "grade": "fair",
       "summary": "98% of 126 routes lazy, 96 files over 500 lines, 350 classes with constructor injection.",
       "measures": {
         "eager-routes": 2,
@@ -183,7 +183,7 @@
     {
       "id": "testing",
       "grade": "poor",
-      "summary": "No unit-test runner detected, 0 spec files, 0% of components and services with a spec.",
+      "summary": "No unit-test runner detected, 0 spec files, 0% of components and services with a spec, 0% of stores and utilities.",
       "measures": {
         "untested-files": 357
       },

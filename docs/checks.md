@@ -180,8 +180,8 @@ A `component:` route counts as eager only in a file the app loads at startup: ev
 | Grade | When |
 | --- | --- |
 | good | most routes are lazy and no file is over 1 000 lines |
-| fair | more eager than lazy routes (with five or more routes), or a file over 1 000 lines |
-| poor | ten or more eager routes and none lazy, or three files over 1 000 lines |
+| fair | more eager than lazy routes (with five or more routes), or a file over 1 000 lines (file size alone never makes the area poor: long files are a refactoring list, the hotspots below say which first) |
+| poor | ten or more eager routes and none lazy |
 
 Constructor injection and class-based guards are reported as low findings but never change the grade: they work, they are only the older style. `inject()` and functional guards are what current Angular and its migrations produce.
 
@@ -193,7 +193,7 @@ Constructor injection and class-based guards are reported as low findings but ne
 
 ## Testing (`testing`) <a id="testing"></a>
 
-**What it reads:** the unit-test runner from the test targets' builders and the dependencies (Karma, Jest, Vitest), spec files, components and services with a `x.spec.ts` next to `x.ts`, Jasmine-only calls (`spyOn`, `jasmine.*`), and the end-to-end setup (Protractor, Playwright, Cypress).
+**What it reads:** the unit-test runner from the test targets' builders and the dependencies (Karma, Jest, Vitest), spec files, and which components, services, signal stores and utility files have a spec: a `x.spec.ts` next to `x.ts`, or any spec that imports the file (directly or through a barrel), Jasmine-only calls (`spyOn`, `jasmine.*`), and the end-to-end setup (Protractor, Playwright, Cypress).
 
 "Has a spec next to it" is a proxy for coverage, not coverage: it needs no test run, which is what lets the tool run on a repository it has never seen.
 
@@ -201,7 +201,7 @@ Constructor injection and class-based guards are reported as low findings but ne
 
 | Grade | When |
 | --- | --- |
-| good | a current runner and at least 30% of components and services with a spec |
+| good | a current runner and at least 30% of components, services, stores and utilities with a spec |
 | fair | under 30% with a spec |
 | poor | Karma, Protractor, or no specs at all |
 
@@ -211,7 +211,7 @@ Constructor injection and class-based guards are reported as low findings but ne
 
 ## Type safety (`type-safety`) <a id="type-safety"></a>
 
-**What it reads:** `strictNullChecks`, `noImplicitAny` and `strict` from the application tsconfig (with `extends` resolved), `strictTemplates` from `angularCompilerOptions`, and the escape hatches: explicit `any` per 1 000 lines, non-null assertions (`x!`), `@ts-ignore` / `@ts-expect-error`, `$any()` in templates and `UntypedForm*` imports.
+**What it reads:** `strictNullChecks`, `noImplicitAny` and `strict` from the application tsconfig (with `extends` resolved), `strictTemplates` from `angularCompilerOptions`, and the escape hatches: explicit `any` per 1 000 lines (an `any` under an eslint-disable for `no-explicit-any`, on its line, the line before or in a disable/enable block, is reported apart and left out of the count, so the number matches the project's own lint rule), non-null assertions (`x!`), `@ts-ignore` / `@ts-expect-error`, `$any()` in templates and `UntypedForm*` imports.
 
 **Grading**
 

@@ -328,8 +328,8 @@ The codebase is named by its repository and commit, never by a path on your disk
 | [**Change detection**](https://github.com/stefankuburovic/ng-checkup/blob/main/docs/checks.md#change-detection) | zoneless or zone.js, OnPush coverage, `NgZone`, zone-only test helpers | zone.js with less than half the components on OnPush |
 | [**Components & templates**](https://github.com/stefankuburovic/ng-checkup/blob/main/docs/checks.md#components) | standalone, signal inputs and outputs, built-in control flow, `@defer` | average adoption below 40% |
 | [**State management**](https://github.com/stefankuburovic/ng-checkup/blob/main/docs/checks.md#state) | classic NgRx, NgRx signal store, signals, `BehaviorSubject` services | the removed `@Effect()` decorator |
-| [**Architecture**](https://github.com/stefankuburovic/ng-checkup/blob/main/docs/checks.md#architecture) | eager vs. lazy routes (following `loadChildren` into lazy modules), files over 500 and 1 000 lines, hotspots (large files changed most often, from git), constructor injection, class-based guards and interceptors | ten eager routes and none lazy, or three files over 1 000 lines |
-| [**Testing**](https://github.com/stefankuburovic/ng-checkup/blob/main/docs/checks.md#testing) | Karma / Jest / Vitest, specs next to components and services, Protractor / Playwright / Cypress | Karma, Protractor or no specs |
+| [**Architecture**](https://github.com/stefankuburovic/ng-checkup/blob/main/docs/checks.md#architecture) | eager vs. lazy routes (following `loadChildren` into lazy modules), files over 500 and 1 000 lines, hotspots (large files changed most often, from git), constructor injection, class-based guards and interceptors | ten eager routes and none lazy |
+| [**Testing**](https://github.com/stefankuburovic/ng-checkup/blob/main/docs/checks.md#testing) | Karma / Jest / Vitest, which components, services, stores and utilities have a spec (beside them or importing them), Protractor / Playwright / Cypress | Karma, Protractor or no specs |
 | [**Type safety**](https://github.com/stefankuburovic/ng-checkup/blob/main/docs/checks.md#type-safety) | `strictNullChecks`, `strictTemplates`, `noImplicitAny`, `any`, `x!`, `@ts-ignore`, `$any()` | both `strictNullChecks` and `strictTemplates` off |
 | [**Security**](https://github.com/stefankuburovic/ng-checkup/blob/main/docs/checks.md#security) | known vulnerabilities of the dependencies (from [osv.dev](https://osv.dev), AngularJS included), `bypassSecurityTrust*`, HTML written straight into the DOM (`innerHTML =`, `insertAdjacentHTML`, `Renderer2.setProperty`), `eval`, `[innerHTML]` bindings | a high or critical advisory in a runtime dependency, HTML written into the DOM past the sanitizer, or `eval` |
 | [**Circular dependencies**](https://github.com/stefankuburovic/ng-checkup/blob/main/docs/checks.md#circular-deps) | import cycles through relative paths, barrels and tsconfig `paths` | more than three groups or ten files in loops |
@@ -569,7 +569,7 @@ Package names and versions, to two public services. To the npm registry: the lat
 
 **My app is on Angular 12 and deprecated APIs are "good". Is that right?** Yes, for Angular 12: nothing that *Angular 12* deprecates is in use. Each upgrade step deprecates more, and the version check is where that gap shows.
 
-**Is "with a spec" my test coverage?** No. It counts components and services with an `x.spec.ts` next to `x.ts`. It needs no test run, which is what keeps the tool fast and usable on a repository it has never seen.
+**Is "with a spec" my test coverage?** No. It counts the components, services, stores and utilities that have an `x.spec.ts` next to them or that some spec imports. It needs no test run, which is what keeps the tool fast and usable on a repository it has never seen.
 
 **Does it support Nx?** Yes: it reads `project.json` targets and tsconfig `paths`, and reports [each project separately](#monorepos) as well as the whole workspace.
 

@@ -119,9 +119,9 @@
     {
       "id": "testing",
       "grade": "poor",
-      "summary": "Karma, 5 spec files, 28% of components and services with a spec.",
+      "summary": "Karma, 5 spec files, 39% of components and services with a spec.",
       "measures": {
-        "untested-files": 13
+        "untested-files": 11
       },
       "findings": [
         {
@@ -129,14 +129,14 @@
           "message": "Unit tests run on Karma, which is deprecated"
         },
         {
-          "severity": "medium",
-          "message": "72% of components and services have no spec file next to them",
+          "severity": "low",
+          "message": "61% of components and services have no spec",
           "files": [
             "src/app/pages/about-popover/about-popover.ts",
             "src/app/pages/about/about.ts",
             "src/app/pages/account/account.ts"
           ],
-          "count": 13
+          "count": 11
         },
         {
           "severity": "info",

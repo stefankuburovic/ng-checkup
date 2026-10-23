@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.2.1 (2026-10-23)
+
+Three changes from review on a real codebase, where the report read as harsher than the code:
+
+- **Architecture:** file size alone no longer makes the area poor. An app with every route lazy and no constructor injection was graded poor for three files over 1 000 lines; long files now cap the grade at fair, and the hotspots say which to split first.
+- **Explicit `any`:** an `any` that an eslint directive exempts from `no-explicit-any` (on its line, the line before, or in a `/* eslint-disable */` … `/* eslint-enable */` block) is left out of the count and reported apart as an info finding, so the number matches the project's own lint rule. A codebase whose lint gate says 0 was shown 28, all of them deliberate.
+- **Specs:** a file counts as tested when any spec imports it, not only when `x.spec.ts` sits next to it, and signal stores and utility files get their own metric ("Stores and utilities with a spec") and count toward the grade. The baseline measure stays components and services only, so existing baselines do not fail on the upgrade; it can only go down.
+
 ## 1.2.0 (2026-10-23)
 
 - **Health Check report 2.0** (`--client`):

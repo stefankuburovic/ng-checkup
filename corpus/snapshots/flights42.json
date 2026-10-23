@@ -113,14 +113,14 @@
     {
       "id": "testing",
       "grade": "fair",
-      "summary": "Vitest, 5 spec files, 6% of components and services with a spec.",
+      "summary": "Vitest, 5 spec files, 6% of components and services with a spec, 29% of stores and utilities.",
       "measures": {
         "untested-files": 49
       },
       "findings": [
         {
           "severity": "medium",
-          "message": "94% of components and services have no spec file next to them",
+          "message": "94% of components and services have no spec",
           "files": [
             "projects/miles/src/app/app.ts",
             "projects/miles/src/app/miles-overview.ts",

@@ -30,6 +30,8 @@ export interface AnalysisContext {
   /** Where the typings behind `deprecations` came from, and which imported packages had none. */
   typings: TypingsSource;
   tangles: DependencyTangle[];
+  /** Report paths of the application files some spec imports (see `filesImportedBySpecs`). */
+  specImports: Set<string>;
   /**
    * Report paths of the files loaded at startup: statically reachable from an
    * application entry (`main.ts`). Undefined when no build target names an

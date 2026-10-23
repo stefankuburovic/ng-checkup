@@ -103,6 +103,44 @@ export function buildImportGraph(files: SourceFileFacts[], compilerOptions: ts.C
 }
 
 /**
+ * Report paths of the application files a spec imports, directly or through
+ * a barrel's re-exports. The testing check counts such a file as having a
+ * spec even when the spec is not its `x.spec.ts` neighbour: a store tested
+ * from `store/products.spec.ts`, a utility covered by a shared spec. Type-only
+ * imports count too, since a spec that imports a type alone is rare and
+ * telling it apart is not worth the cost here.
+ */
+export function filesImportedBySpecs(files: SourceFileFacts[], compilerOptions: ts.CompilerOptions): Set<string> {
+  const byAbsolute = new Map(files.filter((file) => !file.isSpec).map((file) => [resolve(file.absolutePath), file]));
+  const options: ts.CompilerOptions = { ...compilerOptions, moduleResolution: ts.ModuleResolutionKind.Bundler, module: ts.ModuleKind.ESNext, allowJs: false };
+  const cache = ts.createModuleResolutionCache(process.cwd(), (name) => name, options);
+  const resolveFrom = (from: string, specifier: string): SourceFileFacts | undefined => {
+    if (!specifier.startsWith('.') && !options.paths) return undefined;
+    const resolved = ts.resolveModuleName(specifier, from, options, ts.sys, cache).resolvedModule;
+    return resolved && !resolved.isExternalLibraryImport ? byAbsolute.get(resolve(resolved.resolvedFileName)) : undefined;
+  };
+  const covered = new Set<string>();
+  const add = (file: SourceFileFacts, depth: number): void => {
+    if (covered.has(file.path)) return;
+    covered.add(file.path);
+    // Through `export … from` chains (barrels), a few levels deep.
+    if (depth >= 4) return;
+    for (const fact of file.imports) {
+      if (!fact.reexport) continue;
+      const target = resolveFrom(file.absolutePath, fact.specifier);
+      if (target) add(target, depth + 1);
+    }
+  };
+  for (const spec of files.filter((file) => file.isSpec)) {
+    for (const fact of spec.imports) {
+      const target = resolveFrom(spec.absolutePath, fact.specifier);
+      if (target) add(target, 0);
+    }
+  }
+  return covered;
+}
+
+/**
  * Report paths of the files the browser loads up front: everything reachable
  * from `entries` through static imports. A file reached only through
  * `import()` (a `loadChildren` or `loadComponent` target and what it imports)

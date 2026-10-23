@@ -112,7 +112,9 @@ export function architectureCheck(context: AnalysisContext): CheckResult {
   const grade: Grade =
     files.length === 0
       ? 'info'
-      : (lazy.length === 0 && eager.length >= 10) || veryLarge.length >= 3
+      : // File size alone never makes the area poor: an app with every route lazy and no constructor injection was graded
+        // poor for three long files, which read as the architecture being broken when it is a refactoring list.
+        lazy.length === 0 && eager.length >= 10
         ? 'poor'
         : (routes >= 5 && eager.length > lazy.length) || veryLarge.length > 0
           ? 'fair'

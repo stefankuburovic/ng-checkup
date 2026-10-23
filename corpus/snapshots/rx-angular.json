@@ -9,7 +9,7 @@
     "templateFiles": 14,
     "linesOfCode": 158812
   },
-  "score": 52,
+  "score": 56,
   "checks": [
     {
       "id": "version",
@@ -244,7 +244,7 @@
     },
     {
       "id": "architecture",
-      "grade": "poor",
+      "grade": "fair",
       "summary": "99% of 999 routes lazy, 24 files over 500 lines, 109 classes with constructor injection.",
       "measures": {
         "eager-routes": 6,
@@ -286,30 +286,30 @@
     {
       "id": "testing",
       "grade": "fair",
-      "summary": "Jest, 116 spec files, 0% of components and services with a spec.",
+      "summary": "Jest, 116 spec files, 1% of components and services with a spec, 9% of stores and utilities.",
       "measures": {
-        "untested-files": 1124
+        "untested-files": 1114
       },
       "findings": [
         {
           "severity": "medium",
-          "message": "100% of components and services have no spec file next to them",
+          "message": "99% of components and services have no spec",
           "files": [
             "apps/demos/src/app/app-component/app-presenter.service.ts",
             "apps/demos/src/app/app-component/app.component.ts",
             "apps/demos/src/app/app-config.service.ts"
           ],
-          "count": 1124
+          "count": 1114
         }
       ]
     },
     {
       "id": "type-safety",
       "grade": "poor",
-      "summary": "strictNullChecks off, strictTemplates off, 406 explicit any.",
+      "summary": "strictNullChecks off, strictTemplates off, 405 explicit any.",
       "measures": {
         "strict-flags-off": 3,
-        "explicit-any": 406,
+        "explicit-any": 405,
         "non-null-assertions": 80,
         "ts-suppressions": 33,
         "template-any-casts": 9,
@@ -330,13 +330,21 @@
         },
         {
           "severity": "medium",
-          "message": "406 explicit `any` in application code (2.6 per 1 000 lines)",
+          "message": "405 explicit `any` in application code (2.6 per 1 000 lines)",
           "files": [
             "libs/test-helpers/src/lib/rx-marbles/observableMatcher.ts:3",
             "apps/demos/src/app/rx-angular-pocs/cdk/utils/zone-agnostic/rxjs/operators/fromEvent.ts:14",
             "libs/state/selections/src/lib/utils/guards.ts:7"
           ],
           "count": 162
+        },
+        {
+          "severity": "info",
+          "message": "1 more `any` on lines with an eslint-disable for `no-explicit-any`",
+          "files": [
+            "libs/template/for/src/lib/for.directive.ts:346"
+          ],
+          "count": 1
         },
         {
           "severity": "low",
@@ -489,14 +497,14 @@
     {
       "name": "template",
       "root": "libs/template",
-      "score": 73,
+      "score": 78,
       "grades": {
         "deprecated-apis": "fair",
         "change-detection": "good",
         "components": "fair",
         "state": "good",
         "architecture": "good",
-        "testing": "fair",
+        "testing": "good",
         "type-safety": "poor",
         "security": "good",
         "circular-deps": "fair",
@@ -506,14 +514,14 @@
     {
       "name": "cdk",
       "root": "libs/cdk",
-      "score": 78,
+      "score": 82,
       "grades": {
         "deprecated-apis": "fair",
         "change-detection": "good",
         "components": "fair",
         "state": "good",
         "architecture": "good",
-        "testing": "fair",
+        "testing": "good",
         "type-safety": "poor",
         "security": "good",
         "circular-deps": "good",
@@ -523,13 +531,13 @@
     {
       "name": "rebundle-demo",
       "root": "apps/rebundle-demo",
-      "score": 80,
+      "score": 85,
       "grades": {
         "deprecated-apis": "good",
         "change-detection": "good",
         "components": "good",
         "state": "info",
-        "architecture": "poor",
+        "architecture": "fair",
         "testing": "poor",
         "type-safety": "good",
         "security": "good",
