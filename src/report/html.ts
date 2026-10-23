@@ -4,6 +4,7 @@ import type { CheckResult, Finding, Grade, Report } from '../types.js';
 export { escape };
 import { CHART_STYLES, historySection } from './charts.js';
 import { escape } from './escape.js';
+import { trendSentence } from '../trend.js';
 import { renderNotes } from './notes.js';
 import { formatDuration, formatLocation, gradeLabel, kindLabel, migrationTarget, overallScore, projectAreas, remainingCount, SCORE_EXPLANATION, severityLabel, topPriorities } from './summary.js';
 
@@ -43,6 +44,7 @@ export function renderHtml(report: Report): string {
       <h1>${escape(project.name)}</h1>
       <p class="meta">${escape(meta)}</p>
       <p class="meta">Generated ${escape(report.generatedAt.slice(0, 10))}</p>
+      ${report.trend && trendSentence(report.trend) ? `<p class="meta">Last ${report.trend.days} days: ${escape(trendSentence(report.trend)!)}</p>` : ''}
     </div>
     ${score === undefined ? '' : scoreRing(score)}
   </header>

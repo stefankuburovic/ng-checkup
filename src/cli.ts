@@ -1,9 +1,10 @@
 #!/usr/bin/env node
+import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, realpathSync, statSync, writeFileSync } from 'node:fs';
 import { dirname, extname, isAbsolute, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
-import { BASELINE_FILE, baselineIncreases, compareWithBaseline, createBaseline, readBaseline, serializeBaseline } from './baseline.js';
+import { BASELINE_FILE, baselineIncreases, compareWithBaseline, createBaseline, measuresOf, readBaseline, serializeBaseline } from './baseline.js';
 import { createAnalysisCache } from './cache.js';
 import { loadConfig, REPORT_FORMATS, type CheckupConfig } from './config.js';
 import { BUNDLED_LATEST_ANGULAR_MAJOR, fetchLatestAngularMajor, ProjectNotFoundError, runCheckup, TOOL, UnknownCheckError } from './index.js';
@@ -20,6 +21,7 @@ import type { Grade, Report } from './types.js';
 import { describeProgress, watchCheckup } from './watch.js';
 import { renderSiteTerminal, type SiteReport } from './report/site.js';
 import { collectHistory, HistoryUnavailableError, type HistoryReport } from './history.js';
+import { readTrend, recordTrend, summarizeTrend, trendPoint } from './trend.js';
 import { renderHistoryHtml, renderHistoryMarkdown, renderHistoryTerminal } from './report/history.js';
 import { assessSite, probeSite } from './site.js';
 
@@ -64,6 +66,11 @@ Options:
                          a template prefilled with the upgrade steps
       --history          Add the last twelve months from git to the client
                          report: the score and the measures that moved most
+      --trend <file>     Compare with a trend file: the score, the initial
+                         bundle and the measures over the last 30 days, in
+                         every report (the CI integrations keep this file)
+      --trend-record     Also add this run to the trend file (on the default
+                         branch)
   -w, --watch            Re-run on every change and show how the score and the
                          measures moved since the watch started
       --fail-on <grade>  Exit with code 1 if any area is graded <grade> or worse
@@ -145,6 +152,8 @@ export interface CliArguments {
   client?: { name: string; preparedBy?: string; notes?: string };
   /** `--history`: add the last twelve months from git to the client report. */
   history?: boolean;
+  /** `--trend <file>` and `--trend-record`: compare with a trend file, and add this run to it. */
+  trend?: { path: string; record: boolean };
   watch: boolean;
   color: boolean;
   config?: string;
@@ -209,6 +218,8 @@ export function parseCliArguments(argv: string[], environment: NodeJS.ProcessEnv
       'prepared-by': { type: 'string' },
       notes: { type: 'string' },
       history: { type: 'boolean' },
+      trend: { type: 'string' },
+      'trend-record': { type: 'boolean' },
       config: { type: 'string' },
       'no-color': { type: 'boolean' },
       help: { type: 'boolean', short: 'h' },
@@ -234,6 +245,7 @@ export function parseCliArguments(argv: string[], environment: NodeJS.ProcessEnv
   if ((values.notes !== undefined || values['prepared-by'] !== undefined) && values.client === undefined) throw new Error('--notes and --prepared-by belong to a client report; add --client "<name>"');
   if (values.client !== undefined && values.client.trim() === '') throw new Error('--client needs the client name');
   if (values.history && values.client === undefined) throw new Error('--history adds the history to a client report; add --client "<name>", or run ng-checkup history for the history alone');
+  if (values['trend-record'] && values.trend === undefined) throw new Error('--trend-record adds this run to a trend file; name it with --trend <file.json>');
   if (values.history && remote) throw new Error('--history reads the git history, which the shallow clone of a remote repository does not have; clone it in full and run it there');
   const preparedBy = values['prepared-by'] ?? environment['NG_CHECKUP_PREPARED_BY'];
 
@@ -259,6 +271,7 @@ export function parseCliArguments(argv: string[], environment: NodeJS.ProcessEnv
     ...(values.skip !== undefined ? { skip: idList(values.skip) } : {}),
     ...(values.client !== undefined ? { client: { name: values.client.trim(), ...(preparedBy ? { preparedBy } : {}), ...(values.notes !== undefined ? { notes: resolve(values.notes) } : {}) } } : {}),
     ...(values.history ? { history: true } : {}),
+    ...(values.trend !== undefined ? { trend: { path: resolve(values.trend), record: values['trend-record'] ?? false } } : {}),
     watch: values.watch ?? false,
     color: !values['no-color'] && environment['NO_COLOR'] === undefined && isTty,
     config: values.config,
@@ -502,6 +515,14 @@ async function mainCheckup(parsed: CliArguments, rootLabel?: string): Promise<nu
       if (!(error instanceof HistoryUnavailableError)) throw error;
       notesMessage = [notesMessage, `No history in the report: ${error.message}.`].filter(Boolean).join('\n');
     }
+  }
+  if (parsed.trend) {
+    const points = readTrend(parsed.trend.path);
+    const point = trendPoint(report, commitOf(parsed.root));
+    const labels = Object.fromEntries([...measuresOf(report)].map(([key, measure]) => [key, measure.label]));
+    const summary = summarizeTrend(points, point, labels);
+    if (summary) report.trend = summary;
+    if (parsed.trend.record) recordTrend(parsed.trend.path, points, point);
   }
   writeReports(report, settings.reports);
 
@@ -764,6 +785,21 @@ async function mainHistory(argv: string[]): Promise<number> {
     return 0;
   } catch (error) {
     return usageError(error);
+  }
+}
+
+/**
+ * The commit a trend point belongs to: what CI says it is building (GitHub
+ * Actions, GitLab CI), else what git says HEAD is. Undefined outside git,
+ * in which case reruns of the same code add points instead of replacing one.
+ */
+function commitOf(root: string): string | undefined {
+  const fromCi = process.env['GITHUB_SHA'] ?? process.env['CI_COMMIT_SHA'];
+  if (fromCi) return fromCi;
+  try {
+    return execFileSync('git', ['-C', root, 'rev-parse', 'HEAD'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim() || undefined;
+  } catch {
+    return undefined;
   }
 }
 

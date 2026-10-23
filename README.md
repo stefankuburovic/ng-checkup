@@ -397,6 +397,11 @@ Options:
                          a template prefilled with the upgrade steps
       --history          Add the last twelve months from git to the client
                          report: the score and the measures that moved most
+      --trend <file>     Compare with a trend file: the score, the initial
+                         bundle and the measures over the last 30 days, in
+                         every report (the CI integrations keep this file)
+      --trend-record     Also add this run to the trend file (on the default
+                         branch)
   -w, --watch            Re-run on every change and show how the score and the
                          measures moved since the watch started
       --fail-on <grade>  Exit with code 1 if any area is graded <grade> or worse
@@ -452,7 +457,10 @@ The same tool runs in both: a pull request (GitHub) or merge request (GitLab) st
 
 ```yaml
 name: ng-checkup
-on: pull_request
+on:
+  pull_request:
+  push:
+    branches: [main]        # the default branch records the trend
 permissions:
   contents: read
   pull-requests: write      # the comment
@@ -468,7 +476,9 @@ jobs:
           sarif: true
 ```
 
-No `npm ci` needed: versions come from the lockfile. Inputs: `path` (a folder in a monorepo), `fail-on` (`poor`, `fair`, `regression`), `plan`, `comment`, `sarif`, `artifact`, `offline`, `args` (any other option, such as `--project admin`), `version`, `node-version`. Outputs: `score`, `exit-code`. On a pull request from a fork the token cannot write, so the comment is skipped with a warning and the job summary still has it.
+No `npm ci` needed: versions come from the lockfile. Inputs: `path` (a folder in a monorepo), `fail-on` (`poor`, `fair`, `regression`), `plan`, `comment`, `sarif`, `artifact`, `offline`, `trend`, `args` (any other option, such as `--project admin`), `version`, `node-version`.
+
+**The trend.** Every run on the default branch adds a point (the score, every measure, and the initial bundle when a build with `--stats-json` ran before the step) to a small file in the CI cache, and pull and merge requests show where the default branch has been heading: `Score 72, +4 since 2026-09-23 ▃▄▄▆▇ · initial bundle 812 kB, +23 kB`. Unlike `ng-checkup history`, which rebuilds the past from git without building anything, this follows the bundle too, from the first recorded run on. On by default in the Action (`trend: false` turns it off) and in both GitLab integrations (`trend` input, `NG_CHECKUP_TREND`). By hand: `--trend <file.json>`, plus `--trend-record` on the default branch. Outputs: `score`, `exit-code`. On a pull request from a fork the token cannot write, so the comment is skipped with a warning and the job summary still has it.
 
 `ng add ng-checkup` and `npx ng-checkup init` write a plain workflow for you instead. By hand:
 

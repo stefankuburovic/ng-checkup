@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.4.0 (2026-10-23)
+
+- **Trend in CI.** `--trend <file.json>` compares a run with a trend file, and `--trend-record` adds the run to it. Every report shows the last 30 days in one line: `Score 72, +4 since 2026-09-23 ▃▄▄▆▇ · initial bundle 812 kB, +23 kB`, and the Markdown report lists the measures that moved most.
+- **The bundle from now on.** A trend point keeps the largest application's initial bundle from the build's stats file. `ng-checkup history` cannot follow the bundle backwards, since old commits cannot be rebuilt reliably; the trend follows it forwards, from the first recorded run.
+- The GitHub Action keeps the trend in the Actions cache (input `trend`, on by default): default-branch pushes record, pull requests read and show it in their comment. Both GitLab integrations keep it in the CI cache, shared with merge request branches, which only read it (input `trend` in the component, `NG_CHECKUP_TREND` in the template). Run on the default branch as well as on pull requests to get a trend.
+- An older `version` than 1.4.0 in the Action or the GitLab integrations simply runs without the trend.
+
 ## 1.3.0 (2026-10-23)
 
 - **Manual subscriptions:** the components area counts `.subscribe()` calls in components and directives, and how many are not tied to the component's lifetime (no `takeUntilDestroyed`, `takeUntil`, `take` or `first` in the chain). It is a low finding and a new baseline measure, so `ng-checkup history` shows the curve a move to signals should bring down. On the corpus: 601 in go-data, 103 in scion-workbench of which 13 unbound, 22 in the RealWorld app. Suggested by Amir Mohammad Iravani.

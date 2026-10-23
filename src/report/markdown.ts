@@ -1,3 +1,4 @@
+import { trendSentence } from '../trend.js';
 import { formatCount, plural } from '../checks/context.js';
 import type { Report } from '../types.js';
 import { formatDuration, formatLocation, gradeLabel, kindLabel, migrationTarget, overallScore, projectAreas, remainingCount, SCORE_EXPLANATION, severityLabel, topPriorities } from './summary.js';
@@ -19,6 +20,12 @@ export function renderMarkdown(report: Report): string {
     '',
   );
   if (score !== undefined) lines.push(`**Score: ${score}/100.** ${SCORE_EXPLANATION}`, '');
+  const trend = report.trend ? trendSentence(report.trend) : undefined;
+  if (trend) {
+    lines.push(`**Last ${report.trend!.days} days:** ${trend}.`, '');
+    for (const entry of report.trend!.moved) lines.push(`- ${entry.label}: ${formatCount(entry.before)} → ${formatCount(entry.after)}`);
+    if (report.trend!.moved.length > 0) lines.push('');
+  }
 
   lines.push('| Area | Grade | Summary |', '| --- | --- | --- |');
   for (const check of report.checks) lines.push(`| ${cell(check.title)} | ${gradeLabel(check.grade)} | ${cell(check.summary)} |`);

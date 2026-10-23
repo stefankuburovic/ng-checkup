@@ -1,5 +1,6 @@
 import { formatCount, plural } from '../checks/context.js';
 import type { Grade, Report } from '../types.js';
+import { trendSentence } from '../trend.js';
 import { gradeLabel, overallScore, severityLabel, topPriorities } from './summary.js';
 
 /**
@@ -35,6 +36,10 @@ export function renderComment(report: Report): string {
     `\`${project.name}\`${project.angularVersion ? ` · Angular ${project.angularVersion}` : ''} · ${plural(project.linesOfCode, 'line')} of application code · ${report.tool.name} ${report.tool.version}`,
     '',
   );
+
+  // Where the default branch is heading, beside what this change does to the baseline.
+  const trend = report.trend ? trendSentence(report.trend) : undefined;
+  if (trend) lines.push(`**Last ${report.trend!.days} days on the default branch:** ${trend}`, '');
 
   if (comparison && (comparison.regressions.length > 0 || comparison.improvements.length > 0)) {
     lines.push('| | Measure | Baseline | Now |', '| --- | --- | ---: | ---: |');

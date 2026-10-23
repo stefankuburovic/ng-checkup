@@ -175,6 +175,8 @@ export async function runCheckup(root: string, options: CheckupOptions = {}): Pr
       : buildMigrationPlan(summarizeAngularJs(context), context.latestAngular.major, plan?.steps.length ?? 0, context.workspace.dependencies);
   const projects = options.project ? [] : projectBreakdown(context, keep);
 
+  // The largest application's initial bundle, raw, for the trend; the bundle check reports the same build formatted.
+  const largestBundle = [...context.bundles].sort((left, right) => right.initialBytes - left.initialBytes)[0];
   return {
     tool: TOOL,
     generatedAt: new Date().toISOString(),
@@ -195,6 +197,7 @@ export async function runCheckup(root: string, options: CheckupOptions = {}): Pr
     ...(plan ? { plan } : {}),
     ...(migration ? { migration } : {}),
     ...(projects.length >= 2 ? { projects } : {}),
+    ...(largestBundle ? { bundle: { initialBytes: largestBundle.initialBytes, project: largestBundle.project } } : {}),
   };
 }
 

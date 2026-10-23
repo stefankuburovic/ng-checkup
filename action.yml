@@ -27,6 +27,9 @@ inputs:
   offline:
     description: Skip the npm registry (latest Angular, third-party releases, typings of uninstalled packages).
     default: 'false'
+  trend:
+    description: Keep a trend of the score, the initial bundle and the measures in the Actions cache. Every run on the default branch adds a point; pull requests show the last 30 days of the default branch in their comment. The bundle needs a build with stats before this step (`ng build --stats-json`).
+    default: 'true'
   args:
     description: Further command-line options, as you would type them, such as `--project admin --max-examples 20`.
     default: ''
@@ -55,6 +58,17 @@ runs:
       with:
         node-version: ${{ inputs.node-version }}
 
+    # The trend lives in the Actions cache. Each default-branch run saves a new
+    # entry; restore-keys picks the newest, and pull requests can read the
+    # default branch's caches but never write them.
+    - name: Restore the trend
+      if: inputs.trend == 'true'
+      uses: actions/cache/restore@v4
+      with:
+        path: ${{ runner.temp }}/ng-checkup-trend
+        key: ng-checkup-trend-${{ inputs.path }}-${{ github.run_id }}
+        restore-keys: ng-checkup-trend-${{ inputs.path }}-
+
     - id: run
       name: Run ng-checkup
       shell: bash
@@ -66,6 +80,8 @@ runs:
         INPUT_OFFLINE: ${{ inputs.offline }}
         INPUT_ARGS: ${{ inputs.args }}
         INPUT_VERSION: ${{ inputs.version }}
+        INPUT_TREND: ${{ inputs.trend }}
+        DEFAULT_BRANCH_PUSH: ${{ github.event_name == 'push' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}
       run: |
         set +e
         out="$RUNNER_TEMP/ng-checkup"
@@ -87,10 +103,19 @@ runs:
         [ -n "$INPUT_FAIL_ON" ] && args+=(--fail-on "$INPUT_FAIL_ON")
         [ "$INPUT_PLAN" = "true" ] && args+=(--plan)
         [ "$INPUT_OFFLINE" = "true" ] && args+=(--offline)
+        # A `version:` older than 1.4.0 has no --trend; ask its help rather than fail the run on an unknown option.
+        # Captured, not piped into grep -q: under pipefail an early grep exit fails the pipe with SIGPIPE.
+        help="$("${cli[@]}" --help 2>/dev/null || true)"
+        if [ "$INPUT_TREND" = "true" ] && [[ "$help" == *"--trend "* ]]; then
+          args+=(--trend "$RUNNER_TEMP/ng-checkup-trend/trend.json")
+          [ "$DEFAULT_BRANCH_PUSH" = "true" ] && args+=(--trend-record)
+        fi
         # INPUT_ARGS is split on spaces on purpose, like a command line.
         "${cli[@]}" "${args[@]}" $INPUT_ARGS
         code=$?
         echo "exit-code=$code" >> "$GITHUB_OUTPUT"
+        # hashFiles() only sees the workspace, so the save step learns about the trend file from here.
+        [ "$DEFAULT_BRANCH_PUSH" = "true" ] && [ -f "$RUNNER_TEMP/ng-checkup-trend/trend.json" ] && echo "trend-recorded=true" >> "$GITHUB_OUTPUT"
         echo "dir=$out" >> "$GITHUB_OUTPUT"
         if [ -f "$out/ng-checkup.json" ]; then
           score=$(node -e "const r=require(process.argv[1]);const p={good:100,fair:60,poor:20};const g=r.checks.filter(c=>c.grade in p);console.log(g.length?Math.round(g.reduce((s,c)=>s+p[c.grade],0)/g.length):'')" "$out/ng-checkup.json")
@@ -104,6 +129,13 @@ runs:
         fi
         [ -f "$out/ng-checkup.comment.md" ] && cat "$out/ng-checkup.comment.md" >> "$GITHUB_STEP_SUMMARY"
         exit 0
+
+    - name: Save the trend
+      if: inputs.trend == 'true' && github.event_name == 'push' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch) && steps.run.outputs.trend-recorded == 'true'
+      uses: actions/cache/save@v4
+      with:
+        path: ${{ runner.temp }}/ng-checkup-trend
+        key: ng-checkup-trend-${{ inputs.path }}-${{ github.run_id }}
 
     - name: Comment on the pull request
       if: inputs.comment == 'true' && (github.event_name == 'pull_request' || github.event_name == 'pull_request_target')

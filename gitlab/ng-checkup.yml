@@ -16,6 +16,12 @@
 #   NG_CHECKUP_FAIL_ON  poor, fair or regression; empty never fails
 #   NG_CHECKUP_ARGS     further options, such as "--plan --project admin"
 #   NG_CHECKUP_VERSION  the ng-checkup release to run
+#   NG_CHECKUP_TREND    "true" (default) keeps a trend of the score, the initial
+#                       bundle and the measures in the CI cache: every default-
+#                       branch run adds a point, merge requests show the last
+#                       30 days. The cache is shared with merge request branches
+#                       (unprotect), which only read it. The bundle needs a build
+#                       with stats before this job.
 #   NG_CHECKUP_TOKEN    a token with the `api` scope, as a CI/CD variable that is
 #                       Masked but NOT Protected: merge request branches are not
 #                       protected, so a protected variable never reaches them.
@@ -35,10 +41,22 @@ ng-checkup:
     NG_CHECKUP_PATH: .
     NG_CHECKUP_FAIL_ON: ''
     NG_CHECKUP_ARGS: ''
-    NG_CHECKUP_VERSION: 1.3.0
+    NG_CHECKUP_VERSION: 1.4.0
+    NG_CHECKUP_TREND: 'true'
+    # Read-only unless a rule below says otherwise, so a job whose rules are overridden still has a valid policy.
+    NG_CHECKUP_TREND_POLICY: pull
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      variables:
+        NG_CHECKUP_TREND_POLICY: pull-push
+  cache:
+    key: ng-checkup-trend-$CI_JOB_NAME_SLUG
+    paths:
+      - .ng-checkup-trend/
+    policy: $NG_CHECKUP_TREND_POLICY
+    unprotect: true
+    when: always
   script:
     - |
       out="$CI_PROJECT_DIR/ng-checkup"
@@ -48,11 +66,19 @@ ng-checkup:
       [ -n "$NG_CHECKUP_FAIL_ON" ] && fail="--fail-on $NG_CHECKUP_FAIL_ON"
       # npx from an empty folder, so a project named ng-checkup cannot shadow the release.
       cd /tmp/ng-checkup-npx
+      trend=""
+      # A NG_CHECKUP_VERSION older than 1.4.0 has no --trend; ask its help rather than fail on an unknown option.
+      # Captured, not piped into grep -q: under pipefail an early grep exit fails the pipe with SIGPIPE.
+      help="$(npx -y "ng-checkup@$NG_CHECKUP_VERSION" --help 2>/dev/null || true)"
+      if [ "$NG_CHECKUP_TREND" = "true" ] && case "$help" in *"--trend "*) true ;; *) false ;; esac; then
+        trend="--trend $CI_PROJECT_DIR/.ng-checkup-trend/$CI_JOB_NAME_SLUG.json"
+        if [ "$CI_COMMIT_BRANCH" = "$CI_DEFAULT_BRANCH" ]; then trend="$trend --trend-record"; fi
+      fi
       set +e
       npx -y "ng-checkup@$NG_CHECKUP_VERSION" "$root" --no-color \
         --report "$out/ng-checkup.html" --report "$out/ng-checkup.md" --report "$out/ng-checkup.json" \
         --report "$out/ng-checkup.codequality.json" --report "$out/ng-checkup.comment.md" \
-        $fail $NG_CHECKUP_ARGS
+        $fail $trend $NG_CHECKUP_ARGS
       code=$?
       set -e
       cd "$CI_PROJECT_DIR"

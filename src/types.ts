@@ -133,6 +133,14 @@ export interface Report {
    */
   history?: import('./history.js').HistoryReport;
   /**
+   * The largest application's initial bundle from the build's stats file,
+   * in bytes. Undefined without a stats file. Kept raw for the trend, which
+   * follows bundle size from run to run.
+   */
+  bundle?: { initialBytes: number; project?: string };
+  /** How the score, the bundle and the measures moved over the last 30 days (`--trend`). Attached by the CLI. */
+  trend?: import('./trend.js').TrendSummary;
+  /**
    * One row per project that owns source files, worst score first. Present
    * only for a whole-workspace run of a workspace with two or more projects.
    */
