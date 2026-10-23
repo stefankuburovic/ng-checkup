@@ -1,7 +1,7 @@
 # ng-checkup for GitLab CI. Add to .gitlab-ci.yml:
 #
 #   include:
-#     - remote: https://raw.githubusercontent.com/stefankuburovic/ng-checkup/v0/gitlab/ng-checkup.yml
+#     - remote: https://raw.githubusercontent.com/stefankuburovic/ng-checkup/v1/gitlab/ng-checkup.yml
 #
 # On every merge request and on the default branch it runs the checkup and
 #   - puts the findings in the merge request's Code Quality widget, where
@@ -35,7 +35,7 @@ ng-checkup:
     NG_CHECKUP_PATH: .
     NG_CHECKUP_FAIL_ON: ''
     NG_CHECKUP_ARGS: ''
-    NG_CHECKUP_VERSION: 0.12.0
+    NG_CHECKUP_VERSION: 1.0.0
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH

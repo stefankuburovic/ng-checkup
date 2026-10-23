@@ -98,16 +98,16 @@ describe('CI templates', () => {
     expect(githubWorkflow('yarn')).toContain('yarn ng-checkup --fail-on poor');
   });
 
-  it('include the GitLab template at the v0 tag and set only fail-on', () => {
+  it('include the GitLab template at the v1 tag and set only fail-on', () => {
     const job = gitlabJob('regression');
-    expect(job).toContain('- remote: https://raw.githubusercontent.com/stefankuburovic/ng-checkup/v0/gitlab/ng-checkup.yml');
+    expect(job).toContain('- remote: https://raw.githubusercontent.com/stefankuburovic/ng-checkup/v1/gitlab/ng-checkup.yml');
     expect(job).toMatch(/ng-checkup:\n {2}variables:\n {4}NG_CHECKUP_FAIL_ON: regression\n$/);
   });
 
   it('ship a GitLab template that runs this very release, with Code Quality and the comment', () => {
     const template = readFileSync(new URL('../gitlab/ng-checkup.yml', import.meta.url), 'utf8');
     const version = (JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')) as { version: string }).version;
-    // A release moves v0 to a commit whose template must run that same release.
+    // A release moves v1 to a commit whose template must run that same release.
     expect(template).toContain(`NG_CHECKUP_VERSION: ${version}`);
     expect(template).toContain('codequality: ng-checkup/ng-checkup.codequality.json');
     expect(template).toContain('--report "$out/ng-checkup.comment.md"');

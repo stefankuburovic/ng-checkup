@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.0.0 (2026-10-23)
+
+The command line, the config file, the JSON report and the baseline format are now stable: a change that breaks one of them gets a new major version.
+
+- **`ng-checkup history`**: how the score and every measure moved over the last months. It extracts the last commit of each month with `git archive` into a temporary folder (the working tree is never touched), runs the checkup offline on each, and ends with the working tree. `--points` sets the months (default 12); `--report history.html` draws the score and the measures that moved most as charts, `.md` and `.json` work too. On the RealWorld example app it shows 36 months from Angular 16 at 60 to Angular 21 at 91, with 27 legacy `*ngIf`/`*ngFor` gone.
+- **Known vulnerabilities**: the security area looks up every direct dependency at its exact version in [OSV](https://osv.dev), the GitHub advisories for npm, and AngularJS from Bower, a CDN or a checked-in copy as `angular`. A finding per package with CVE ids and the nearest fixed version; dev-only dependencies get a separate low finding. A high or critical advisory in a runtime dependency grades security poor, a moderate one fair. Not a baseline measure, since the count grows when advisories are published. Skipped with `--offline`.
+- **Hotspots**: in a git repository, the architecture area ranks the large files changed most often in the last twelve months (300 lines and 10 commits at least, lines times commits), the five worst listed. Never graded, never a measure. A shallow clone says it has no history.
+- **`--only` and `--skip`** (and the `only` / `skip` config keys): choose the areas a report covers, by check id. Every check still runs; the others stay out of the report, the score and the baseline. An unknown id is a usage error that lists the valid ones.
+- The GitHub Action and the GitLab template move to the **`v1`** tag (`uses: stefankuburovic/ng-checkup@v1`, `…/ng-checkup/v1/gitlab/ng-checkup.yml`), and the GitLab Catalog component can be included as `@1`. `v0` stays on 0.12.0.
+- `collectHistory`, `movedMeasures`, `renderHistoryHtml` and `renderHistoryMarkdown` are exported.
+
+**Upgrading from 0.x:** a run that passed `--fail-on poor` can fail on 1.0.0 when a runtime dependency has a high or critical advisory. That is the point of the check; until the dependency is upgraded, `--skip security` or `--fail-on regression` with a baseline keeps CI green. Nothing else changes for an existing setup.
+
 ## 0.12.0 (2026-10-23)
 
 - **`ng-checkup url <address>`**: which framework a public web app runs, from what a browser downloads. Reads the page and up to 12 scripts of the same site, following the chunks they import, and recognises AngularJS and Angular with versions (license header, version object, `new Version(...)` including template-literal builds, `ng-version`), zone.js, React with its version, Vue, Next.js and Nuxt, also several in one app. Third-party scripts are skipped, except AngularJS from a public CDN; `--json` for scripts. Checked on angular.dev, material.angular.dev, angularjs.org, react.dev, vuejs.org and nuxt.com.

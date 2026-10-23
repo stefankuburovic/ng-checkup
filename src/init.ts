@@ -265,7 +265,7 @@ ${CI_REPORTS.map((report) => `            ${report}`).join('\n')}
 
 /**
  * The GitLab job `init` writes: an `include` of the ng-checkup template at
- * the `v0` tag, plus the one setting `init` decides, `NG_CHECKUP_FAIL_ON`.
+ * the `v1` tag, plus the one setting `init` decides, `NG_CHECKUP_FAIL_ON`.
  *
  * The template (`gitlab/ng-checkup.yml`) runs the release it names with
  * `npx`, needs no install step, and brings the merge request integration:
@@ -293,8 +293,8 @@ ng-checkup:
 `;
 }
 
-/** Where `include: remote:` finds the GitLab template: the moving `v0` tag, so fixes arrive without re-running `init`. */
-export const GITLAB_TEMPLATE_URL = 'https://raw.githubusercontent.com/stefankuburovic/ng-checkup/v0/gitlab/ng-checkup.yml';
+/** Where `include: remote:` finds the GitLab template: the moving `v1` tag, so fixes arrive without re-running `init`. */
+export const GITLAB_TEMPLATE_URL = 'https://raw.githubusercontent.com/stefankuburovic/ng-checkup/v1/gitlab/ng-checkup.yml';
 
 /**
  * Serialises `value` with the indentation and final newline of `original`,

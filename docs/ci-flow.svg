@@ -32,7 +32,7 @@
   <text x="250" y="86" class="h">Workflow on a runner</text>
   <text x="250" y="108" class="m">.github/workflows/*.yml</text>
   <text x="250" y="132" class="m">uses: stefankuburovic/</text>
-  <text x="250" y="148" class="m">      ng-checkup@v0</text>
+  <text x="250" y="148" class="m">      ng-checkup@v1</text>
   <text x="250" y="176" class="s">The Action, from the</text>
   <text x="250" y="192" class="s">GitHub Marketplace</text>
 
@@ -73,7 +73,7 @@
   <text x="250" y="322" class="h">Pipeline on a runner</text>
   <text x="250" y="344" class="m">.gitlab-ci.yml</text>
   <text x="250" y="368" class="m">include: component:</text>
-  <text x="250" y="384" class="m">  …/ng-checkup@0.10</text>
+  <text x="250" y="384" class="m">  …/ng-checkup@1.0</text>
   <text x="250" y="408" class="s">CI/CD Catalog on gitlab.com;</text>
   <text x="250" y="424" class="s">self-managed: include: remote</text>
 

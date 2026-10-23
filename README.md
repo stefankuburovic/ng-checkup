@@ -458,7 +458,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: stefankuburovic/ng-checkup@v0
+      - uses: stefankuburovic/ng-checkup@v1
         with:
           fail-on: regression   # needs a committed baseline: npx ng-checkup baseline
           sarif: true
@@ -487,7 +487,7 @@ No `npm ci` needed: versions come from the lockfile. Inputs: `path` (a folder in
 
 ```yaml
 include:
-  - component: $CI_SERVER_FQDN/stefankuburovic/ng-checkup/ng-checkup@0.10.0
+  - component: $CI_SERVER_FQDN/stefankuburovic/ng-checkup/ng-checkup@1
     inputs:
       fail-on: regression
 ```
@@ -496,7 +496,7 @@ On a self-managed GitLab, which cannot include components from gitlab.com, use t
 
 ```yaml
 include:
-  - remote: https://raw.githubusercontent.com/stefankuburovic/ng-checkup/v0/gitlab/ng-checkup.yml
+  - remote: https://raw.githubusercontent.com/stefankuburovic/ng-checkup/v1/gitlab/ng-checkup.yml
 
 ng-checkup:
   variables:

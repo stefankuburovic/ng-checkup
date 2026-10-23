@@ -32,14 +32,14 @@ jobs:
       - name: The action reports a score
         run: test -n "${{ steps.checkup.outputs.score }}" && echo "score ${{ steps.checkup.outputs.score }}"
 
-  # The released action as users get it (uses: …@v0): no dist/ in the checkout,
+  # The released action as users get it (uses: …@v1): no dist/ in the checkout,
   # so it runs the npm release named in that tag's package.json.
   released:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - id: checkup
-        uses: stefankuburovic/ng-checkup@v0
+        uses: stefankuburovic/ng-checkup@v1
         with:
           path: test/fixtures/legacy-app
           offline: 'true'
