@@ -25,6 +25,7 @@ export interface AnalysisCache {
     deprecations: DeprecationIndex;
     typings: import('./typings.js').TypingsSource;
     compatibility: PackageCompatibility[];
+    vulnerabilities?: import('./vulnerabilities.js').VulnerabilityScan;
     latestAngular: { major: number; source: 'registry' | 'bundled' };
   };
 }

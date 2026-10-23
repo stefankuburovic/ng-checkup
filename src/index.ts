@@ -19,6 +19,7 @@ import { testingCheck } from './checks/testing.js';
 import { typeSafetyCheck } from './checks/type-safety.js';
 import { versionCheck } from './checks/version.js';
 import { cachedFacts, dependencyStamp } from './cache.js';
+import { lookUpVulnerabilities } from './vulnerabilities.js';
 import { loadDeprecationIndex } from './typings.js';
 import { ignoreMatcher } from './config.js';
 import { collectFiles } from './files.js';
@@ -257,14 +258,19 @@ export async function buildContext(root: string, options: CheckupOptions): Promi
     for (const key of cache.files.keys()) if (!present.has(key.replace(/^angularjs:/, ''))) cache.files.delete(key);
   }
   const appCompilerOptions = readCompilerOptions(workspace.appTsconfig);
+  const angularJs = assembleAngularJs(root, angularJsScans, templates, { exact: workspace.versions['angular'], declared: workspace.dependencies['angular'] });
 
   const stamp = dependencyStamp(workspace.root);
   let dependencies = cache?.dependencies?.stamp === stamp ? cache.dependencies : undefined;
   if (!dependencies) {
     const latestAngular: AnalysisContext['latestAngular'] = options.offline ? { major: BUNDLED_LATEST_ANGULAR_MAJOR, source: 'bundled' } : await fetchLatestAngularMajor();
     const offline = options.offline ?? false;
-    const [{ index, typings }, compatibility] = await Promise.all([loadDeprecationIndex(workspace.root, workspace, sources, offline), readCompatibility(workspace, latestAngular.major, offline)]);
-    dependencies = { stamp, latestAngular, deprecations: index, typings, compatibility };
+    const [{ index, typings }, compatibility, vulnerabilities] = await Promise.all([
+      loadDeprecationIndex(workspace.root, workspace, sources, offline),
+      readCompatibility(workspace, latestAngular.major, offline),
+      lookUpVulnerabilities(workspace, { offline, ...(angularJs.version ? { angularJsVersion: angularJs.version.version } : {}) }),
+    ]);
+    dependencies = { stamp, latestAngular, deprecations: index, typings, compatibility, ...(vulnerabilities ? { vulnerabilities } : {}) };
     if (cache) cache.dependencies = dependencies;
   }
   const { latestAngular } = dependencies;
@@ -275,13 +281,14 @@ export async function buildContext(root: string, options: CheckupOptions): Promi
     workspace,
     sources,
     templates,
-    angularJs: assembleAngularJs(root, angularJsScans, templates, { exact: workspace.versions['angular'], declared: workspace.dependencies['angular'] }),
+    angularJs,
     deprecations: dependencies.deprecations,
     typings: dependencies.typings,
     tangles: findTanglesIn(graph),
     ...(eagerFiles.size > 0 ? { eagerFiles } : {}),
     latestAngular,
     compatibility: dependencies.compatibility,
+    ...(dependencies.vulnerabilities ? { vulnerabilities: dependencies.vulnerabilities } : {}),
     bundles: readBundleStats(workspace),
     appCompilerOptions,
     angularCompilerOptions: workspace.appTsconfig ? readAngularCompilerOptions(workspace.appTsconfig) : {},

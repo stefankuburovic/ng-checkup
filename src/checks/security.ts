@@ -1,5 +1,6 @@
 import type { SourceFileFacts } from '../scan.js';
 import type { CheckResult, FileRef, Finding, Grade } from '../types.js';
+import { compareVersions, severityRank } from '../vulnerabilities.js';
 import { applicationFiles, formatCount, plural, type AnalysisContext } from './context.js';
 
 /**
@@ -61,22 +62,60 @@ export function securityCheck(context: AnalysisContext): CheckResult {
     });
   }
 
-  const grade: Grade = files.length === 0 ? 'info' : unsafeDom.length > 0 || dynamicCode.length > 0 ? 'poor' : bypass.length > 0 ? 'fair' : 'good';
+  const scan = context.vulnerabilities;
+  const runtime = scan?.packages.filter((entry) => !entry.dev) ?? [];
+  const tooling = scan?.packages.filter((entry) => entry.dev) ?? [];
+  const runtimeCount = runtime.reduce((sum, entry) => sum + entry.vulnerabilities.length, 0);
+  const severe = runtime.reduce((sum, entry) => sum + entry.vulnerabilities.filter((vulnerability) => severityRank(vulnerability.severity) >= 3).length, 0);
+  const moderate = runtime.some((entry) => entry.vulnerabilities.some((vulnerability) => vulnerability.severity === 'moderate'));
+  if (runtimeCount > 0) {
+    findings.unshift({
+      severity: severe > 0 ? 'high' : moderate ? 'medium' : 'low',
+      message: `${plural(runtimeCount, 'known vulnerability', 'known vulnerabilities')} in ${plural(runtime.length, 'dependency', 'dependencies')}${severe > 0 ? ` (${formatCount(severe)} high or critical)` : ''}`,
+      detail: `${runtime
+        .slice(0, 6)
+        .map((entry) => {
+          const cves = [...new Set(entry.vulnerabilities.flatMap((vulnerability) => vulnerability.cves))];
+          const fixes = [...new Set(entry.vulnerabilities.map((vulnerability) => vulnerability.fixedIn).filter((fixed): fixed is string => fixed !== undefined))];
+          const unfixed = entry.vulnerabilities.some((vulnerability) => vulnerability.fixedIn === undefined);
+          const fix = unfixed ? (fixes.length > 0 ? 'some without a fixed version' : 'no fixed version') : `all fixed by ${fixes.sort(compareVersions).pop()}`;
+          return `\`${entry.name}\` ${entry.version}: ${plural(entry.vulnerabilities.length, 'advisory', 'advisories')}${cves.length > 0 ? ` (${cves.slice(0, 3).join(', ')}${cves.length > 3 ? ', …' : ''})` : ''}, ${fix}`;
+        })
+        .join('; ')}${runtime.length > 6 ? `; and ${plural(runtime.length - 6, 'more dependency', 'more dependencies')}` : ''}. Direct dependencies at their exact versions, from the advisories in osv.dev; the full dependency tree is \`npm audit\`'s job.`,
+    });
+  }
+  if (tooling.length > 0) {
+    findings.push({
+      severity: 'low',
+      message: `${plural(tooling.reduce((sum, entry) => sum + entry.vulnerabilities.length, 0), 'known vulnerability', 'known vulnerabilities')} in development tooling`,
+      detail: `${tooling.map((entry) => `\`${entry.name}\` ${entry.version}`).join(', ')}. Not shipped to users, but they run on developer machines and in CI.`,
+    });
+  }
+
+  const codeGrade: Grade = files.length === 0 ? 'info' : unsafeDom.length > 0 || dynamicCode.length > 0 ? 'poor' : bypass.length > 0 ? 'fair' : 'good';
+  // Known vulnerabilities grade an app even without TypeScript to read (an AngularJS app on 1.8.3).
+  const grade: Grade = severe > 0 ? 'poor' : moderate && codeGrade !== 'poor' ? 'fair' : codeGrade === 'info' && scan && scan.checked > 0 ? (runtimeCount > 0 ? 'fair' : 'good') : codeGrade;
+  const vulnerabilitySummary = runtimeCount > 0 ? `; ${plural(runtimeCount, 'known vulnerability', 'known vulnerabilities')} in dependencies` : '';
   return {
     id: 'security',
     title: 'Security',
     grade,
     summary:
       files.length === 0
-        ? 'No application code to check.'
-        : grade === 'good'
-          ? `No sanitizer bypasses, direct DOM HTML writes or eval in ${plural(files.length, 'file')}${innerHtmlCount > 0 ? `; ${plural(innerHtmlCount, 'sanitized [innerHTML] binding')}` : ''}.`
-          : `${plural(unsafeDom.length, 'direct DOM HTML write')}, ${plural(dynamicCode.length, 'eval')}, ${plural(bypass.length, 'sanitizer bypass', 'sanitizer bypasses')}.`,
+        ? runtimeCount > 0
+          ? `No TypeScript application code to check; ${plural(runtimeCount, 'known vulnerability', 'known vulnerabilities')} in ${plural(runtime.length, 'dependency', 'dependencies')}.`
+          : 'No application code to check.'
+        : codeGrade === 'good'
+          ? `No sanitizer bypasses, direct DOM HTML writes or eval in ${plural(files.length, 'file')}${innerHtmlCount > 0 ? `; ${plural(innerHtmlCount, 'sanitized [innerHTML] binding')}` : ''}${vulnerabilitySummary}.`
+          : `${plural(unsafeDom.length, 'direct DOM HTML write')}, ${plural(dynamicCode.length, 'eval')}, ${plural(bypass.length, 'sanitizer bypass', 'sanitizer bypasses')}${vulnerabilitySummary}.`,
     metrics: [
       { label: 'Direct DOM HTML writes', value: formatCount(unsafeDom.length), hint: 'innerHTML =, insertAdjacentHTML' },
       { label: 'Sanitizer bypasses', value: formatCount(bypass.length), hint: 'bypassSecurityTrust*' },
       { label: 'eval / new Function', value: formatCount(dynamicCode.length) },
       { label: '[innerHTML] bindings', value: formatCount(innerHtmlCount), hint: 'sanitized by Angular' },
+      scan
+        ? { label: 'Known vulnerabilities', value: formatCount(runtimeCount), hint: `in ${plural(scan.checked, 'direct dependency', 'direct dependencies')} checked` }
+        : { label: 'Known vulnerabilities', value: 'not checked', hint: 'offline' },
     ],
     findings,
     measures: [

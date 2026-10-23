@@ -5,6 +5,7 @@ import type { PackageCompatibility } from '../compatibility.js';
 import type { DeprecationIndex } from '../deprecations.js';
 import type { DependencyTangle } from '../graph.js';
 import type { TypingsSource } from '../typings.js';
+import type { VulnerabilityScan } from '../vulnerabilities.js';
 import type { SourceFileFacts, TemplateFact } from '../scan.js';
 import type { CheckResult, FileRef } from '../types.js';
 import type { WorkspaceInfo } from '../workspace.js';
@@ -38,6 +39,8 @@ export interface AnalysisContext {
   bundles: BundleStats[];
   /** Installed third-party packages that depend on Angular. Empty without node_modules. */
   compatibility: PackageCompatibility[];
+  /** Known vulnerabilities of the direct dependencies, from osv.dev. Undefined offline or when OSV did not answer. */
+  vulnerabilities?: VulnerabilityScan;
   /** Newest Angular major, and whether it came from the registry or the tool's bundled fallback. */
   latestAngular: { major: number; source: 'registry' | 'bundled' };
   /** Effective options of the application tsconfig, `extends` resolved. */
