@@ -77,7 +77,8 @@ function lineChart(points: HistoryPoint[], values: Array<number | undefined>, op
   const dots = values.map((value, index) => (value === undefined ? '' : `<circle cx="${x(index).toFixed(1)}" cy="${y(value).toFixed(1)}" r="3" fill="${options.colour}"><title>${escape(`${points[index]!.date}: ${formatCount(value)}`)}</title></circle>`));
   // Every label would collide on a twelve-point chart: first, last, and every third in between.
   const labels = points.map((point, index) => (index === 0 || index === points.length - 1 || index % 3 === 0 ? `<text x="${x(index).toFixed(1)}" y="${height - 10}" text-anchor="middle">${escape(index === points.length - 1 ? 'now' : point.date.slice(0, 7))}</text>` : ''));
-  const grid = [0, max / 2, max].map((value) => `<line x1="${left}" x2="${width - right}" y1="${y(value).toFixed(1)}" y2="${y(value).toFixed(1)}" class="grid"/><text x="${left - 8}" y="${(y(value) + 4).toFixed(1)}" text-anchor="end">${formatCount(Math.round(value))}</text>`);
+  // Half of an odd maximum (15) is 7.5; rounding it to 8 would put the label off its line.
+  const grid = [0, max / 2, max].map((value) => `<line x1="${left}" x2="${width - right}" y1="${y(value).toFixed(1)}" y2="${y(value).toFixed(1)}" class="grid"/><text x="${left - 8}" y="${(y(value) + 4).toFixed(1)}" text-anchor="end">${Number.isInteger(value) ? formatCount(value) : value.toFixed(1)}</text>`);
   return `<figure class="chart"><figcaption>${escape(options.title)}</figcaption><svg viewBox="0 0 ${width} ${height}" role="img" aria-label="${escape(options.title)}">${grid.join('')}${lines.join('')}${dots.join('')}${labels.join('')}</svg></figure>`;
 }
 
