@@ -32,10 +32,14 @@ export interface CheckupConfig {
   baseline?: string;
   /** As `--plan`: add the upgrade plan to every report. */
   plan?: boolean;
+  /** As `--only`: the check ids to keep. */
+  only?: string[];
+  /** As `--skip`: the check ids to leave out. */
+  skip?: string[];
 }
 
 /** Keys the file may contain. `$schema` is accepted so editors can attach one later. */
-const KNOWN_KEYS = new Set(['$schema', 'reports', 'failOn', 'maxExamples', 'offline', 'ignore', 'baseline', 'plan']);
+const KNOWN_KEYS = new Set(['$schema', 'reports', 'failOn', 'maxExamples', 'offline', 'ignore', 'baseline', 'plan', 'only', 'skip']);
 
 /**
  * Reads and validates the config file.
@@ -102,6 +106,12 @@ export function loadConfig(root: string, explicitPath?: string): { config: Check
   if (record['plan'] !== undefined) {
     if (typeof record['plan'] !== 'boolean') throw new Error(`${path}: plan must be true or false`);
     config.plan = record['plan'];
+  }
+  for (const key of ['only', 'skip'] as const) {
+    if (record[key] === undefined) continue;
+    const value = record[key];
+    if (!Array.isArray(value) || !value.every((entry) => typeof entry === 'string')) throw new Error(`${path}: ${key} must be an array of check ids`);
+    config[key] = value;
   }
   return { config, directory: resolve(path, '..'), path };
 }

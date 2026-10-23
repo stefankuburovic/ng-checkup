@@ -6,7 +6,7 @@ import { parseArgs } from 'node:util';
 import { BASELINE_FILE, baselineIncreases, compareWithBaseline, createBaseline, readBaseline, serializeBaseline } from './baseline.js';
 import { createAnalysisCache } from './cache.js';
 import { loadConfig, REPORT_FORMATS, type CheckupConfig } from './config.js';
-import { BUNDLED_LATEST_ANGULAR_MAJOR, fetchLatestAngularMajor, ProjectNotFoundError, runCheckup, TOOL } from './index.js';
+import { BUNDLED_LATEST_ANGULAR_MAJOR, fetchLatestAngularMajor, ProjectNotFoundError, runCheckup, TOOL, UnknownCheckError } from './index.js';
 import { planInit, type CiChoice, type InitPlan } from './init.js';
 import { cloneRemote, describeCheckout, parseRemote, type RemoteRepository } from './remote.js';
 import { renderHtml } from './report/html.js';
@@ -64,6 +64,9 @@ Options:
       --fail-on <grade>  Exit with code 1 if any area is graded <grade> or worse
                          (poor or fair), or with regression if a measure is
                          worse than the baseline (for CI)
+      --only <ids>       Report only these areas, comma-separated check ids
+                         (security,testing); the rest stay out of the score
+      --skip <ids>       Leave these areas out of the report and the score
       --max-examples <n> Example files listed per finding (default 5)
       --offline          Do not look up the latest Angular version online
       --config <file>    Config file (default: ng-checkup.config.json in the root)
@@ -119,6 +122,9 @@ export interface CliArguments {
   plan: boolean;
   /** `--project`: one project of the workspace, by name. */
   project?: string;
+  /** `--only` and `--skip`, comma-separated check ids; undefined when not given, so the config can supply them. */
+  only?: string[];
+  skip?: string[];
   /** `--client`, `--prepared-by`, `--notes`: the client report. */
   client?: { name: string; preparedBy?: string; notes?: string };
   watch: boolean;
@@ -154,6 +160,8 @@ export interface RunSettings {
   offline: boolean;
   plan: boolean;
   ignore?: string[];
+  only?: string[];
+  skip?: string[];
 }
 
 /**
@@ -177,6 +185,8 @@ export function parseCliArguments(argv: string[], environment: NodeJS.ProcessEnv
       plan: { type: 'boolean' },
       watch: { type: 'boolean', short: 'w' },
       project: { type: 'string', short: 'p' },
+      only: { type: 'string' },
+      skip: { type: 'string' },
       client: { type: 'string' },
       'prepared-by': { type: 'string' },
       notes: { type: 'string' },
@@ -224,6 +234,8 @@ export function parseCliArguments(argv: string[], environment: NodeJS.ProcessEnv
     // The roadmap is the core of a client report.
     plan: (values.plan ?? false) || values.client !== undefined,
     project: values.project,
+    ...(values.only !== undefined ? { only: idList(values.only) } : {}),
+    ...(values.skip !== undefined ? { skip: idList(values.skip) } : {}),
     ...(values.client !== undefined ? { client: { name: values.client.trim(), ...(preparedBy ? { preparedBy } : {}), ...(values.notes !== undefined ? { notes: resolve(values.notes) } : {}) } } : {}),
     watch: values.watch ?? false,
     color: !values['no-color'] && environment['NO_COLOR'] === undefined && isTty,
@@ -264,6 +276,8 @@ export function resolveSettings(args: CliArguments, config: CheckupConfig, confi
     offline: args.offline || (config.offline ?? false),
     plan: args.plan || (config.plan ?? false),
     ignore: config.ignore,
+    only: args.only ?? config.only,
+    skip: args.skip ?? config.skip,
     baselinePath: config.baseline ? resolve(configDirectory, config.baseline) : join(args.root, BASELINE_FILE),
   };
 }
@@ -277,6 +291,11 @@ export function parseBaselineArguments(argv: string[]): BaselineArguments | 'hel
   });
   if (values.help) return 'help';
   return { root: parseRoot(positionals), force: values.force ?? false, config: values.config };
+}
+
+/** `security, testing` → `['security', 'testing']`: comma-separated ids, spaces and empty entries dropped. */
+function idList(value: string): string[] {
+  return value.split(',').map((id) => id.trim()).filter(Boolean);
 }
 
 /** The single optional path argument, checked to be a directory. */
@@ -419,9 +438,9 @@ async function mainCheckup(parsed: CliArguments, rootLabel?: string): Promise<nu
 
   let report: Report;
   try {
-    report = await runCheckup(parsed.root, { offline: settings.offline, maxExamples: settings.maxExamples, ignore: analysisIgnores(parsed.root, settings), plan: settings.plan, project: parsed.project });
+    report = await runCheckup(parsed.root, { offline: settings.offline, maxExamples: settings.maxExamples, ignore: analysisIgnores(parsed.root, settings), plan: settings.plan, project: parsed.project, only: settings.only, skip: settings.skip });
   } catch (error) {
-    if (error instanceof ProjectNotFoundError) return usageError(error);
+    if (error instanceof ProjectNotFoundError || error instanceof UnknownCheckError) return usageError(error);
     throw error;
   }
   if (baseline) report.baseline = compareWithBaseline(report, baseline, settings.baselinePath);
@@ -496,7 +515,7 @@ async function mainWatch(parsed: CliArguments, initial: RunSettings): Promise<nu
     run: async () => {
       const { config, directory } = loadConfig(parsed.root, parsed.config);
       const settings = resolveSettings(parsed, config, directory);
-      const report = await runCheckup(parsed.root, { offline: settings.offline, maxExamples: settings.maxExamples, ignore: analysisIgnores(parsed.root, settings), plan: settings.plan, project: parsed.project, cache });
+      const report = await runCheckup(parsed.root, { offline: settings.offline, maxExamples: settings.maxExamples, ignore: analysisIgnores(parsed.root, settings), plan: settings.plan, project: parsed.project, only: settings.only, skip: settings.skip, cache });
       const baseline = parsed.project === undefined ? readBaseline(settings.baselinePath) : undefined;
       if (baseline) report.baseline = compareWithBaseline(report, baseline, settings.baselinePath);
       writeReports(report, settings.reports);
@@ -559,7 +578,7 @@ export async function writeBaseline(args: BaselineArguments): Promise<string> {
   const { config, directory } = loadConfig(args.root, args.config);
   const path = config.baseline ? resolve(directory, config.baseline) : join(args.root, BASELINE_FILE);
   const previous = readBaseline(path);
-  const report = await runCheckup(args.root, { offline: true, ignore: config.ignore });
+  const report = await runCheckup(args.root, { offline: true, ignore: config.ignore, only: config.only, skip: config.skip });
   const next = createBaseline(report);
   const increases = baselineIncreases(previous, next);
   if (increases.length > 0 && !args.force) {

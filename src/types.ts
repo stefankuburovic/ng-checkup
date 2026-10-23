@@ -154,6 +154,13 @@ export interface CheckupOptions {
   ignore?: string[];
   /** Add an upgrade plan from the installed Angular to the latest major. */
   plan?: boolean;
+  /**
+   * Check ids to keep (`--only security,testing`); all others are left out of
+   * the report and the score. Validated against `CHECK_IDS`.
+   */
+  only?: string[];
+  /** Check ids to leave out of the report and the score (`--skip bundle`). */
+  skip?: string[];
   /** Reuse results between runs (`--watch`); see `createAnalysisCache`. */
   cache?: import('./cache.js').AnalysisCache;
   /**

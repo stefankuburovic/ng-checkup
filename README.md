@@ -365,6 +365,9 @@ Options:
       --fail-on <grade>  Exit with code 1 if any area is graded <grade> or worse
                          (poor or fair), or with regression if a measure is
                          worse than the baseline (for CI)
+      --only <ids>       Report only these areas, comma-separated check ids
+                         (security,testing); the rest stay out of the score
+      --skip <ids>       Leave these areas out of the report and the score
       --max-examples <n> Example files listed per finding (default 5)
       --offline          Do not look up the latest Angular version online
       --config <file>    Config file (default: ng-checkup.config.json in the root)

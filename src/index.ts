@@ -85,6 +85,35 @@ export const CHECKS: Check[] = [
 ];
 
 /**
+ * Every check id a report can hold, for `--only` and `--skip`: the twelve
+ * that always run, and the two legacy areas that replace each other when
+ * there is legacy code.
+ */
+export const CHECK_IDS = ['angularjs', 'primo-nde', 'version', 'deprecated-apis', 'dependencies', 'change-detection', 'components', 'state', 'architecture', 'testing', 'type-safety', 'security', 'circular-deps', 'bundle'] as const;
+
+/**
+ * A predicate over check ids from `only` and `skip`. Every check still runs
+ * (they take milliseconds, and the plans read their measures); the ones it
+ * rejects are left out of the report and so out of the score and the baseline.
+ *
+ * @throws On an id that names no check, with the list of valid ones: a typo
+ *   in CI must not quietly turn a gate off.
+ */
+export function checkFilter(options: Pick<CheckupOptions, 'only' | 'skip'>): (id: string) => boolean {
+  for (const id of [...(options.only ?? []), ...(options.skip ?? [])]) {
+    if (!(CHECK_IDS as readonly string[]).includes(id)) throw new UnknownCheckError(`No check named ${id}. Checks: ${CHECK_IDS.join(', ')}`);
+  }
+  const only = options.only && options.only.length > 0 ? new Set(options.only) : undefined;
+  const skip = new Set(options.skip ?? []);
+  return (id) => (only ? only.has(id) : true) && !skip.has(id);
+}
+
+/** Thrown for an `only` or `skip` id that names no check. */
+export class UnknownCheckError extends Error {
+  override name = 'UnknownCheckError';
+}
+
+/**
  * The checks that grade a project's own code, for the per-project breakdown.
  * `version` and `dependencies` read the root `package.json`, which all
  * projects of a workspace share.
@@ -112,6 +141,7 @@ export const TOOL = readToolInfo();
  */
 export async function runCheckup(root: string, options: CheckupOptions = {}): Promise<Report> {
   const started = Date.now();
+  const keep = checkFilter(options);
   const absoluteRoot = resolve(root);
   const context = await buildContext(absoluteRoot, options);
   // AngularJS comes first when there is any: it blocks everything else. A Primo VE customization
@@ -119,18 +149,19 @@ export async function runCheckup(root: string, options: CheckupOptions = {}): Pr
   // the NDE custom module, so it gets its own area and plan instead of the general AngularJS ones.
   const primo = summarizePrimo(context);
   const legacy = primo.present ? [primoNdeCheck(context)] : hasAngularJs(context) ? [angularJsCheck(context)] : [];
-  const checks = [...legacy, ...CHECKS.map((check) => check(context))];
+  const allChecks = [...legacy, ...CHECKS.map((check) => check(context))];
   const application = context.sources.filter((file) => !file.isSpec && !file.isGenerated);
   const generatedFiles = context.sources.filter((file) => file.isGenerated).length;
   // AngularJS code is mostly JavaScript; without it an AngularJS app or a Primo package reported 0 lines.
   const javascript = context.angularJs.files.filter((file) => file.language === 'js' && !file.isSpec);
-  const plan = options.plan ? buildPlan(context.workspace, checks, context.latestAngular.major, undefined, context.compatibility) : undefined;
+  const plan = options.plan ? buildPlan(context.workspace, allChecks, context.latestAngular.major, undefined, context.compatibility) : undefined;
+  const checks = allChecks.filter((check) => keep(check.id));
   const migration = !options.plan
     ? undefined
     : primo.present
       ? buildPrimoPlan(primo)
       : buildMigrationPlan(summarizeAngularJs(context), context.latestAngular.major, plan?.steps.length ?? 0, context.workspace.dependencies);
-  const projects = options.project ? [] : projectBreakdown(context);
+  const projects = options.project ? [] : projectBreakdown(context, keep);
 
   return {
     tool: TOOL,
@@ -168,7 +199,7 @@ export async function runCheckup(root: string, options: CheckupOptions = {}): Pr
  * Playwright e2e projects, and grading those on OnPush and strictTemplates
  * would fill the table with noise.
  */
-function projectBreakdown(context: AnalysisContext): ProjectSummary[] {
+function projectBreakdown(context: AnalysisContext, keep: (id: string) => boolean): ProjectSummary[] {
   const { projects } = context.workspace;
   if (projects.length < 2) return [];
   const ownerOf = (path: string): ProjectInfo | undefined => owningProject(path, projects);
@@ -177,7 +208,7 @@ function projectBreakdown(context: AnalysisContext): ProjectSummary[] {
     const sources = context.sources.filter((file) => ownerOf(file.path) === project);
     if (!sources.some((file) => file.imports.some((fact) => fact.specifier.startsWith('@angular/')))) continue;
     const projectContext = narrowContext(context, project, ownerOf);
-    const checks = PROJECT_CHECKS.map((check) => check(projectContext));
+    const checks = PROJECT_CHECKS.map((check) => check(projectContext)).filter((check) => keep(check.id));
     rows.push({
       name: project.name,
       root: project.root,
