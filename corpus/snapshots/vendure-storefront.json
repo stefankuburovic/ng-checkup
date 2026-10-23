@@ -110,7 +110,8 @@
       "measures": {
         "module-components": 53,
         "decorator-inputs-outputs": 38,
-        "legacy-control-flow": 90
+        "legacy-control-flow": 90,
+        "manual-subscriptions": 40
       },
       "findings": [
         {
@@ -132,6 +133,16 @@
           "severity": "low",
           "message": "90 uses of `*ngIf`, `*ngFor` and `[ngSwitch]`",
           "count": 90
+        },
+        {
+          "severity": "low",
+          "message": "40 manual `.subscribe()` calls in components and directives, 30 not tied to the component's lifetime",
+          "files": [
+            "src/app/checkout/components/checkout-shipping/checkout-shipping.component.ts:92",
+            "src/app/core/components/product-detail/product-detail.component.ts:55",
+            "src/app/core/components/cart-drawer/cart-drawer.component.ts:65"
+          ],
+          "count": 25
         }
       ]
     },

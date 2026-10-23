@@ -87,7 +87,8 @@
       "measures": {
         "module-components": 5,
         "decorator-inputs-outputs": 0,
-        "legacy-control-flow": 19
+        "legacy-control-flow": 19,
+        "manual-subscriptions": 11
       },
       "findings": [
         {
@@ -104,6 +105,16 @@
           "severity": "low",
           "message": "19 uses of `*ngIf`, `*ngFor` and `[ngSwitch]`",
           "count": 19
+        },
+        {
+          "severity": "low",
+          "message": "11 manual `.subscribe()` calls in components and directives, 11 not tied to the component's lifetime",
+          "files": [
+            "src/app/flasher/flasher.component.ts:46",
+            "src/app/apps/apps.component.ts:28",
+            "src/app/app.component.ts:21"
+          ],
+          "count": 4
         }
       ]
     },

@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.3.0 (2026-10-23)
+
+- **Manual subscriptions:** the components area counts `.subscribe()` calls in components and directives, and how many are not tied to the component's lifetime (no `takeUntilDestroyed`, `takeUntil`, `take` or `first` in the chain). It is a low finding and a new baseline measure, so `ng-checkup history` shows the curve a move to signals should bring down. On the corpus: 601 in go-data, 103 in scion-workbench of which 13 unbound, 22 in the RealWorld app. Suggested by Amir Mohammad Iravani.
+- `--verbose` keeps the top priorities at the end of the terminal output; they were left out in verbose mode.
+
 ## 1.2.1 (2026-10-23)
 
 Three changes from review on a real codebase, where the report read as harsher than the code:

@@ -210,13 +210,24 @@
       "measures": {
         "module-components": 0,
         "decorator-inputs-outputs": 266,
-        "legacy-control-flow": 1
+        "legacy-control-flow": 1,
+        "manual-subscriptions": 75
       },
       "findings": [
         {
           "severity": "medium",
           "message": "243 `@Input()` decorators and 23 `@Output()` decorators left",
           "count": 266
+        },
+        {
+          "severity": "low",
+          "message": "75 manual `.subscribe()` calls in components and directives, 52 not tied to the component's lifetime",
+          "files": [
+            "apps/demos/src/app/features/concepts/scheduling/scheduling/scheduling.component.ts:146",
+            "libs/template/virtual-scrolling/src/lib/scroll-strategies/autosize-virtual-scroll-strategy.ts:388",
+            "apps/demos/src/app/features/state/rx-actions/rx-actions.component.ts:181"
+          ],
+          "count": 42
         }
       ]
     },

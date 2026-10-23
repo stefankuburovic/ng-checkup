@@ -138,7 +138,7 @@ From Angular 22, OnPush is the default, so a component without `changeDetection`
 
 ## Components & templates (`components`) <a id="components"></a>
 
-**What it reads:** standalone vs. NgModule-declared components (standalone is the default from Angular 19), `input()` / `model()` / `output()` vs. `@Input()` / `@Output()`, built-in control flow (`@if`, `@for`, `@switch`) vs. structural directives, and `@defer` blocks.
+**What it reads:** standalone vs. NgModule-declared components (standalone is the default from Angular 19), `input()` / `model()` / `output()` vs. `@Input()` / `@Output()`, built-in control flow (`@if`, `@for`, `@switch`) vs. structural directives, `@defer` blocks, and manual `.subscribe()` calls in components and directives: state moved by hand, where `toSignal()` or the `async` pipe would let Angular own the subscription. A subscription counts as tied to the component's lifetime when `takeUntilDestroyed`, `takeUntil`, `take` or `first` is in its chain. The count is a low finding and a baseline measure, not part of the grade: it is the number a move to signals should watch fall, in `ng-checkup history` too.
 
 **Grading:** the average adoption of standalone, signal inputs and built-in control flow, counting only the areas the code uses: 80% or more is good, 40% or more is fair, below that is poor.
 
@@ -319,6 +319,7 @@ The largest packages in the initial bundle are listed with their size, from the 
 | `circular-deps.files-in-cycles` | Files in import cycles |
 | `components.decorator-inputs-outputs` | `@Input()` / `@Output()` decorators |
 | `components.legacy-control-flow` | `*ngIf` / `*ngFor` / `[ngSwitch]` uses |
+| `components.manual-subscriptions` | Manual `.subscribe()` in components and directives |
 | `components.module-components` | Components declared in NgModules |
 | `dependencies.deprecated-packages` | Packages deprecated on npm |
 | `dependencies.peer-mismatches` | Packages that do not accept the installed Angular |

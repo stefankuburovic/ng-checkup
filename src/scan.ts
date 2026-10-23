@@ -136,6 +136,14 @@ export interface SourceFileFacts {
    * count leaves out, and a report that counts them reads as contradicting it.
    */
   suppressedAnyLines: number[];
+  /**
+   * `.subscribe(` calls inside `@Component` and `@Directive` classes: state
+   * moved by hand, where a signal (`toSignal`) or the `async` pipe would let
+   * Angular own the subscription. `bound` is true when the chain hands its
+   * lifetime to the class (`takeUntilDestroyed`, `takeUntil`, `take`, `first`),
+   * false when only an explicit `unsubscribe()` (or nothing) ends it.
+   */
+  manualSubscribes: Array<{ line: number; bound: boolean }>;
   /** Lines of every `x!` non-null assertion. */
   nonNullLines: number[];
   /** `x!: T` property declarations, which skip definite-assignment checking. */
@@ -214,6 +222,7 @@ export function scanSourceFile(root: string, absolutePath: string): SourceFileFa
     jasmineCalls: 0,
     anyLines: [],
     suppressedAnyLines: [],
+    manualSubscribes: [],
     nonNullLines: [],
     definiteAssignments: 0,
     typeSuppressions: (text.match(/@ts-(ignore|expect-error|nocheck)\b/g) ?? []).length,
@@ -346,6 +355,18 @@ export function scanSourceFile(root: string, absolutePath: string): SourceFileFa
       }
     }
     const angularClass = (ts.getDecorators(node) ?? []).some((decorator) => ANGULAR_CLASS_DECORATORS.has(decoratorKey(decorator) ?? ''));
+    const viewClass = (ts.getDecorators(node) ?? []).some((decorator) => ['@angular/core#Component', '@angular/core#Directive'].includes(decoratorKey(decorator) ?? ''));
+    if (viewClass) {
+      const findSubscribes = (child: ts.Node): void => {
+        if (ts.isCallExpression(child) && ts.isPropertyAccessExpression(child.expression) && child.expression.name.text === 'subscribe') {
+          // Read from the text of the chain: `pipe(takeUntilDestroyed(this.destroyRef))` and friends, wherever in the chain they sit.
+          const chain = child.expression.expression.getText(source);
+          facts.manualSubscribes.push({ line: lineOf(child), bound: /\b(takeUntilDestroyed|takeUntil|untilDestroyed|take|first)\s*\(/.test(chain) });
+        }
+        ts.forEachChild(child, findSubscribes);
+      };
+      for (const member of node.members) findSubscribes(member);
+    }
     const constructor = angularClass ? node.members.find(ts.isConstructorDeclaration) : undefined;
     if (constructor && constructor.parameters.length > 0) facts.constructorInjections.push({ name, line: lineOf(constructor), parameters: constructor.parameters.length });
     for (const decorator of ts.getDecorators(node) ?? []) {

@@ -70,3 +70,32 @@ describe('review fixes', () => {
     expect(check?.grade).toBe('fair');
   });
 });
+
+describe('manual subscriptions', () => {
+  let root: string | undefined;
+  afterEach(() => {
+    if (root) removeTemp(root);
+    root = undefined;
+  });
+
+  it('counts .subscribe() in components and directives, and which are tied to the lifetime', async () => {
+    root = writeTemp({
+      'package.json': '{"name":"app","dependencies":{"@angular/core":"^22.0.0"}}',
+      'src/list.component.ts': [
+        "import { Component, DestroyRef, inject } from '@angular/core';",
+        "import { takeUntilDestroyed } from '@angular/core/rxjs-interop';",
+        "@Component({ selector: 'app-list', template: '' })",
+        'export class ListComponent {',
+        '  constructor() {',
+        '    source$.pipe(takeUntilDestroyed(inject(DestroyRef))).subscribe((value) => (this.value = value));',
+        '    other$.subscribe(() => {});',
+        '  }',
+        '}',
+      ].join('\n'),
+      'src/data.service.ts': "import { Injectable } from '@angular/core';\n@Injectable()\nexport class DataService { load() { source$.subscribe(); } }\n",
+    });
+    const check = (await runCheckup(root, { offline: true })).checks.find((entry) => entry.id === 'components');
+    expect(check?.measures?.find((measure) => measure.id === 'manual-subscriptions')?.value).toBe(2);
+    expect(check?.findings.find((finding) => finding.message.includes('.subscribe()'))?.message).toBe("2 manual `.subscribe()` calls in components and directives, 1 not tied to the component's lifetime");
+  });
+});

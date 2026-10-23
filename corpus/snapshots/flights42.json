@@ -74,7 +74,8 @@
       "measures": {
         "module-components": 1,
         "decorator-inputs-outputs": 0,
-        "legacy-control-flow": 0
+        "legacy-control-flow": 0,
+        "manual-subscriptions": 10
       },
       "findings": [
         {
@@ -84,6 +85,16 @@
             "src/app/domains/ticketing/feature-next-flights/next-flights-overview/next-flights-overview.ts:7"
           ],
           "count": 1
+        },
+        {
+          "severity": "low",
+          "message": "10 manual `.subscribe()` calls in components and directives, 9 not tied to the component's lifetime",
+          "files": [
+            "src/app/domains/checkin/feature-checkin/checkin-page.ts:129",
+            "src/app/app.ts:34",
+            "src/app/domains/shared/ui-assistant/assistant-chat/assistant-chat.ts:38"
+          ],
+          "count": 8
         }
       ]
     },

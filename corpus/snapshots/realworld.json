@@ -99,7 +99,8 @@
       "measures": {
         "module-components": 18,
         "decorator-inputs-outputs": 12,
-        "legacy-control-flow": 13
+        "legacy-control-flow": 13,
+        "manual-subscriptions": 22
       },
       "findings": [
         {
@@ -121,6 +122,16 @@
           "severity": "low",
           "message": "13 uses of `*ngIf`, `*ngFor` and `[ngSwitch]`",
           "count": 13
+        },
+        {
+          "severity": "low",
+          "message": "22 manual `.subscribe()` calls in components and directives, 22 not tied to the component's lifetime",
+          "files": [
+            "src/app/article/article.component.ts:38",
+            "src/app/auth/auth.component.ts:35",
+            "src/app/editor/editor.component.ts:40"
+          ],
+          "count": 14
         }
       ]
     },

@@ -148,7 +148,8 @@
       "measures": {
         "module-components": 6,
         "decorator-inputs-outputs": 5,
-        "legacy-control-flow": 1
+        "legacy-control-flow": 1,
+        "manual-subscriptions": 0
       },
       "findings": [
         {

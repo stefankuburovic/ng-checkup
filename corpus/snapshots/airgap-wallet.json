@@ -122,7 +122,8 @@
       "measures": {
         "module-components": 90,
         "decorator-inputs-outputs": 90,
-        "legacy-control-flow": 395
+        "legacy-control-flow": 395,
+        "manual-subscriptions": 43
       },
       "findings": [
         {
@@ -144,6 +145,16 @@
           "severity": "low",
           "message": "395 uses of `*ngIf`, `*ngFor` and `[ngSwitch]`",
           "count": 395
+        },
+        {
+          "severity": "low",
+          "message": "43 manual `.subscribe()` calls in components and directives, 23 not tied to the component's lifetime",
+          "files": [
+            "src/app/pages/transaction-prepare/transaction-prepare.ts:158",
+            "src/app/components/tezos-fa-form/tezos-fa-form.component.ts:48",
+            "src/app/pages/delegation-detail/delegation-detail.ts:277"
+          ],
+          "count": 19
         }
       ]
     },

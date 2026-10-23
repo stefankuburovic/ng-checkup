@@ -80,9 +80,21 @@
       "measures": {
         "module-components": 0,
         "decorator-inputs-outputs": 0,
-        "legacy-control-flow": 0
+        "legacy-control-flow": 0,
+        "manual-subscriptions": 8
       },
-      "findings": []
+      "findings": [
+        {
+          "severity": "low",
+          "message": "8 manual `.subscribe()` calls in components and directives, 6 not tied to the component's lifetime",
+          "files": [
+            "src/app/pages/map/map.ts:62",
+            "src/app/app.component.ts:124",
+            "src/app/pages/schedule-filter/schedule-filter.ts:90"
+          ],
+          "count": 7
+        }
+      ]
     },
     {
       "id": "state",

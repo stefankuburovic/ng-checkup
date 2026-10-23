@@ -107,7 +107,8 @@
       "measures": {
         "module-components": 1,
         "decorator-inputs-outputs": 0,
-        "legacy-control-flow": 0
+        "legacy-control-flow": 0,
+        "manual-subscriptions": 103
       },
       "findings": [
         {
@@ -117,6 +118,16 @@
             "apps/workbench-testing-app/src/app/test-pages/non-standalone-view-test-page/non-standalone-view-test-page.component.ts:14"
           ],
           "count": 1
+        },
+        {
+          "severity": "low",
+          "message": "103 manual `.subscribe()` calls in components and directives, 13 not tied to the component's lifetime",
+          "files": [
+            "apps/workbench-client-testing-app/src/app/test-pages/angular-zone-test-page/angular-zone-test-page.component.ts:57",
+            "apps/workbench-testing-app/src/app/dialog-page/dialog-page.component.ts:85",
+            "apps/workbench-client-testing-app/src/app/view-page/view-page.component.ts:87"
+          ],
+          "count": 50
         }
       ]
     },

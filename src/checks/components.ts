@@ -82,6 +82,20 @@ export function componentsCheck(context: AnalysisContext): CheckResult {
     });
   }
 
+  // Manual subscriptions: what a move to signals removes, and the number a migration's history should watch fall. Advice, not graded.
+  const subscribeFiles = application.filter((file) => file.manualSubscribes.length > 0).sort((left, right) => right.manualSubscribes.length - left.manualSubscribes.length);
+  const subscribes = subscribeFiles.reduce((sum, file) => sum + file.manualSubscribes.length, 0);
+  const unbound = subscribeFiles.reduce((sum, file) => sum + file.manualSubscribes.filter((entry) => !entry.bound).length, 0);
+  if (subscribes > 0) {
+    findings.push({
+      severity: 'low',
+      message: `${plural(subscribes, 'manual `.subscribe()` call')} in components and directives${unbound > 0 ? `, ${formatCount(unbound)} not tied to the component's lifetime` : ''}`,
+      detail: `Each one moves state by hand: \`toSignal()\` or the \`async\` pipe let Angular own the subscription, and a signal is what OnPush and zoneless change detection track. "Tied to the lifetime" means \`takeUntilDestroyed\`, \`takeUntil\`, \`take\` or \`first\` in the chain; the others end only through an explicit \`unsubscribe()\`, or never.`,
+      files: subscribeFiles.slice(0, context.maxExamples).map((file) => ({ path: file.path, line: file.manualSubscribes[0]!.line })),
+      count: subscribeFiles.length,
+    });
+  }
+
   const shares = [standaloneShare, ...(inputs > 0 ? [signalInputShare] : []), ...(controlFlow > 0 ? [controlFlowShare] : [])];
   const average = shares.reduce((sum, share) => sum + share, 0) / shares.length;
   const grade: Grade = average >= 80 ? 'good' : average >= 40 ? 'fair' : 'poor';
@@ -93,6 +107,7 @@ export function componentsCheck(context: AnalysisContext): CheckResult {
     { label: 'Signal outputs', value: outputs > 0 ? `${signalOutputShare}%` : 'n/a', hint: `${formatCount(signalOutputs)} of ${formatCount(outputs)}` },
     { label: 'Built-in control flow', value: controlFlow > 0 ? `${controlFlowShare}%` : 'n/a', hint: `${formatCount(totals.modern)} of ${formatCount(controlFlow)} blocks` },
     { label: '@defer blocks', value: formatCount(totals.defer) },
+    { label: 'Manual .subscribe()', value: formatCount(subscribes), hint: unbound > 0 ? `${formatCount(unbound)} not tied to the lifetime` : undefined },
   ];
 
   return {
@@ -106,6 +121,7 @@ export function componentsCheck(context: AnalysisContext): CheckResult {
       { id: 'module-components', label: 'Components declared in NgModules', value: moduleBased.length },
       { id: 'decorator-inputs-outputs', label: '@Input() / @Output() decorators', value: decoratorInputs + decoratorOutputs },
       { id: 'legacy-control-flow', label: '*ngIf / *ngFor / [ngSwitch] uses', value: totals.legacy },
+      { id: 'manual-subscriptions', label: 'Manual .subscribe() in components and directives', value: subscribes },
     ],
   };
 }

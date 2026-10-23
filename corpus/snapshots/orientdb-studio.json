@@ -198,7 +198,8 @@
       "measures": {
         "module-components": 61,
         "decorator-inputs-outputs": 103,
-        "legacy-control-flow": 249
+        "legacy-control-flow": 249,
+        "manual-subscriptions": 2
       },
       "findings": [
         {
@@ -220,6 +221,15 @@
           "severity": "low",
           "message": "249 uses of `*ngIf`, `*ngFor` and `[ngSwitch]`",
           "count": 249
+        },
+        {
+          "severity": "low",
+          "message": "2 manual `.subscribe()` calls in components and directives, 2 not tied to the component's lifetime",
+          "files": [
+            "src/app/administration/stats/backup/singlebackup.component.ts:119",
+            "src/app/administration/teleporter/graphmodelpanel/graphmodelpanel.component.ts:73"
+          ],
+          "count": 2
         }
       ]
     },
