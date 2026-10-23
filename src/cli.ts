@@ -19,17 +19,20 @@ import { renderTerminal } from './report/terminal.js';
 import type { Grade, Report } from './types.js';
 import { describeProgress, watchCheckup } from './watch.js';
 import { renderSiteTerminal, type SiteReport } from './report/site.js';
+import { collectHistory, type HistoryReport } from './history.js';
+import { renderHistoryHtml, renderHistoryMarkdown, renderHistoryTerminal } from './report/history.js';
 import { assessSite, probeSite } from './site.js';
 
 const HELP = `Usage: ng-checkup [path | repository] [options]
        ng-checkup init [path] [init options]
        ng-checkup baseline [path] [--force]
        ng-checkup url <address> [--json] [--offline]
+       ng-checkup history [path] [--points <n>] [--report <file>] [--json]
 
 A one-minute modernization report for an Angular codebase. Reads the code,
-never changes it, and sends nothing anywhere except package names to the npm
-registry, to look up the latest Angular and compatible releases (skip it with
---offline).
+never changes it, and sends nothing anywhere except package names and
+versions: to the npm registry, to look up the latest Angular and compatible
+releases, and to osv.dev, for known vulnerabilities (skip both with --offline).
 
 Arguments:
   path                   Repository root (default: current directory)
@@ -68,7 +71,7 @@ Options:
                          (security,testing); the rest stay out of the score
       --skip <ids>       Leave these areas out of the report and the score
       --max-examples <n> Example files listed per finding (default 5)
-      --offline          Do not look up the latest Angular version online
+      --offline          Nothing online: no npm registry, no osv.dev lookup
       --config <file>    Config file (default: ng-checkup.config.json in the root)
       --no-color         Plain output (also off when NO_COLOR is set or not a TTY)
   -h, --help             Show this help
@@ -89,6 +92,16 @@ Url (ng-checkup url <address>):
                          the page and up to 12 scripts of the same site
       --json             Print the result as JSON
 
+History (ng-checkup history [path]):
+                         How the score and the measures moved over the last
+                         months: checks out one commit per month into a
+                         temporary folder (the working tree is never touched),
+                         runs the checkup offline on each, and ends with now.
+                         Needs the full git history, not a shallow clone
+      --points <n>       Months back (default 12)
+  -r, --report <file>    Write it as .html (with charts), .md or .json
+      --json             Print it as JSON
+
 Examples:
   npx ng-checkup
   npx ng-checkup ../my-app --report checkup.html
@@ -100,7 +113,8 @@ Examples:
   npx ng-checkup --fail-on poor --report checkup.md
   npx ng-checkup init
   npx ng-checkup baseline && npx ng-checkup --fail-on regression
-  npx ng-checkup url https://app.example.com`;
+  npx ng-checkup url https://app.example.com
+  npx ng-checkup history --report history.html`;
 
 /** Grades in order of how bad they are, for `--fail-on`. */
 const SEVERITY_ORDER: Grade[] = ['good', 'fair', 'poor'];
@@ -385,6 +399,7 @@ async function main(argv: string[]): Promise<number> {
   if (argv[0] === 'init') return mainInit(argv.slice(1));
   if (argv[0] === 'baseline') return mainBaseline(argv.slice(1));
   if (argv[0] === 'url') return mainUrl(argv.slice(1));
+  if (argv[0] === 'history') return mainHistory(argv.slice(1));
 
   let parsed: ReturnType<typeof parseCliArguments>;
   try {
@@ -593,7 +608,6 @@ export async function writeBaseline(args: BaselineArguments): Promise<string> {
   return lines.join('\n');
 }
 
-/** Prints a user-facing error with the hint to `--help` and returns exit code 2. */
 /** Parsed arguments of `ng-checkup url`. */
 export interface UrlArguments {
   address: string;
@@ -641,6 +655,92 @@ async function mainUrl(argv: string[]): Promise<number> {
   }
 }
 
+/** Parsed arguments of `ng-checkup history`. */
+export interface HistoryArguments {
+  root: string;
+  /** Months back; one point per month, plus the working tree. */
+  points: number;
+  /** Resolved against the working directory; .html, .md or .json. Empty when none. */
+  reports: string[];
+  json: boolean;
+  color: boolean;
+  config?: string;
+}
+
+/** Parses the arguments after `history`. Throws a user-facing `Error` on anything invalid. */
+export function parseHistoryArguments(argv: string[], environment: NodeJS.ProcessEnv = process.env, isTty = Boolean(process.stdout.isTTY)): HistoryArguments | 'help' {
+  const { values, positionals } = parseArgs({
+    args: argv,
+    allowPositionals: true,
+    options: {
+      points: { type: 'string' },
+      report: { type: 'string', short: 'r', multiple: true },
+      json: { type: 'boolean' },
+      config: { type: 'string' },
+      'no-color': { type: 'boolean' },
+      help: { type: 'boolean', short: 'h' },
+    },
+  });
+  if (values.help) return 'help';
+  const points = values.points === undefined ? 12 : Number(values.points);
+  // More than five years of monthly checkouts is a long wait for a chart nobody reads that far back.
+  if (!Number.isInteger(points) || points < 1 || points > 60) throw new Error(`--points takes a whole number from 1 to 60, got ${values.points}`);
+  const reports = (values.report ?? []).map((path) => resolve(path));
+  for (const path of reports) if (!['.html', '.md', '.json'].includes(extname(path).toLowerCase())) throw new Error(`Unknown history format for ${path}: use .html, .md or .json`);
+  return { root: parseRoot(positionals), points, reports, json: values.json ?? false, color: !values['no-color'] && environment['NO_COLOR'] === undefined && isTty, config: values.config };
+}
+
+/** Renders a history in the format its file extension names. */
+export function renderHistoryForFile(report: HistoryReport, path: string): string {
+  const extension = extname(path).toLowerCase();
+  if (extension === '.json') return `${JSON.stringify(report, null, 2)}\n`;
+  if (extension === '.md') return renderHistoryMarkdown(report);
+  return renderHistoryHtml(report);
+}
+
+/**
+ * `ng-checkup history [path]`: collects the history (see `collectHistory`)
+ * with a progress line on stderr, prints it and writes the reports. The
+ * config file's `ignore`, `only` and `skip` apply, so the score is the one a
+ * normal run shows. Exit code 2 outside git or in a shallow clone.
+ */
+async function mainHistory(argv: string[]): Promise<number> {
+  let parsed: HistoryArguments | 'help';
+  try {
+    parsed = parseHistoryArguments(argv);
+  } catch (error) {
+    return usageError(error);
+  }
+  if (parsed === 'help') {
+    process.stdout.write(`${HELP}\n`);
+    return 0;
+  }
+  try {
+    const { config } = loadConfig(parsed.root, parsed.config);
+    const progress = Boolean(process.stderr.isTTY);
+    const report = await collectHistory(parsed.root, {
+      points: parsed.points,
+      // A history.html written into the repository would otherwise be read back as a template on the next run.
+      ignore: analysisIgnores(parsed.root, { ignore: config.ignore, reports: parsed.reports }),
+      only: config.only,
+      skip: config.skip,
+      onProgress: (done, total, label) => {
+        if (progress) process.stderr.write(`\r\u001b[2KChecking ${done + 1}/${total}: ${label}`);
+      },
+    });
+    if (progress) process.stderr.write('\r\u001b[2K');
+    process.stdout.write(parsed.json ? `${JSON.stringify(report, null, 2)}\n` : `${renderHistoryTerminal(report, { color: parsed.color })}\n`);
+    for (const target of parsed.reports) {
+      mkdirSync(dirname(target), { recursive: true });
+      writeFileSync(target, renderHistoryForFile(report, target));
+    }
+    return 0;
+  } catch (error) {
+    return usageError(error);
+  }
+}
+
+/** Prints a user-facing error with the hint to `--help` and returns exit code 2. */
 function usageError(error: unknown): number {
   process.stderr.write(`ng-checkup: ${error instanceof Error ? error.message : String(error)}\nRun ng-checkup --help for usage.\n`);
   return 2;

@@ -59,6 +59,9 @@ export {
   type MeasureDelta,
 } from './baseline.js';
 export { planInit, type InitChange, type InitOptions, type InitPlan } from './init.js';
+// history.ts imports runCheckup from here; the cycle is safe because both sides only use each other inside functions.
+export { collectHistory, HistoryUnavailableError, movedMeasures, type HistoryPoint, type HistoryReport } from './history.js';
+export { renderHistoryHtml, renderHistoryMarkdown } from './report/history.js';
 
 /**
  * The newest Angular major this release of the tool knows about. Used only

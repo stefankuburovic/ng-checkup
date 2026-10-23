@@ -427,7 +427,7 @@ const CLIENT_STYLES = `
  * The stylesheet. Colours are tokens on `:root`, redefined for dark mode, so
  * the grade and severity colours stay legible on both backgrounds.
  */
-const STYLES = `
+export const STYLES = `
 :root {
   --bg: #f7f7f5; --surface: #ffffff; --text: #1b1d21; --muted: #5d636e; --border: #e3e3df; --code-bg: #f0f0ec;
   --good: #1f7a4d; --good-bg: #e3f3ea; --fair: #8a5a00; --fair-bg: #fbf0d9; --poor: #b42318; --poor-bg: #fde8e6; --info: #5d636e; --info-bg: #ececea;
