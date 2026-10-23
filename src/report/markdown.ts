@@ -15,7 +15,7 @@ export function renderMarkdown(report: Report): string {
 
   lines.push(`# Angular checkup: ${project.name}`, '');
   lines.push(
-    `${kindLabel(project.kind)}${project.workspaceFolder ? ` in \`${project.workspaceFolder}\`` : ''}${project.angularVersion ? ` · Angular ${project.angularVersion}` : ''} · ${`${plural(project.sourceFiles, 'TypeScript file')}${project.javascriptFiles ? `, ${plural(project.javascriptFiles, 'JavaScript file')}` : ''}`} · ${plural(project.templateFiles, 'template')} · ${plural(project.linesOfCode, 'line')} of application code${project.generatedFiles ? ` (${plural(project.generatedFiles, 'generated file')} left out)` : ''}`,
+    `${kindLabel(report)}${project.workspaceFolder ? ` in \`${project.workspaceFolder}\`` : ''}${project.angularVersion ? ` · Angular ${project.angularVersion}` : ''} · ${`${plural(project.sourceFiles, 'TypeScript file')}${project.javascriptFiles ? `, ${plural(project.javascriptFiles, 'JavaScript file')}` : ''}`} · ${plural(project.templateFiles, 'template')} · ${plural(project.linesOfCode, 'line')} of application code${project.generatedFiles ? ` (${plural(project.generatedFiles, 'generated file')} left out)` : ''}`,
     '',
   );
   if (score !== undefined) lines.push(`**Score: ${score}/100.** ${SCORE_EXPLANATION}`, '');

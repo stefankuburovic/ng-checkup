@@ -77,9 +77,22 @@ export function formatDuration(milliseconds: number): string {
   return milliseconds >= 1000 ? `${(milliseconds / 1000).toFixed(1)} s` : `${milliseconds} ms`;
 }
 
-/** The workspace kind as a reader would name it. */
-export function kindLabel(kind: Report['project']['kind']): string {
-  return { 'angular-cli': 'Angular CLI', nx: 'Nx', unknown: 'unknown workspace' }[kind];
+/**
+ * The workspace kind as a reader would name it. Without an `angular.json` or
+ * an Nx workspace the kind is `unknown`, which in a report header read like
+ * a failure on exactly the codebases the legacy areas exist for, so those are
+ * named by what they are: a Primo VE package, an AngularJS app, a hybrid.
+ * Anything else without a CLI workspace builds some other way (webpack,
+ * gulp, a CDN script tag), hence "custom build".
+ */
+export function kindLabel(report: Pick<Report, 'project' | 'checks'>): string {
+  const { kind, angularVersion } = report.project;
+  if (kind === 'angular-cli') return 'Angular CLI';
+  if (kind === 'nx') return 'Nx';
+  const ran = (id: string): boolean => report.checks.some((check) => check.id === id && check.grade !== 'info');
+  if (ran('primo-nde')) return 'Primo VE package';
+  if (ran('angularjs')) return angularVersion ? 'AngularJS and Angular hybrid' : 'AngularJS app';
+  return 'custom build';
 }
 
 /**

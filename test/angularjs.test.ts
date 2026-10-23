@@ -2,6 +2,7 @@ import { scanAngularJsTemplate } from '../src/angularjs.js';
 import { runCheckup } from '../src/index.js';
 import { renderHtml } from '../src/report/html.js';
 import { renderMarkdown } from '../src/report/markdown.js';
+import { kindLabel } from '../src/report/summary.js';
 import { notesTemplate } from '../src/report/notes.js';
 import type { Report } from '../src/types.js';
 import { removeTemp, writeTemp } from './helpers.js';
@@ -51,6 +52,8 @@ describe('AngularJS', () => {
   it('counts an AngularJS app in every registration style, and leaves specs and vendored copies out', async () => {
     const { report, result } = await check(ANGULARJS_APP);
     expect(report.checks[0]?.id).toBe('angularjs');
+    // No angular.json: named by what it is, not "unknown workspace".
+    expect(kindLabel(report)).toBe('AngularJS app');
     expect(result?.grade).toBe('poor');
     expect(result?.summary).toBe('AngularJS 1.5.8 app: 3 components, directives and controllers, 1 service and 2 templates to migrate.');
     const measures = Object.fromEntries((result?.measures ?? []).map((measure) => [measure.id, measure.value]));
@@ -79,7 +82,8 @@ describe('AngularJS', () => {
   });
 
   it('measures how far a hybrid app has come, and counts downgraded code as migrated', async () => {
-    const { result } = await check(HYBRID_APP);
+    const { report, result } = await check(HYBRID_APP);
+    expect(kindLabel(report)).toBe('AngularJS and Angular hybrid');
     expect(result?.summary).toBe('Hybrid AngularJS 1.8.3 and Angular 22: 50% of components on Angular, 1 AngularJS component left.');
     expect(result?.metrics.find((metric) => metric.label === 'Mode')?.value).toBe('Hybrid (UpgradeModule)');
     expect(result?.measures?.find((measure) => measure.id === 'angularjs-services')?.value).toBe(1);

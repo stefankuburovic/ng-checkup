@@ -55,6 +55,8 @@ export function renderHistoryMarkdown(report: HistoryReport): string {
  * One line chart as inline SVG: a value per point, missing values leave a
  * gap. The y axis starts at zero (or spans 0 to 100 for the score), so a
  * drop from 412 to 398 looks like the small step it is rather than a cliff.
+ * The x axis is time, not the point index: a month without a commit has no
+ * point, and spacing the points evenly drew a five-month pause as one step.
  */
 function lineChart(points: HistoryPoint[], values: Array<number | undefined>, options: { title: string; max?: number; colour: string; width?: number }): string {
   // The small charts sit two to a row, so a narrower viewBox keeps their text at the same size as the wide one's.
@@ -66,7 +68,11 @@ function lineChart(points: HistoryPoint[], values: Array<number | undefined>, op
   const bottom = 30;
   const known = values.filter((value): value is number => value !== undefined);
   const max = options.max ?? roundUp(Math.max(1, ...known));
-  const x = (index: number): number => (points.length === 1 ? left + (width - left - right) / 2 : left + (index * (width - left - right)) / (points.length - 1));
+  const times = points.map((point) => Date.parse(point.date));
+  const first = times[0] ?? 0;
+  const span = (times.at(-1) ?? first) - first;
+  const xAt = (time: number): number => (span === 0 ? left + (width - left - right) / 2 : left + ((time - first) * (width - left - right)) / span);
+  const x = (index: number): number => xAt(times[index] ?? first);
   const y = (value: number): number => top + (height - top - bottom) * (1 - value / max);
   const segments: string[][] = [[]];
   values.forEach((value, index) => {
@@ -75,11 +81,38 @@ function lineChart(points: HistoryPoint[], values: Array<number | undefined>, op
   });
   const lines = segments.filter((segment) => segment.length > 1).map((segment) => `<polyline points="${segment.join(' ')}" fill="none" stroke="${options.colour}" stroke-width="2" stroke-linejoin="round"/>`);
   const dots = values.map((value, index) => (value === undefined ? '' : `<circle cx="${x(index).toFixed(1)}" cy="${y(value).toFixed(1)}" r="3" fill="${options.colour}"><title>${escape(`${points[index]!.date}: ${formatCount(value)}`)}</title></circle>`));
-  // Every label would collide on a twelve-point chart: first, last, and every third in between.
-  const labels = points.map((point, index) => (index === 0 || index === points.length - 1 || index % 3 === 0 ? `<text x="${x(index).toFixed(1)}" y="${height - 10}" text-anchor="middle">${escape(index === points.length - 1 ? 'now' : point.date.slice(0, 7))}</text>` : ''));
+  const labels = timeTicks(first, first + span).map((tick) => ({ ...tick, x: xAt(tick.time) }));
+  // "now" marks the last point; a tick closer to it than 60 units would print over it.
+  const lastX = x(points.length - 1);
+  const tickLabels = labels.filter((tick) => lastX - tick.x >= 60).map((tick) => `<text x="${tick.x.toFixed(1)}" y="${height - 10}" text-anchor="middle">${escape(tick.label)}</text>`);
+  if (points.length > 0) tickLabels.push(`<text x="${lastX.toFixed(1)}" y="${height - 10}" text-anchor="middle">${points.length === 1 ? escape(points[0]!.date.slice(0, 7)) : 'now'}</text>`);
   // Half of an odd maximum (15) is 7.5; rounding it to 8 would put the label off its line.
   const grid = [0, max / 2, max].map((value) => `<line x1="${left}" x2="${width - right}" y1="${y(value).toFixed(1)}" y2="${y(value).toFixed(1)}" class="grid"/><text x="${left - 8}" y="${(y(value) + 4).toFixed(1)}" text-anchor="end">${Number.isInteger(value) ? formatCount(value) : value.toFixed(1)}</text>`);
-  return `<figure class="chart"><figcaption>${escape(options.title)}</figcaption><svg viewBox="0 0 ${width} ${height}" role="img" aria-label="${escape(options.title)}">${grid.join('')}${lines.join('')}${dots.join('')}${labels.join('')}</svg></figure>`;
+  return `<figure class="chart"><figcaption>${escape(options.title)}</figcaption><svg viewBox="0 0 ${width} ${height}" role="img" aria-label="${escape(options.title)}">${grid.join('')}${lines.join('')}${dots.join('')}${tickLabels.join('')}</svg></figure>`;
+}
+
+/**
+ * Labels for the time axis: the first of every `step` months between `from`
+ * and `to` (epoch milliseconds), the step chosen so there are at most five,
+ * as `2024` when the step is a year and `2024-07` otherwise. A history of
+ * three years reads by year, one of six months by month.
+ */
+function timeTicks(from: number, to: number): Array<{ time: number; label: string }> {
+  const start = new Date(from);
+  const months = (new Date(to).getUTCFullYear() - start.getUTCFullYear()) * 12 + new Date(to).getUTCMonth() - start.getUTCMonth();
+  const step = [1, 2, 3, 6, 12, 24].find((candidate) => months / candidate <= 5) ?? 24;
+  const ticks: Array<{ time: number; label: string }> = [];
+  for (let year = start.getUTCFullYear(), month = start.getUTCMonth() + 1; ; month++) {
+    if (month === 12) {
+      year++;
+      month = 0;
+    }
+    const time = Date.UTC(year, month, 1);
+    if (time > to) break;
+    // Aligned to the calendar: every January for a yearly step, every January and July for a half-yearly one.
+    if ((year * 12 + month) % step === 0) ticks.push({ time, label: step % 12 === 0 ? String(year) : `${year}-${String(month + 1).padStart(2, '0')}` });
+  }
+  return ticks;
 }
 
 /** The next round number (1, 1.5, 2, 3, 4, 5, 6 or 8 times a power of ten) at or above `value`, so an axis ends on 3 000 rather than 2 896. */

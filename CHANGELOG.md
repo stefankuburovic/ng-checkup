@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.1 (2026-10-23)
+
+- History charts put the points on a time axis. A month without a commit has no point, and evenly spaced points drew a five-month pause as one step; the axis now reads by year for a long history and by month for a short one, with the last point marked "now".
+- A codebase without `angular.json` or an Nx workspace is named by what it is in the report header: "Primo VE package", "AngularJS app", "AngularJS and Angular hybrid", or "custom build", instead of "unknown workspace".
+
 ## 1.0.0 (2026-10-23)
 
 The command line, the config file, the JSON report and the baseline format are now stable: a change that breaks one of them gets a new major version.

@@ -3,7 +3,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { parseHistoryArguments, renderHistoryForFile } from '../src/cli.js';
 import { collectHistory, HistoryUnavailableError, movedMeasures } from '../src/history.js';
-import { renderHistoryTerminal } from '../src/report/history.js';
+import { renderHistoryHtml, renderHistoryTerminal } from '../src/report/history.js';
 import { removeTemp, writeTemp } from './helpers.js';
 
 /** A component whose template has `uses` legacy `*ngIf`s: the measure the history follows. */
@@ -82,6 +82,16 @@ describe('history', () => {
     expect(html).not.toMatch(/<script|https?:\/\/(?!www\.w3\.org)/);
     expect(renderHistoryForFile(report, 'history.md')).toContain('| *ngIf / *ngFor / [ngSwitch] uses | 3 | 2 | -1 |');
     expect(JSON.parse(renderHistoryForFile(report, 'history.json')).points).toHaveLength(3);
+  });
+
+  it('places points by date, so a long pause without commits shows as one', () => {
+    const point = (date: string, score: number) => ({ commit: date, date, score, linesOfCode: 1, measures: {} });
+    const html = renderHistoryHtml({ tool: { name: 'ng-checkup', version: 'test' }, generatedAt: '2026-10-23T00:00:00Z', root: 'app', labels: {}, points: [point('2023-10-30', 60), point('2024-05-24', 68), point('2026-10-23', 91)] });
+    const xs = [...html.matchAll(/<circle cx="([\d.]+)"/g)].map((match) => Number(match[1]));
+    // 207 of the 1 089 days fall between the first two points: about a fifth of the 580-unit axis, not half.
+    expect(xs).toEqual([44, 44 + Math.round((207 / 1089) * 580 * 10) / 10, 624]);
+    // Three years read by year, and the last point is "now".
+    expect([...html.matchAll(/text-anchor="middle">([^<]+)</g)].map((match) => match[1])).toEqual(['2024', '2025', '2026', 'now']);
   });
 
   it('refuses outside git and in a shallow clone, saying what to do', async () => {

@@ -1,6 +1,7 @@
 import { hookSelector, primoFactsOf, viewRootOf } from '../src/primo.js';
 import { runCheckup } from '../src/index.js';
 import { renderMarkdown } from '../src/report/markdown.js';
+import { kindLabel } from '../src/report/summary.js';
 import type { Report } from '../src/types.js';
 import { removeTemp, writeTemp } from './helpers.js';
 
@@ -45,6 +46,7 @@ describe('Primo VE customization packages', () => {
     expect(report.checks.map((check) => check.id)).not.toContain('angularjs');
     const primo = report.checks[0];
     expect(primo?.id).toBe('primo-nde');
+    expect(kindLabel(report)).toBe('Primo VE package');
     expect(primo?.summary).toBe('Primo VE customization: 3 hooks in 2 views, 2 `parentCtrl` reads to rebuild for NDE.');
     const measures = Object.fromEntries((primo?.measures ?? []).map((measure) => [measure.id, measure.value]));
     expect(measures).toEqual({ 'primo-hooks': 3, 'primo-helper-components': 1, 'parentctrl-reads': 2, 'primo-integrations': 1 });
