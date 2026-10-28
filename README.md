@@ -38,6 +38,7 @@ npx ng-checkup
 - [How it works](#how-it-works)
 - [FAQ](#faq)
 - [Roadmap](#roadmap)
+- [VS Code extension](#vs-code-extension)
 - [Contributing](#contributing)
 
 ## Quick start
@@ -593,7 +594,10 @@ Package names and versions, to two public services. To the npm registry: the lat
 ## Roadmap
 
 - Per-project baselines for monorepos
-- A VS Code extension showing findings inline
+
+## VS Code extension
+
+[ng-checkup for VS Code](https://marketplace.visualstudio.com/items?itemName=stefankuburovic.ng-checkup-vscode) shows the findings inline: every finding at its file and line in the Problems panel, why it matters on hover, and the score in the status bar, with the HTML report one click away. It runs on open and after each save, re-parsing only the files that changed, and reads `ng-checkup.config.json`. Cursor and VSCodium install it from [Open VSX](https://open-vsx.org/extension/stefankuburovic/ng-checkup-vscode); the source is in [ng-checkup-vscode](https://github.com/stefankuburovic/ng-checkup-vscode).
 
 Ideas and bug reports are welcome in [issues](https://github.com/stefankuburovic/ng-checkup/issues).
 
