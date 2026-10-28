@@ -1,4 +1,5 @@
-import type { CheckResult, Finding, Grade } from '../types.js';
+import type { CheckResult, FileRef, Finding, Grade } from '../types.js';
+import { reportPath, type ConfigLocation } from '../workspace.js';
 import { applicationFiles, formatCount, plural, type AnalysisContext } from './context.js';
 
 /**
@@ -54,11 +55,23 @@ export function typeSafetyCheck(context: AnalysisContext): CheckResult {
     file.imports.some((fact) => fact.specifier === '@angular/forms' && fact.bindings.some((binding) => binding.imported.startsWith('Untyped'))),
   );
 
+  /**
+   * The tsconfig line that decides a flag, as the finding's location, so the
+   * editor extension and SARIF annotations land on it rather than on
+   * `package.json`. Empty when the flag is decided outside the analysed root.
+   */
+  const at = (location: ConfigLocation | undefined): { files?: FileRef[] } => {
+    const path = location && reportPath(context.workspace, location.file);
+    return path ? { files: [{ path, ...(location.line !== undefined ? { line: location.line } : {}) }] } : {};
+  };
+  const flags = context.workspace.strictFlags;
+
   const findings: Finding[] = [];
   if (hasConfig && !strictNullChecks) {
     findings.push({
       severity: 'high',
       message: '`strictNullChecks` is off',
+      ...at(flags?.strictNullChecks),
       detail:
         'Every value that may be `null` or `undefined` is typed as if it never is, so the most common runtime error in an Angular app is invisible to the compiler. In a large codebase switching it on is staged: a separate tsconfig that checks one folder at a time, with a count that may only go down.',
     });
@@ -67,11 +80,17 @@ export function typeSafetyCheck(context: AnalysisContext): CheckResult {
     findings.push({
       severity: 'high',
       message: '`strictTemplates` is off',
+      ...at(flags?.strictTemplates),
       detail: 'Template bindings are only loosely type-checked: a wrong input type, a misspelled output payload or a possibly-undefined value passed to a component compiles and fails at runtime. Turning it on typically surfaces a batch of real bugs alongside the type noise.',
     });
   }
   if (hasConfig && !noImplicitAny) {
-    findings.push({ severity: 'medium', message: '`noImplicitAny` is off', detail: 'An unannotated parameter silently becomes `any`, and no lint rule that counts the word `any` can see it.' });
+    findings.push({
+      severity: 'medium',
+      message: '`noImplicitAny` is off',
+      detail: 'An unannotated parameter silently becomes `any`, and no lint rule that counts the word `any` can see it.',
+      ...at(flags?.noImplicitAny),
+    });
   }
   if (anyCount > 0) {
     const examples = application.filter((file) => file.anyLines.length > 0).sort((left, right) => right.anyLines.length - left.anyLines.length);

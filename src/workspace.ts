@@ -84,6 +84,25 @@ export interface WorkspaceInfo {
   subfolder?: string;
   /** Angular workspaces in subfolders, relative to the root, when there are several and none at the root. */
   nestedWorkspaces?: string[];
+  /**
+   * Where each strictness flag of `appTsconfig` is decided (see
+   * `locateStrictFlags`). Absent without an application tsconfig.
+   */
+  strictFlags?: StrictFlagSources;
+}
+
+/** A place in a file, by absolute path; turned into a report path with `reportPath`. */
+export interface ConfigLocation {
+  file: string;
+  /** 1-based; absent when the flag is not written down and this is where it would go. */
+  line?: number;
+}
+
+/** Where `strictNullChecks`, `noImplicitAny` and `strictTemplates` are decided, for the type-safety findings. */
+export interface StrictFlagSources {
+  strictNullChecks: ConfigLocation;
+  noImplicitAny: ConfigLocation;
+  strictTemplates: ConfigLocation;
 }
 
 /**
@@ -160,6 +179,7 @@ export function readWorkspace(root: string, projectJsons: string[]): WorkspaceIn
   const lockfileName = { npm: 'package-lock.json', yarn: 'yarn.lock', pnpm: 'pnpm-lock.yaml' } as const;
   const source = installedCore ? 'node_modules' : installed && locked.kind ? lockfileName[locked.kind] : undefined;
 
+  const appTsconfig = findAppTsconfig(root, targets);
   return {
     root,
     name: typeof packageJson?.['name'] === 'string' ? packageJson['name'] : basename(root),
@@ -172,8 +192,9 @@ export function readWorkspace(root: string, projectJsons: string[]): WorkspaceIn
     targets,
     projects,
     polyfills: targets.flatMap((target) => polyfillsOf(target.options)),
-    appTsconfig: findAppTsconfig(root, targets),
+    appTsconfig,
     rootTsconfig: ['tsconfig.base.json', 'tsconfig.json'].map((name) => join(root, name)).find((path) => existsSync(path)),
+    ...(appTsconfig ? { strictFlags: locateStrictFlags(appTsconfig) } : {}),
   };
 }
 
@@ -219,14 +240,89 @@ export function applicationEntries(workspace: WorkspaceInfo): string[] {
  */
 export function restrictToProject(workspace: WorkspaceInfo, project: ProjectInfo): WorkspaceInfo {
   const targets = workspace.targets.filter((target) => target.project === project.name);
+  const appTsconfig = project.tsconfig ?? workspace.appTsconfig;
   return {
     ...workspace,
     name: project.name,
     targets,
     projects: [project],
     polyfills: targets.flatMap((target) => polyfillsOf(target.options)),
-    appTsconfig: project.tsconfig ?? workspace.appTsconfig,
+    appTsconfig,
+    // The workspace's own locations belong to its tsconfig, not to this project's.
+    strictFlags: appTsconfig ? locateStrictFlags(appTsconfig) : undefined,
   };
+}
+
+/**
+ * Where each strictness flag the type-safety check grades is decided, so a
+ * finding such as "`strictNullChecks` is off" points at the line to change
+ * (in the editor, in SARIF annotations) instead of at `package.json`.
+ *
+ * Follows the tsconfig's relative `extends` chain, child first, the way the
+ * compiler resolves it: the first file that writes the flag decides it. For
+ * `strictNullChecks` and `noImplicitAny` a `strict` written in an earlier
+ * file counts too, since `strict` sets both. When nothing writes the flag,
+ * the location is the application tsconfig without a line: that is where it
+ * would be added, and the default (on from TypeScript 6) applies. A
+ * package-name `extends` is not followed, as in `readAngularCompilerOptions`;
+ * a flag set only there is reported on the application tsconfig.
+ */
+export function locateStrictFlags(appTsconfig: string): StrictFlagSources {
+  const chain = extendsChain(appTsconfig);
+  const fallback: ConfigLocation = { file: appTsconfig };
+  const find = (section: string, keys: string[]): ConfigLocation => {
+    for (const key of keys) {
+      for (const { path, config, text } of chain) {
+        if (asRecord(config[section])[key] === undefined) continue;
+        return { file: path, ...lineOfKey(text, section, key) };
+      }
+    }
+    return fallback;
+  };
+  return {
+    strictNullChecks: find('compilerOptions', ['strictNullChecks', 'strict']),
+    noImplicitAny: find('compilerOptions', ['noImplicitAny', 'strict']),
+    strictTemplates: find('angularCompilerOptions', ['strictTemplates']),
+  };
+}
+
+/** A tsconfig and its relative `extends` parents, child first, each parsed and as text. Stops at ten levels and at a file it already read. */
+function extendsChain(tsconfig: string): Array<{ path: string; config: Record<string, unknown>; text: string }> {
+  const chain: Array<{ path: string; config: Record<string, unknown>; text: string }> = [];
+  const queue = [tsconfig];
+  while (queue.length > 0 && chain.length < 10) {
+    const path = queue.shift()!;
+    if (chain.some((entry) => entry.path === path)) continue;
+    const config = readJson(path);
+    if (!config) continue;
+    chain.push({ path, config, text: readFileSync(path, 'utf8') });
+    // TypeScript 5 applies an `extends` array left to right with the last one winning, so the last is searched first.
+    const parents = (Array.isArray(config['extends']) ? config['extends'] : [config['extends']]).filter((entry): entry is string => typeof entry === 'string' && entry.startsWith('.'));
+    for (const parent of parents.reverse()) queue.push(resolve(dirname(path), parent.endsWith('.json') ? parent : `${parent}.json`));
+  }
+  return chain;
+}
+
+/** The 1-based line of `"key":` inside the `section` block of a JSON text, or nothing when the text does not spell it that way. */
+function lineOfKey(text: string, section: string, key: string): { line?: number } {
+  const start = text.indexOf(`"${section}"`);
+  if (start < 0) return {};
+  const match = new RegExp(`"${key}"\\s*:`).exec(text.slice(start));
+  if (!match) return {};
+  return { line: text.slice(0, start + match.index).split('\n').length };
+}
+
+/**
+ * A path as the report writes it: relative to the analysed root, with `/`.
+ * The analysed root is the workspace root, or its parent folders when the
+ * workspace was read from a `subfolder`. Undefined for a file outside the
+ * analysed root, such as a tsconfig extended from a sibling repository, since
+ * a report path there would point nowhere.
+ */
+export function reportPath(workspace: Pick<WorkspaceInfo, 'root' | 'subfolder'>, absolute: string): string | undefined {
+  const analysedRoot = workspace.subfolder ? resolve(workspace.root, ...workspace.subfolder.split('/').map(() => '..')) : workspace.root;
+  const path = relative(analysedRoot, absolute).split(/[\\/]/).join('/');
+  return path.startsWith('..') || path === '' ? undefined : path;
 }
 
 /**

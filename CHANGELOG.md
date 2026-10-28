@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- The strictness findings (`strictNullChecks`, `noImplicitAny`, `strictTemplates` is off) point at the tsconfig line that decides the flag, following `extends` to the file that sets it or the `strict` that implies it, or at the application tsconfig when nothing sets it. They were attached to no file, so SARIF annotations and the [VS Code extension](https://marketplace.visualstudio.com/items?itemName=stefankuburovic.ng-checkup-vscode) showed them on `package.json`. Corpus snapshots gain these locations; no grade changes.
+
 ## 1.4.1 (2026-10-28)
 
 - Lines of code count only lines that hold code: blank lines and comment-only lines are left out. A codebase that documents every member (one went from 27 to 44 "files over 500 lines" just by adding JSDoc) is no longer reported as full of large files, and densities such as `any` per 1 000 lines are measured against code. Corpus snapshots updated; one repository's type safety moves from good to fair because its `any` density was diluted by comments before.

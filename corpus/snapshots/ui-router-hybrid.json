@@ -239,11 +239,17 @@
       "findings": [
         {
           "severity": "high",
-          "message": "`strictNullChecks` is off"
+          "message": "`strictNullChecks` is off",
+          "files": [
+            "tsconfig.json:19"
+          ]
         },
         {
           "severity": "medium",
-          "message": "`noImplicitAny` is off"
+          "message": "`noImplicitAny` is off",
+          "files": [
+            "tsconfig.json:19"
+          ]
         },
         {
           "severity": "medium",

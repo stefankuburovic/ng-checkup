@@ -224,15 +224,24 @@
       "findings": [
         {
           "severity": "high",
-          "message": "`strictNullChecks` is off"
+          "message": "`strictNullChecks` is off",
+          "files": [
+            "src/tsconfig.app.json"
+          ]
         },
         {
           "severity": "high",
-          "message": "`strictTemplates` is off"
+          "message": "`strictTemplates` is off",
+          "files": [
+            "src/tsconfig.app.json"
+          ]
         },
         {
           "severity": "medium",
-          "message": "`noImplicitAny` is off"
+          "message": "`noImplicitAny` is off",
+          "files": [
+            "src/tsconfig.app.json"
+          ]
         },
         {
           "severity": "medium",
