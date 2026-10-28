@@ -7,7 +7,7 @@
     "angularVersion": "12.2.17",
     "sourceFiles": 71,
     "templateFiles": 19,
-    "linesOfCode": 1589
+    "linesOfCode": 1483
   },
   "score": 56,
   "checks": [
@@ -237,7 +237,7 @@
         },
         {
           "severity": "medium",
-          "message": "13 explicit `any` in application code (8.2 per 1 000 lines)",
+          "message": "13 explicit `any` in application code (8.8 per 1 000 lines)",
           "files": [
             "src/app/core/services/api.service.ts:14",
             "src/app/core/interceptors/http.token.interceptor.ts:11",

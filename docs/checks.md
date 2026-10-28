@@ -171,7 +171,7 @@ Classic NgRx is supported, so it never makes this check poor on its own. The che
 
 ## Architecture (`architecture`) <a id="architecture"></a>
 
-**What it reads:** route objects (`{ path, component }` is eager, `{ path, loadComponent }` or `{ path, loadChildren }` is lazy), file sizes in lines of code, constructors of components, directives, pipes and services, and classes implementing a router guard or resolver interface or `HttpInterceptor`.
+**What it reads:** route objects (`{ path, component }` is eager, `{ path, loadComponent }` or `{ path, loadChildren }` is lazy), file sizes in lines of code (lines a token of the program touches: blank lines and comment-only lines do not count, so documenting a file does not make it large), constructors of components, directives, pipes and services, and classes implementing a router guard or resolver interface or `HttpInterceptor`.
 
 A `component:` route counts as eager only in a file the app loads at startup: everything statically reachable from the build target's `main.ts`. In a module that is itself behind `loadChildren`, the route loads with that module and counts as lazy.
 

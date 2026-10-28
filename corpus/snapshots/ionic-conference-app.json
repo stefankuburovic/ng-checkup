@@ -7,7 +7,7 @@
     "angularVersion": "22.1.4",
     "sourceFiles": 35,
     "templateFiles": 15,
-    "linesOfCode": 1960
+    "linesOfCode": 1881
   },
   "score": 84,
   "checks": [
@@ -171,7 +171,7 @@
       "findings": [
         {
           "severity": "medium",
-          "message": "8 explicit `any` in application code (4.1 per 1 000 lines)",
+          "message": "8 explicit `any` in application code (4.3 per 1 000 lines)",
           "files": [
             "src/app/pages/speaker-detail/speaker-detail.ts:84",
             "src/app/providers/location.service.ts:16",

@@ -209,7 +209,7 @@ export function scanSourceFile(root: string, absolutePath: string): SourceFileFa
     // some `.../e2e/...` folder must not turn every file into test code.
     isSpec: isTestCode(path),
     isGenerated: isGeneratedFile(path, text),
-    linesOfCode: countLinesOfCode(text),
+    linesOfCode: countLinesOfCode(source),
     imports: [],
     components: [],
     ngModules: 0,
@@ -357,15 +357,29 @@ export function scanSourceFile(root: string, absolutePath: string): SourceFileFa
     const angularClass = (ts.getDecorators(node) ?? []).some((decorator) => ANGULAR_CLASS_DECORATORS.has(decoratorKey(decorator) ?? ''));
     const viewClass = (ts.getDecorators(node) ?? []).some((decorator) => ['@angular/core#Component', '@angular/core#Directive'].includes(decoratorKey(decorator) ?? ''));
     if (viewClass) {
+      const TIED = /\b(takeUntilDestroyed|takeUntil|untilDestroyed|take|first)\s*\(/;
+      // Local variables of the member and what they were initialised with: `const order$ = this.order$().pipe(takeUntilDestroyed(...))`
+      // ties every `order$.subscribe(...)` below it, and so does a local factory `const load$ = () => x.pipe(take(1))` called as `load$()`.
+      let locals = new Map<string, string>();
+      const collectLocals = (child: ts.Node): void => {
+        if (ts.isVariableDeclaration(child) && ts.isIdentifier(child.name) && child.initializer) locals.set(child.name.text, child.initializer.getText(source));
+        ts.forEachChild(child, collectLocals);
+      };
       const findSubscribes = (child: ts.Node): void => {
         if (ts.isCallExpression(child) && ts.isPropertyAccessExpression(child.expression) && child.expression.name.text === 'subscribe') {
           // Read from the text of the chain: `pipe(takeUntilDestroyed(this.destroyRef))` and friends, wherever in the chain they sit.
           const chain = child.expression.expression.getText(source);
-          facts.manualSubscribes.push({ line: lineOf(child), bound: /\b(takeUntilDestroyed|takeUntil|untilDestroyed|take|first)\s*\(/.test(chain) });
+          const root = /^([A-Za-z_$][\w$]*)/.exec(chain)?.[1];
+          const viaLocal = root !== undefined && root !== 'this' && TIED.test(locals.get(root) ?? '');
+          facts.manualSubscribes.push({ line: lineOf(child), bound: TIED.test(chain) || viaLocal });
         }
         ts.forEachChild(child, findSubscribes);
       };
-      for (const member of node.members) findSubscribes(member);
+      for (const member of node.members) {
+        locals = new Map();
+        collectLocals(member);
+        findSubscribes(member);
+      }
     }
     const constructor = angularClass ? node.members.find(ts.isConstructorDeclaration) : undefined;
     if (constructor && constructor.parameters.length > 0) facts.constructorInjections.push({ name, line: lineOf(constructor), parameters: constructor.parameters.length });
@@ -647,11 +661,28 @@ export function scanTemplateFile(root: string, absolutePath: string): TemplateFa
   };
 }
 
-/** Non-blank lines, the figure a reader expects behind "lines of code". */
-function countLinesOfCode(text: string): number {
-  let count = 0;
-  for (const line of text.split('\n')) if (line.trim() !== '') count++;
-  return count;
+/**
+ * Lines that hold code, the figure a reader expects behind "lines of code":
+ * every line a token of the program touches. Blank lines and lines that are
+ * only comment do not count, so documenting a file (JSDoc on every member
+ * roughly doubles some files) does not push it over the large-file thresholds.
+ * A token that spans lines, a multi-line template literal for one, counts each
+ * line it covers.
+ */
+function countLinesOfCode(source: ts.SourceFile): number {
+  const lines = new Set<number>();
+  const visit = (node: ts.Node): void => {
+    if (node.kind >= ts.SyntaxKind.FirstToken && node.kind <= ts.SyntaxKind.LastToken) {
+      if (node.kind === ts.SyntaxKind.EndOfFileToken) return;
+      const first = source.getLineAndCharacterOfPosition(node.getStart(source)).line;
+      const last = source.getLineAndCharacterOfPosition(node.getEnd()).line;
+      for (let line = first; line <= last; line++) lines.add(line);
+      return;
+    }
+    for (const child of node.getChildren(source)) visit(child);
+  };
+  visit(source);
+  return lines.size;
 }
 
 /**

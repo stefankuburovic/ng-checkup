@@ -7,7 +7,7 @@
     "angularVersion": "14.3.0",
     "sourceFiles": 692,
     "templateFiles": 198,
-    "linesOfCode": 181196
+    "linesOfCode": 148650
   },
   "score": 40,
   "checks": [
@@ -151,23 +151,23 @@
     {
       "id": "architecture",
       "grade": "fair",
-      "summary": "98% of 126 routes lazy, 96 files over 500 lines, 350 classes with constructor injection.",
+      "summary": "98% of 126 routes lazy, 83 files over 500 lines, 350 classes with constructor injection.",
       "measures": {
         "eager-routes": 2,
-        "very-large-files": 45,
+        "very-large-files": 34,
         "constructor-injection": 350,
         "class-guards": 22
       },
       "findings": [
         {
           "severity": "medium",
-          "message": "96 files over 500 lines, 45 over 1 000",
+          "message": "83 files over 500 lines, 34 over 1 000",
           "files": [
             "src/app/shared/components-v2/app-spreadsheet-editor-v2/app-spreadsheet-editor-v2.component.ts",
-            "src/app/features/import-export-data/components/import-data/import-data.component.ts",
-            "src/app/features/case/pages/cases-list/cases-list.component.ts"
+            "src/app/features/case/pages/cases-list/cases-list.component.ts",
+            "src/app/features/import-export-data/components/import-data/import-data.component.ts"
           ],
-          "count": 96
+          "count": 83
         },
         {
           "severity": "low",
@@ -236,7 +236,7 @@
         },
         {
           "severity": "medium",
-          "message": "943 explicit `any` in application code (5.2 per 1 000 lines)",
+          "message": "943 explicit `any` in application code (6.3 per 1 000 lines)",
           "files": [
             "src/app/common-modules/world-map/components/world-map/world-map.component.ts:67",
             "src/app/shared/components/pie-donut-graph/pie-donut-chart.component.ts:14",

@@ -7,7 +7,7 @@
     "angularVersion": "17.1.1",
     "sourceFiles": 126,
     "templateFiles": 50,
-    "linesOfCode": 5178,
+    "linesOfCode": 4892,
     "generatedFiles": 1
   },
   "score": 56,
@@ -238,7 +238,7 @@
         },
         {
           "severity": "medium",
-          "message": "66 explicit `any` in application code (12.7 per 1 000 lines)",
+          "message": "66 explicit `any` in application code (13.5 per 1 000 lines)",
           "files": [
             "src/app/core/apollo-client-provider.ts:14",
             "src/app/core/components/modal-dialog/modal-dialog.component.ts:17",

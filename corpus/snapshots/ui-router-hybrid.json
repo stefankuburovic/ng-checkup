@@ -7,7 +7,7 @@
     "angularVersion": "22.1.3",
     "sourceFiles": 51,
     "templateFiles": 1,
-    "linesOfCode": 1615
+    "linesOfCode": 1230
   },
   "score": 60,
   "checks": [
@@ -247,7 +247,7 @@
         },
         {
           "severity": "medium",
-          "message": "4 explicit `any` in application code (2.5 per 1 000 lines)",
+          "message": "4 explicit `any` in application code (3.3 per 1 000 lines)",
           "files": [
             "src/app/util/ga.ts:5",
             "src/app/home/app.states.ts:64",

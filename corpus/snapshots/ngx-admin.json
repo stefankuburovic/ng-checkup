@@ -7,7 +7,7 @@
     "angularVersion": "15.2.10",
     "sourceFiles": 241,
     "templateFiles": 79,
-    "linesOfCode": 12612
+    "linesOfCode": 12511
   },
   "score": 56,
   "checks": [
@@ -251,7 +251,7 @@
         },
         {
           "severity": "medium",
-          "message": "180 explicit `any` in application code (14.3 per 1 000 lines)",
+          "message": "180 explicit `any` in application code (14.4 per 1 000 lines)",
           "files": [
             "src/app/@core/utils/state.service.ts:10",
             "src/app/pages/maps/bubble/bubble-map.component.ts:20",

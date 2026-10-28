@@ -7,7 +7,7 @@
     "angularVersion": "22.0.1",
     "sourceFiles": 898,
     "templateFiles": 146,
-    "linesOfCode": 49422
+    "linesOfCode": 31937
   },
   "score": 68,
   "checks": [
@@ -154,7 +154,7 @@
     {
       "id": "architecture",
       "grade": "fair",
-      "summary": "93% of 149 routes lazy, 5 files over 500 lines, 0 classes with constructor injection.",
+      "summary": "93% of 149 routes lazy, 2 files over 500 lines, 0 classes with constructor injection.",
       "measures": {
         "eager-routes": 11,
         "very-large-files": 1,
@@ -164,13 +164,12 @@
       "findings": [
         {
           "severity": "medium",
-          "message": "5 files over 500 lines, 1 over 1 000",
+          "message": "2 files over 500 lines, 1 over 1 000",
           "files": [
             "projects/scion/workbench/src/lib/layout/ɵworkbench-layout.ts",
-            "projects/scion/e2e-testing/src/matcher/to-equal-workbench-layout.matcher.ts",
-            "projects/scion/workbench/src/lib/testing/jasmine/matcher/to-equal-workbench-layout.matcher.ts"
+            "projects/scion/e2e-testing/src/matcher/to-equal-workbench-layout.matcher.ts"
           ],
-          "count": 5
+          "count": 2
         }
       ]
     },
@@ -213,7 +212,7 @@
       "findings": [
         {
           "severity": "low",
-          "message": "43 explicit `any` in application code (0.9 per 1 000 lines)",
+          "message": "43 explicit `any` in application code (1.3 per 1 000 lines)",
           "files": [
             "projects/scion/workbench/src/lib/logging/logger.ts:47",
             "projects/scion/workbench/src/lib/testing/jasmine/matcher/custom-matchers.definition.ts:20",
@@ -397,9 +396,9 @@
       }
     },
     {
-      "name": "workbench-client-testing-app-common",
-      "root": "apps/workbench-client-testing-app-common",
-      "score": 91,
+      "name": "workbench-testing-app-common",
+      "root": "apps/workbench-testing-app-common",
+      "score": 87,
       "grades": {
         "deprecated-apis": "good",
         "change-detection": "good",
@@ -407,15 +406,15 @@
         "state": "good",
         "architecture": "good",
         "testing": "poor",
-        "type-safety": "good",
+        "type-safety": "fair",
         "security": "good",
         "circular-deps": "good",
         "bundle": "info"
       }
     },
     {
-      "name": "workbench-testing-app-common",
-      "root": "apps/workbench-testing-app-common",
+      "name": "workbench-client-testing-app-common",
+      "root": "apps/workbench-client-testing-app-common",
       "score": 91,
       "grades": {
         "deprecated-apis": "good",

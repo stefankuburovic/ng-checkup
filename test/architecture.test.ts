@@ -19,6 +19,50 @@ describe('scanning for security and architecture facts', () => {
   let root = '';
   afterEach(() => removeTemp(root));
 
+  it('counts only lines that hold code, so documenting a file does not make it large', () => {
+    root = writeTemp({
+      'doc.ts': [
+        '/**',
+        ' * A service.',
+        ' */',
+        'export class Service {',
+        '',
+        '  /** The value. */',
+        '  value = 1; // trailing comment',
+        '  // a line comment',
+        '  text = `one',
+        'two`;',
+        '}',
+      ].join('\n'),
+    });
+    // class line, value, the two lines of the template literal, closing brace
+    expect(scanSourceFile(root, `${root}/doc.ts`).linesOfCode).toBe(5);
+  });
+
+  it('counts a subscribe on a local as tied when the local was bound where it was declared', () => {
+    root = writeTemp({
+      'c.ts': [
+        "import { Component } from '@angular/core';",
+        "@Component({ selector: 'x', template: '' })",
+        'export class X {',
+        '  ngOnInit() {',
+        '    const order$ = this.order$.pipe(takeUntilDestroyed(this.destroyRef));',
+        '    order$.subscribe();',
+        '    const name$ = (iri: string) => this.api.get(iri).pipe(take(1));',
+        "    name$('a').subscribe();",
+        '    const open$ = this.store.list$;',
+        '    open$.subscribe();',
+        '  }',
+        '}',
+      ].join('\n'),
+    });
+    expect(scanSourceFile(root, `${root}/c.ts`).manualSubscribes).toEqual([
+      { line: 6, bound: true },
+      { line: 8, bound: true },
+      { line: 10, bound: false },
+    ]);
+  });
+
   it('finds sanitizer bypasses, direct DOM writes, eval, routes, constructor injection and class guards', () => {
     root = writeTemp({
       'a.ts': [

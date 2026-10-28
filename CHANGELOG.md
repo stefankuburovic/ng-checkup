@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Lines of code count only lines that hold code: blank lines and comment-only lines are left out. A codebase that documents every member (one went from 27 to 44 "files over 500 lines" just by adding JSDoc) is no longer reported as full of large files, and densities such as `any` per 1 000 lines are measured against code. Corpus snapshots updated; one repository's type safety moves from good to fair because its `any` density was diluted by comments before.
+- A `.subscribe()` on a local variable counts as tied to the component's lifetime when the variable was bound where it was declared (`const order$ = x.pipe(takeUntilDestroyed(...)); order$.subscribe(...)`, or a local factory such as `const name$ = (iri) => api.get(iri).pipe(take(1))`).
+
 ## 1.4.0 (2026-10-23)
 
 - **Trend in CI.** `--trend <file.json>` compares a run with a trend file, and `--trend-record` adds the run to it. Every report shows the last 30 days in one line: `Score 72, +4 since 2026-09-23 ▃▄▄▆▇ · initial bundle 812 kB, +23 kB`, and the Markdown report lists the measures that moved most.

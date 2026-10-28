@@ -7,7 +7,7 @@
     "angularVersion": "21.0.6",
     "sourceFiles": 4374,
     "templateFiles": 14,
-    "linesOfCode": 158812
+    "linesOfCode": 146215
   },
   "score": 56,
   "checks": [
@@ -256,7 +256,7 @@
     {
       "id": "architecture",
       "grade": "fair",
-      "summary": "99% of 999 routes lazy, 24 files over 500 lines, 109 classes with constructor injection.",
+      "summary": "99% of 999 routes lazy, 18 files over 500 lines, 109 classes with constructor injection.",
       "measures": {
         "eager-routes": 6,
         "very-large-files": 8,
@@ -266,13 +266,13 @@
       "findings": [
         {
           "severity": "medium",
-          "message": "24 files over 500 lines, 8 over 1 000",
+          "message": "18 files over 500 lines, 8 over 1 000",
           "files": [
             "apps/demos/src/app/features/template/rx-virtual-for/virtual-rendering/messages/message-data.ts",
             "apps/rebundle-demo/src/shared/chunkers-3MB-500constants-0components/root-chunker.component.ts",
             "apps/rebundle-demo/src/shared/chunkers-3MB-500constants-100components/root-chunker.component.ts"
           ],
-          "count": 24
+          "count": 18
         },
         {
           "severity": "low",
@@ -341,7 +341,7 @@
         },
         {
           "severity": "medium",
-          "message": "405 explicit `any` in application code (2.6 per 1 000 lines)",
+          "message": "405 explicit `any` in application code (2.8 per 1 000 lines)",
           "files": [
             "libs/test-helpers/src/lib/rx-marbles/observableMatcher.ts:3",
             "apps/demos/src/app/rx-angular-pocs/cdk/utils/zone-agnostic/rxjs/operators/fromEvent.ts:14",

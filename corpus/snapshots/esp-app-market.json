@@ -7,7 +7,7 @@
     "angularVersion": "15.1.2",
     "sourceFiles": 31,
     "templateFiles": 6,
-    "linesOfCode": 972
+    "linesOfCode": 946
   },
   "score": 60,
   "checks": [
@@ -189,7 +189,7 @@
       "findings": [
         {
           "severity": "medium",
-          "message": "17 explicit `any` in application code (17.5 per 1 000 lines)",
+          "message": "17 explicit `any` in application code (18.0 per 1 000 lines)",
           "files": [
             "src/app/services/utils.service.ts:36",
             "src/app/services/cache.interceptor.ts:8",

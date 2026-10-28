@@ -7,7 +7,7 @@
     "angularVersion": "4.4.6",
     "sourceFiles": 141,
     "templateFiles": 254,
-    "linesOfCode": 22992,
+    "linesOfCode": 22300,
     "javascriptFiles": 35
   },
   "score": 48,
@@ -247,7 +247,7 @@
     {
       "id": "architecture",
       "grade": "fair",
-      "summary": "No routes found, 3 files over 500 lines, 66 classes with constructor injection.",
+      "summary": "No routes found, 2 files over 500 lines, 66 classes with constructor injection.",
       "measures": {
         "eager-routes": 0,
         "very-large-files": 1,
@@ -257,13 +257,12 @@
       "findings": [
         {
           "severity": "medium",
-          "message": "3 files over 500 lines, 1 over 1 000",
+          "message": "2 files over 500 lines, 1 over 1 000",
           "files": [
             "src/app/administration/etl/etl.component.ts",
-            "src/app/util/graph/d3-graph/OGraph.ts",
-            "src/app/administration/teleporter/detailpanel/detailpanel.component.ts"
+            "src/app/util/graph/d3-graph/OGraph.ts"
           ],
-          "count": 3
+          "count": 2
         },
         {
           "severity": "low",
@@ -326,7 +325,7 @@
         },
         {
           "severity": "medium",
-          "message": "201 explicit `any` in application code (20.1 per 1 000 lines)",
+          "message": "201 explicit `any` in application code (21.5 per 1 000 lines)",
           "files": [
             "src/app/util/dual-list/dual-list.component.ts:4",
             "src/app/administration/etl/etl.component.ts:10",

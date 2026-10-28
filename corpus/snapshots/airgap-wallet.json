@@ -7,7 +7,7 @@
     "angularVersion": "16.1.1",
     "sourceFiles": 361,
     "templateFiles": 88,
-    "linesOfCode": 25186
+    "linesOfCode": 24719
   },
   "score": 52,
   "checks": [
@@ -193,7 +193,7 @@
     {
       "id": "architecture",
       "grade": "good",
-      "summary": "96% of 92 routes lazy, 9 files over 500 lines, 112 classes with constructor injection.",
+      "summary": "96% of 92 routes lazy, 7 files over 500 lines, 112 classes with constructor injection.",
       "measures": {
         "eager-routes": 4,
         "very-large-files": 0,
@@ -203,13 +203,13 @@
       "findings": [
         {
           "severity": "low",
-          "message": "9 files over 500 lines",
+          "message": "7 files over 500 lines",
           "files": [
-            "src/app/services/account/account.provider.ts",
             "src/app/extensions/delegation/PolkadotDelegationExtensions.ts",
+            "src/app/services/account/account.provider.ts",
             "src/app/extensions/delegation/ICPDelegationExtensions.ts"
           ],
-          "count": 9
+          "count": 7
         },
         {
           "severity": "low",
@@ -278,7 +278,7 @@
         },
         {
           "severity": "medium",
-          "message": "231 explicit `any` in application code (9.2 per 1 000 lines)",
+          "message": "231 explicit `any` in application code (9.3 per 1 000 lines)",
           "files": [
             "src/app/models/ActionGroup.ts:27",
             "src/app/services/operations/operations.ts:71",
