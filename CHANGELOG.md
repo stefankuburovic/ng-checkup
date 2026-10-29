@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- **Per-project baselines.** In a workspace with several Angular projects, `ng-checkup baseline` records each project's numbers next to the workspace's (`projects` in `ng-checkup.baseline.json`), and a `--project` run compares with its own entry, so `--project admin --fail-on regression` now works: it fails on admin's numbers, not on another team's library. Before, `--project` runs were never compared and the combination was refused. The Angular version and package measures stay with the whole-workspace run. Each project's numbers may only go down, like the workspace's; `baseline` refuses `admin:type-safety.explicit-any: 2 -> 3` even when code only moved between projects. A baseline without `projects` still reads (the format stays version 1); `--project --fail-on regression` against one says to run `ng-checkup baseline` once. The JSON report's project rows gain `measures`.
 - The strictness findings (`strictNullChecks`, `noImplicitAny`, `strictTemplates` is off) point at the tsconfig line that decides the flag, following `extends` to the file that sets it or the `strict` that implies it, or at the application tsconfig when nothing sets it. They were attached to no file, so SARIF annotations and the [VS Code extension](https://marketplace.visualstudio.com/items?itemName=stefankuburovic.ng-checkup-vscode) showed them on `package.json`. Corpus snapshots gain these locations; no grade changes.
 
 ## 1.4.1 (2026-10-28)

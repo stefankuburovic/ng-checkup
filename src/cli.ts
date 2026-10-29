@@ -4,7 +4,7 @@ import { existsSync, mkdirSync, readFileSync, realpathSync, statSync, writeFileS
 import { dirname, extname, isAbsolute, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
-import { BASELINE_FILE, baselineIncreases, compareWithBaseline, createBaseline, measuresOf, readBaseline, serializeBaseline } from './baseline.js';
+import { BASELINE_FILE, baselineDecreases, baselineIncreases, baselineMeasures, compareWithBaseline, createBaseline, measuresOf, readBaseline, serializeBaseline, type Baseline } from './baseline.js';
 import { createAnalysisCache } from './cache.js';
 import { loadConfig, REPORT_FORMATS, type CheckupConfig } from './config.js';
 import { BUNDLED_LATEST_ANGULAR_MAJOR, fetchLatestAngularMajor, ProjectNotFoundError, runCheckup, TOOL, UnknownCheckError } from './index.js';
@@ -92,6 +92,9 @@ Init options (ng-checkup init):
       --force            Replace an existing "checkup" script
 
 Baseline options (ng-checkup baseline):
+                         Records the whole workspace and, in a workspace with
+                         several projects, each project: --project runs then
+                         compare with their own numbers
       --force            Accept measures that went up since the last baseline
 
 Url (ng-checkup url <address>):
@@ -449,6 +452,24 @@ async function main(argv: string[]): Promise<number> {
 }
 
 /**
+ * The baseline a run compares with, or undefined when there is nothing to
+ * compare: no file, or a `--project` run of a project the file has no entry
+ * for. Comparing such a run with the workspace's numbers would show every
+ * other project's code as an improvement, so it is not compared at all.
+ */
+function applicableBaseline(baseline: Baseline | undefined, project: string | undefined): Baseline | undefined {
+  return baseline && baselineMeasures(baseline, project) ? baseline : undefined;
+}
+
+/** Why `--fail-on regression` has nothing to compare with, and the command that fixes it. */
+function missingBaselineMessage(path: string, project: string | undefined): string {
+  if (project !== undefined && existsSync(path)) {
+    return `--fail-on regression --project ${project} needs that project's numbers in the baseline, and ${path} has none for it (written before ng-checkup 1.5.0, or before the project existed). Record them with: ng-checkup baseline`;
+  }
+  return `--fail-on regression needs a baseline, and there is none at ${path}. Create it with: ng-checkup baseline`;
+}
+
+/**
  * One checkup run on a local root. `rootLabel` replaces the absolute root in
  * the report for a remote run, whose temporary folder means nothing to a
  * reader and is gone by the time they read it.
@@ -461,11 +482,8 @@ async function mainCheckup(parsed: CliArguments, rootLabel?: string): Promise<nu
     // A remote repository's own config may name report files; they would be
     // written into the temporary clone and deleted with it.
     settings = resolveSettings(parsed, rootLabel ? { ...config, reports: undefined } : config, directory);
-    // The baseline records the whole workspace; one project measured against
-    // it would show every other project's code as an improvement.
-    if (parsed.project !== undefined && settings.failOn === 'regression') throw new Error('--fail-on regression compares the whole workspace with its baseline, so it cannot be combined with --project');
-    baseline = parsed.project === undefined ? readBaseline(settings.baselinePath) : undefined;
-    if (settings.failOn === 'regression' && !baseline) throw new Error(`--fail-on regression needs a baseline, and there is none at ${settings.baselinePath}. Create it with: ng-checkup baseline`);
+    baseline = applicableBaseline(readBaseline(settings.baselinePath), parsed.project);
+    if (settings.failOn === 'regression' && !baseline) throw new Error(missingBaselineMessage(settings.baselinePath, parsed.project));
   } catch (error) {
     return usageError(error);
   }
@@ -479,7 +497,7 @@ async function mainCheckup(parsed: CliArguments, rootLabel?: string): Promise<nu
     if (error instanceof ProjectNotFoundError || error instanceof UnknownCheckError) return usageError(error);
     throw error;
   }
-  if (baseline) report.baseline = compareWithBaseline(report, baseline, settings.baselinePath);
+  if (baseline) report.baseline = compareWithBaseline(report, baseline, settings.baselinePath, parsed.project);
   if (rootLabel) report.root = rootLabel;
   // A client report goes to someone else: no absolute path of this machine in it.
   else if (parsed.client) report.root = describeCheckout(parsed.root);
@@ -579,8 +597,8 @@ async function mainWatch(parsed: CliArguments, initial: RunSettings): Promise<nu
       const { config, directory } = loadConfig(parsed.root, parsed.config);
       const settings = resolveSettings(parsed, config, directory);
       const report = await runCheckup(parsed.root, { offline: settings.offline, maxExamples: settings.maxExamples, ignore: analysisIgnores(parsed.root, settings), plan: settings.plan, project: parsed.project, only: settings.only, skip: settings.skip, cache });
-      const baseline = parsed.project === undefined ? readBaseline(settings.baselinePath) : undefined;
-      if (baseline) report.baseline = compareWithBaseline(report, baseline, settings.baselinePath);
+      const baseline = applicableBaseline(readBaseline(settings.baselinePath), parsed.project);
+      if (baseline) report.baseline = compareWithBaseline(report, baseline, settings.baselinePath, parsed.project);
       writeReports(report, settings.reports);
       first ??= report;
       const time = new Date().toLocaleTimeString();
@@ -648,9 +666,9 @@ export async function writeBaseline(args: BaselineArguments): Promise<string> {
     throw new Error(`these measures went up since the last baseline, which only ever goes down:\n${increases.map((entry) => `  ${entry.key}: ${entry.before} -> ${entry.after}`).join('\n')}\nFix them, or accept the new numbers with: ng-checkup baseline --force`);
   }
   writeFileSync(path, serializeBaseline(next));
-  const lowered = previous ? Object.entries(next.measures).filter(([key, value]) => previous.measures[key] !== undefined && value < previous.measures[key]!) : [];
-  const lines = [`Baseline ${previous ? 'updated' : 'written'}: ${path} (${Object.keys(next.measures).length} measures)`];
-  for (const [key, value] of lowered) lines.push(`  lowered ${key}: ${previous!.measures[key]} -> ${value}`);
+  const projectCount = Object.keys(next.projects ?? {}).length;
+  const lines = [`Baseline ${previous ? 'updated' : 'written'}: ${path} (${Object.keys(next.measures).length} measures${projectCount > 0 ? `, ${projectCount} projects` : ''})`];
+  for (const entry of baselineDecreases(previous, next)) lines.push(`  lowered ${entry.key}: ${entry.before} -> ${entry.after}`);
   if (increases.length > 0) for (const entry of increases) lines.push(`  raised (--force) ${entry.key}: ${entry.before} -> ${entry.after}`);
   if (!previous) lines.push('Commit it, then run ng-checkup --fail-on regression in CI: it fails only when a number gets worse.');
   return lines.join('\n');

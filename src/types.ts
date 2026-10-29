@@ -210,4 +210,10 @@ export interface ProjectSummary {
   grades: Record<string, Grade>;
   /** Number of `high` findings across its checks. */
   highFindings: number;
+  /**
+   * Its code checks' measures under their baseline key (`checkId.measureId`),
+   * the same numbers a `--project` run of it reports. `ng-checkup baseline`
+   * records them per project.
+   */
+  measures: Record<string, number>;
 }

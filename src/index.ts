@@ -51,12 +51,15 @@ export { buildMigrationPlan, buildPrimoPlan, type MigrationPhase, type Migration
 export { ANGULAR_VERSIONS, type AngularVersionInfo } from './angular-versions.js';
 export {
   BASELINE_FILE,
+  baselineDecreases,
   baselineIncreases,
+  baselineMeasures,
   compareWithBaseline,
   createBaseline,
   readBaseline,
   serializeBaseline,
   type Baseline,
+  type BaselineChange,
   type BaselineComparison,
   type MeasureDelta,
 } from './baseline.js';
@@ -233,6 +236,7 @@ function projectBreakdown(context: AnalysisContext, keep: (id: string) => boolea
       score: overallScore({ checks }),
       grades: Object.fromEntries(checks.map((check) => [check.id, check.grade])),
       highFindings: checks.reduce((sum, check) => sum + check.findings.filter((finding) => finding.severity === 'high').length, 0),
+      measures: Object.fromEntries(checks.flatMap((check) => (check.measures ?? []).map((measure) => [`${check.id}.${measure.id}`, measure.value]))),
     });
   }
   return rows.sort((left, right) => (left.score ?? 101) - (right.score ?? 101) || left.name.localeCompare(right.name));

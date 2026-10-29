@@ -37,7 +37,6 @@ npx ng-checkup
 - [What leaves your machine](#what-leaves-your-machine)
 - [How it works](#how-it-works)
 - [FAQ](#faq)
-- [Roadmap](#roadmap)
 - [VS Code extension](#vs-code-extension)
 - [Contributing](#contributing)
 
@@ -142,6 +141,7 @@ Baseline  2 worse
 - **It records counts, not grades:** explicit `any`, `x!`, files in import cycles, components without OnPush or a spec, NgModule-declared components, deprecated API uses, sanitizer bypasses, eager routes, manual subscriptions and [35 more](https://github.com/stefankuburovic/ng-checkup/blob/main/docs/checks.md#measures). Lower is better for every one.
 - **It only goes down.** When numbers drop, the run says so; `npx ng-checkup baseline` locks the new numbers in. If a number went up, `baseline` refuses and lists it, so a regression cannot be waved through by re-running the command. `--force` accepts it, which is the moment someone has to explain why in review.
 - **It is a plain, sorted JSON file**, so lowering a number is a one-line diff in a merge request.
+- **In a monorepo it holds each project too**, so `--project` runs gate on their own numbers ([monorepos](#monorepos)).
 - **The gap to the latest Angular is not in it.** That grows when Angular ships, not when the code gets worse.
 
 `ng add ng-checkup` and `npx ng-checkup init` create the first baseline and set CI to `--fail-on regression` for you.
@@ -298,7 +298,13 @@ Each project is graded on the files it owns (a nested library keeps its own) wit
 npx ng-checkup --project admin --report admin.html
 ```
 
-The baseline always covers the whole workspace, so `--project` runs do not compare against it.
+**Each project has its own baseline.** In a workspace with several projects, `npx ng-checkup baseline` records each project's numbers next to the workspace's, so the team owning one app gates on its own code:
+
+```bash
+npx ng-checkup --project admin --fail-on regression
+```
+
+That run fails when admin's numbers get worse, not when another team's library does. The Angular version and the third-party packages are shared, so they stay with the whole-workspace run. Every project follows the same rule as the workspace: its numbers only go down, and `baseline` refuses one that went up even when the workspace total stayed put because code moved from one project to another. A baseline written before 1.5.0 has no project numbers; run `npx ng-checkup baseline` once to add them.
 
 ## Client report
 
@@ -559,7 +565,7 @@ for (const check of report.checks) {
 await writeFile('checkup.md', renderMarkdown(report));
 ```
 
-`runCheckup` never writes anything. Its options mirror the flags (`offline`, `plan`, `project`, `ignore`, `only`, `skip`, `maxExamples`), plus `cache` from `createAnalysisCache()` to make repeated runs incremental. `renderHtml`, `renderMarkdown`, `renderSarif`, `overallScore`, `topPriorities`, `loadConfig`, `planInit` (what `init` would change, without writing it), `collectHistory` with `renderHistoryHtml` and `renderHistoryMarkdown`, and the baseline functions (`createBaseline`, `compareWithBaseline`, `readBaseline`, `serializeBaseline`) are exported too, along with the `Report`, `CheckResult`, `Finding` and `Grade` types. `Report` is also the schema of the JSON output.
+`runCheckup` never writes anything. Its options mirror the flags (`offline`, `plan`, `project`, `ignore`, `only`, `skip`, `maxExamples`), plus `cache` from `createAnalysisCache()` to make repeated runs incremental. `renderHtml`, `renderMarkdown`, `renderSarif`, `overallScore`, `topPriorities`, `loadConfig`, `planInit` (what `init` would change, without writing it), `collectHistory` with `renderHistoryHtml` and `renderHistoryMarkdown`, and the baseline functions (`createBaseline`, `compareWithBaseline`, `baselineMeasures`, `readBaseline`, `serializeBaseline`) are exported too, along with the `Report`, `CheckResult`, `Finding` and `Grade` types. `Report` is also the schema of the JSON output.
 
 ## What leaves your machine
 
@@ -590,10 +596,6 @@ Package names and versions, to two public services. To the npm registry: the lat
 **Why is bundle size "info"?** It reads the stats file of your last build instead of running one. `ng build --stats-json` writes it; run the checkup after that.
 
 **Which Angular versions?** Angular 2 and newer, and AngularJS 1.x on its way there: AngularJS code gets its own area and a [migration plan](#angularjs-and-hybrid-apps). Checks whose rules changed between versions (standalone, OnPush, zoneless defaults) apply the rules of the version you run.
-
-## Roadmap
-
-- Per-project baselines for monorepos
 
 ## VS Code extension
 
