@@ -41,7 +41,7 @@ ng-checkup:
     NG_CHECKUP_PATH: .
     NG_CHECKUP_FAIL_ON: ''
     NG_CHECKUP_ARGS: ''
-    NG_CHECKUP_VERSION: 1.4.1
+    NG_CHECKUP_VERSION: 1.5.0
     NG_CHECKUP_TREND: 'true'
     # Read-only unless a rule below says otherwise, so a job whose rules are overridden still has a valid policy.
     NG_CHECKUP_TREND_POLICY: pull
