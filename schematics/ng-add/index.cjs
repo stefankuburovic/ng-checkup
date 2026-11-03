@@ -21,7 +21,7 @@ const { join } = require('node:path');
 const { pathToFileURL } = require('node:url');
 
 /**
- * @param {{ ci?: 'auto' | 'github' | 'gitlab' | 'none', force?: boolean }} options
+ * @param {{ ci?: 'auto' | 'github' | 'gitlab' | 'azure' | 'bitbucket' | 'none', force?: boolean }} options
  */
 function ngAdd(options) {
   return async (tree, context) => {

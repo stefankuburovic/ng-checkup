@@ -96,7 +96,7 @@ Options:
       --version          Show the version
 
 Init options (ng-checkup init):
-      --ci <provider>    auto (default), github, gitlab or none
+      --ci <provider>    auto (default), github, gitlab, azure, bitbucket or none
       --dry-run          Show what would change without writing anything
       --force            Replace an existing "checkup" script
 
@@ -320,7 +320,7 @@ export function parseInitArguments(argv: string[]): InitArguments | 'help' {
   });
   if (values.help) return 'help';
   const ci = values.ci ?? 'auto';
-  if (!['auto', 'github', 'gitlab', 'none'].includes(ci)) throw new Error(`--ci takes auto, github, gitlab or none, got ${ci}`);
+  if (!['auto', 'github', 'gitlab', 'azure', 'bitbucket', 'none'].includes(ci)) throw new Error(`--ci takes auto, github, gitlab, azure, bitbucket or none, got ${ci}`);
   return { root: parseRoot(positionals), ci: ci as CiChoice, dryRun: values['dry-run'] ?? false, force: values.force ?? false };
 }
 

@@ -14,11 +14,11 @@ export interface InitFileSystem {
 }
 
 /** Where the CI step goes. `auto` picks from what the repository already has. */
-export type CiChoice = 'auto' | 'github' | 'gitlab' | 'none';
+export type CiChoice = 'auto' | 'github' | 'gitlab' | 'azure' | 'bitbucket' | 'none';
 
 /** What `planInit` should do. */
 export interface InitOptions {
-  /** Defaults to `auto`: GitHub when `.github/` exists, GitLab when `.gitlab-ci.yml` does, else none. */
+  /** Defaults to `auto`: GitHub when `.github/` exists, GitLab when `.gitlab-ci.yml` does, Azure DevOps when `azure-pipelines.yml` does, Bitbucket when `bitbucket-pipelines.yml` does, else none. */
   ci?: CiChoice;
   /**
    * Add `ng-checkup` to `devDependencies`. Defaults to true. `ng add` passes
@@ -184,8 +184,19 @@ export function planInit(files: InitFileSystem, options: InitOptions): InitPlan 
     if (!(files.read('.gitlab-ci.yml') ?? '').includes(path)) {
       notes.push(`Add this to your .gitlab-ci.yml to run it:\n    include:\n      - local: ${path}`);
     }
+  } else if (ci === 'azure') {
+    const path = 'ng-checkup.azure-pipelines.yml';
+    if (files.exists(path)) notes.push(`Kept the existing ${path}.`);
+    else changes.push({ path, action: 'create', content: azurePipeline(packageManager, failOn), summary: 'An Azure Pipelines pipeline: runs on pull requests, SARIF for the Scans tab, the reports as artifacts' });
+    notes.push(`Create a pipeline from ${path} in Azure DevOps (Pipelines > New pipeline > Existing Azure Pipelines YAML file), and add it as a build validation of the target branch's policy so it runs on every pull request.`);
+  } else if (ci === 'bitbucket') {
+    const path = 'bitbucket-pipelines.yml';
+    if (files.exists(path)) {
+      if (!(files.read(path) ?? '').includes('ng-checkup')) notes.push(`Bitbucket reads one pipelines file, so ${path} was left as it is. Add this step under pipelines > pull-requests:\n${bitbucketStep(packageManager, failOn).replace(/^/gm, '    ')}`);
+      else notes.push(`Kept the existing ${path}.`);
+    } else changes.push({ path, action: 'create', content: bitbucketPipelines(packageManager, failOn), summary: 'Bitbucket Pipelines: runs the checkup on every pull request and keeps the reports as artifacts' });
   } else if ((options.ci ?? 'auto') === 'auto') {
-    notes.push('No .github/ or .gitlab-ci.yml found, so no CI step was added. Run with --ci github or --ci gitlab to add one.');
+    notes.push('No .github/, .gitlab-ci.yml, azure-pipelines.yml or bitbucket-pipelines.yml found, so no CI step was added. Run with --ci github, gitlab, azure or bitbucket to add one.');
   }
 
   const nextSteps: string[] = [];
@@ -199,6 +210,8 @@ function resolveCi(files: InitFileSystem, choice: CiChoice): Exclude<CiChoice, '
   if (choice !== 'auto') return choice;
   if (files.exists('.github')) return 'github';
   if (files.exists('.gitlab-ci.yml')) return 'gitlab';
+  if (files.exists('azure-pipelines.yml') || files.exists('.azure-pipelines')) return 'azure';
+  if (files.exists('bitbucket-pipelines.yml')) return 'bitbucket';
   return 'none';
 }
 
@@ -265,6 +278,87 @@ ${pnpmSetup}      - uses: actions/setup-node@v4
           name: ng-checkup
           path: |
 ${CI_REPORTS.map((report) => `            ${report}`).join('\n')}
+`;
+}
+
+/**
+ * An Azure Pipelines definition of its own, beside the repository's main
+ * pipeline rather than inside it, since Azure runs any YAML file it is
+ * pointed at and editing someone's main pipeline is not `init`'s to do.
+ *
+ * It installs, runs the checkup, and publishes the SARIF report as the
+ * `CodeAnalysisLogs` artifact, the name Microsoft's SARIF SAST Scans Tab
+ * extension reads, so findings show in the run's Scans tab when the
+ * extension is installed and are a plain artifact when it is not. Azure has
+ * no pull-request trigger in YAML for Azure Repos; it comes from a branch
+ * policy, which the note `init` prints says how to add.
+ */
+export function azurePipeline(manager: PackageManager, failOn: CiFailOn = 'poor'): string {
+  return `# Added by ng-checkup init. Grades the Angular codebase and fails the run
+# ${failOn === 'regression' ? 'when a number gets worse than ng-checkup.baseline.json' : 'when an area turns poor'}. Create a pipeline from this file and
+# add it as a build validation on the target branch to run it on pull requests.
+trigger:
+  branches:
+    include: [main]
+pr:
+  branches:
+    include: ['*']
+
+pool:
+  vmImage: ubuntu-latest
+
+steps:
+  - task: NodeTool@0
+    inputs:
+      versionSpec: '22.x'
+${manager === 'pnpm' ? '  - script: corepack enable\n' : ''}  - script: ${installCommand(manager, true)}
+    displayName: Install
+  - script: ${ciRun(manager, failOn)} --report checkup.sarif
+    displayName: ng-checkup
+  - task: PublishBuildArtifacts@1
+    condition: always()
+    inputs:
+      PathtoPublish: checkup.sarif
+      ArtifactName: CodeAnalysisLogs
+  - task: PublishBuildArtifacts@1
+    condition: always()
+    inputs:
+      PathtoPublish: checkup.html
+      ArtifactName: ng-checkup
+`;
+}
+
+/** The Bitbucket Pipelines step: install, run, keep the reports. Indented for the `pull-requests` section. */
+export function bitbucketStep(manager: PackageManager, failOn: CiFailOn = 'poor'): string {
+  return `- step:
+    name: ng-checkup
+    image: node:22
+    caches:
+      - node
+    script:
+${manager === 'pnpm' ? '      - corepack enable\n' : ''}      - ${installCommand(manager, true)}
+      - ${ciRun(manager, failOn)}
+    artifacts:
+${CI_REPORTS.map((report) => `      - ${report}`).join('\n')}`;
+}
+
+/**
+ * A whole `bitbucket-pipelines.yml`, for a repository that has none.
+ * Bitbucket reads that one file and has no include, so a repository that
+ * already has one gets the step printed instead of a second file nobody
+ * would run.
+ */
+export function bitbucketPipelines(manager: PackageManager, failOn: CiFailOn = 'poor'): string {
+  const step = bitbucketStep(manager, failOn).replace(/^/gm, '      ');
+  return `# Added by ng-checkup init. Grades the Angular codebase on every pull request
+# and fails the step ${failOn === 'regression' ? 'when a number gets worse than ng-checkup.baseline.json' : 'when an area turns poor'}. Reports: the step's artifacts.
+pipelines:
+  pull-requests:
+    '**':
+${step}
+  branches:
+    main:
+${step}
 `;
 }
 

@@ -6,9 +6,9 @@
   "properties": {
     "ci": {
       "type": "string",
-      "enum": ["auto", "github", "gitlab", "none"],
+      "enum": ["auto", "github", "gitlab", "azure", "bitbucket", "none"],
       "default": "auto",
-      "description": "Where to add the CI step. auto uses GitHub when .github/ exists, GitLab when .gitlab-ci.yml does.",
+      "description": "Where to add the CI step. auto uses GitHub when .github/ exists, GitLab when .gitlab-ci.yml does, Azure DevOps when azure-pipelines.yml does, Bitbucket when bitbucket-pipelines.yml does.",
       "x-prompt": {
         "message": "Add a CI step that runs the checkup on every pull request?",
         "type": "list",
@@ -16,6 +16,8 @@
           { "value": "auto", "label": "Yes, for the CI this repository already uses" },
           { "value": "github", "label": "Yes, GitHub Actions" },
           { "value": "gitlab", "label": "Yes, GitLab CI" },
+          { "value": "azure", "label": "Yes, Azure Pipelines" },
+          { "value": "bitbucket", "label": "Yes, Bitbucket Pipelines" },
           { "value": "none", "label": "No" }
         ]
       }

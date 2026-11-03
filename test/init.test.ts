@@ -64,6 +64,25 @@ describe('planInit', () => {
     expect(plan.notes.join('\n')).toContain('- local: ng-checkup.gitlab-ci.yml');
   });
 
+  it('writes an Azure pipeline beside the main one, and says how to run it on pull requests', () => {
+    const plan = planInit(memory({ 'package.json': angularPackage, 'angular.json': '{}', 'azure-pipelines.yml': 'steps: []\n' }), { version: '0.2.0' });
+    expect(plan.ci).toBe('azure');
+    const pipeline = plan.changes.find((change) => change.path === 'ng-checkup.azure-pipelines.yml')?.content ?? '';
+    expect(pipeline).toContain('npx ng-checkup-cli --fail-on poor --report checkup.md --report checkup.html --report checkup.sarif');
+    expect(pipeline).toContain('ArtifactName: CodeAnalysisLogs');
+    expect(plan.changes.map((change) => change.path)).not.toContain('azure-pipelines.yml');
+    expect(plan.notes.join('\n')).toContain('build validation');
+  });
+
+  it('creates bitbucket-pipelines.yml when there is none, and prints the step when there is one', () => {
+    const fresh = planInit(memory({ 'package.json': angularPackage, 'angular.json': '{}' }), { version: '0.2.0', ci: 'bitbucket' });
+    expect(fresh.changes.find((change) => change.path === 'bitbucket-pipelines.yml')?.content).toContain("pull-requests:\n    '**':\n      - step:\n          name: ng-checkup");
+    const existing = planInit(memory({ 'package.json': angularPackage, 'angular.json': '{}', 'bitbucket-pipelines.yml': 'pipelines: {}\n' }), { version: '0.2.0' });
+    expect(existing.ci).toBe('bitbucket');
+    expect(existing.changes.map((change) => change.path)).not.toContain('bitbucket-pipelines.yml');
+    expect(existing.notes.join('\n')).toContain('Add this step under pipelines > pull-requests');
+  });
+
   it('uses the package manager the lockfile names', () => {
     const pnpm = planInit(memory({ 'package.json': angularPackage, 'angular.json': '{}', 'pnpm-lock.yaml': '', '.github/': '' }), { version: '0.2.0' });
     expect(pnpm.packageManager).toBe('pnpm');

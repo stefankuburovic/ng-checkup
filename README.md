@@ -91,12 +91,14 @@ Both make the same changes and list what they changed:
 | `ng-checkup.baseline.json` | today's numbers, so CI fails only when one gets worse ([baseline](#baseline-adopt-it-on-legacy-code)) |
 | `.github/workflows/ng-checkup.yml` | runs on every pull request with `--fail-on regression`, uploads the reports (when `.github/` exists) |
 | `ng-checkup.gitlab-ci.yml` | the [GitLab job](#in-ci): Code Quality in merge requests and an MR comment; add `include: [{ local: ng-checkup.gitlab-ci.yml }]` to your `.gitlab-ci.yml` (when that file exists) |
+| `ng-checkup.azure-pipelines.yml` | an Azure Pipelines pipeline beside your main one: the SARIF report as the `CodeAnalysisLogs` artifact for the Scans tab, the HTML report as an artifact; create a pipeline from it and add it as a build validation (when `azure-pipelines.yml` exists) |
+| `bitbucket-pipelines.yml` | a pull-request step that keeps the reports as artifacts; when the file exists already, `init` leaves it alone and prints the step to paste |
 
 After that it is `npm run checkup` (or `pnpm checkup`, `yarn checkup`; the lockfile decides). Running either command again changes nothing. It never overwrites a file you wrote: an existing workflow or config is kept, and a different `checkup` script is kept unless you pass `--force`.
 
 ```bash
 npx ng-checkup-cli init --dry-run      # show the changes, write nothing
-npx ng-checkup-cli init --ci gitlab    # pick the CI instead of detecting it (github, gitlab, none)
+npx ng-checkup-cli init --ci gitlab    # pick the CI instead of detecting it (github, gitlab, azure, bitbucket, none)
 ```
 
 ## Configuration
@@ -444,7 +446,7 @@ Options:
       --version          Show the version
 
 Init options (ng-checkup init):
-      --ci <provider>    auto (default), github, gitlab or none
+      --ci <provider>    auto (default), github, gitlab, azure, bitbucket or none
       --dry-run          Show what would change without writing anything
       --force            Replace an existing "checkup" script
 
