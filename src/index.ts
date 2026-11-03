@@ -28,7 +28,7 @@ import { ignoreMatcher } from './config.js';
 import { collectFiles } from './files.js';
 import { buildImportGraph, filesImportedBySpecs, findTanglesIn, readCompilerOptions, staticallyReachable } from './graph.js';
 import { buildMigrationPlan, buildPrimoPlan } from './migration.js';
-import { unimportedFiles, unusedDeclarables } from './unused.js';
+import { unimportedFiles, unusedBindings, unusedDeclarables } from './unused.js';
 import { buildPlan } from './plan.js';
 import { scanSourceFile, scanTemplateFile } from './scan.js';
 import { overallScore } from './report/summary.js';
@@ -259,6 +259,7 @@ function narrowContext(context: AnalysisContext, project: ProjectInfo, ownerOf: 
     tangles: context.tangles.filter((tangle) => tangle.files.every((path) => ownerOf(path) === project)),
     ...(context.unimportedFiles ? { unimportedFiles: context.unimportedFiles.filter((path) => ownerOf(path) === project) } : {}),
     ...(context.unusedDeclarables ? { unusedDeclarables: context.unusedDeclarables.filter((entry) => ownerOf(entry.path) === project) } : {}),
+    ...(context.unusedBindings ? { unusedBindings: context.unusedBindings.filter((entry) => ownerOf(entry.path) === project) } : {}),
     bundles: context.bundles.filter((bundle) => bundle.project === project.name),
     appCompilerOptions: readCompilerOptions(workspace.appTsconfig),
     angularCompilerOptions: workspace.appTsconfig ? readAngularCompilerOptions(workspace.appTsconfig) : {},
@@ -301,6 +302,7 @@ export async function buildContext(root: string, options: CheckupOptions): Promi
   const eagerFiles = staticallyReachable(graph, applicationEntries(workspace));
   const unimported = unimportedFiles(sources, readCompilerOptions(workspace.rootTsconfig), workspace);
   const declarables = unusedDeclarables(sources, templates, workspace, unimported, options.attributeSelectors ?? false);
+  const bindings = options.attributeSelectors ? unusedBindings(sources, templates, workspace, declarables, unimported) : undefined;
 
   const context: AnalysisContext = {
     workspace,
@@ -316,6 +318,7 @@ export async function buildContext(root: string, options: CheckupOptions): Promi
     ...(unimported ? { unimportedFiles: unimported } : {}),
     ...(declarables ? { unusedDeclarables: declarables } : {}),
     ...(options.attributeSelectors ? { attributeSelectors: true } : {}),
+    ...(bindings ? { unusedBindings: bindings } : {}),
     latestAngular,
     ...(nextMajor ? { nextMajor } : {}),
     compatibility: dependencies.compatibility,

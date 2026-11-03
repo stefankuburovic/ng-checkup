@@ -60,6 +60,24 @@ export interface ComponentFact {
   selector?: string;
   /** True for `export default class`, which a route loads by file (`loadComponent: () => import('./x')`) rather than by name. */
   defaultExport?: boolean;
+  /** See `BindingFact`. */
+  inputs?: BindingFact[];
+  outputs?: BindingFact[];
+}
+
+/**
+ * One input or output of a component or directive, by the name a template
+ * binds it with: the alias when there is one (`@Input('label')`,
+ * `input(0, { alias: 'label' })`), else the property name. Decorators,
+ * signal functions (`input`, `input.required`, `model`, `output`,
+ * `outputFromObservable`) and the `inputs`/`outputs` arrays of the metadata
+ * all count. A `model()` is an input whose `nameChange` event binds it too.
+ */
+export interface BindingFact {
+  name: string;
+  line: number;
+  /** For a `model()`: the `nameChange` output that two-way binding listens to. */
+  alsoAs?: string;
 }
 
 /** One `@Directive` class and the selector templates match it by. */
@@ -69,6 +87,8 @@ export interface DirectiveFact {
   /** The `selector` string as written, undefined when absent (a host directive or an abstract base). */
   selector?: string;
   defaultExport?: boolean;
+  inputs?: BindingFact[];
+  outputs?: BindingFact[];
 }
 
 /** One `@Pipe` class and the name templates call it by. */
@@ -248,6 +268,16 @@ export interface SourceFileFacts {
    * standalone `imports` array alone keeps nothing alive.
    */
   classReferences: string[];
+  /**
+   * Input and output names code sets by name rather than a template:
+   * `componentRef.setInput('label', x)`, `inputBinding('label', ...)`,
+   * `outputBinding('closed', ...)`, and the keys of an Ionic
+   * `componentProps: { label: x }`. Such a binding is used though no
+   * template has it.
+   */
+  bindingNamesInCode: string[];
+  /** True when the file passes `bindToComponentInputs` to the router, which then sets component inputs from the URL. */
+  bindsRouteInputs?: boolean;
 }
 
 /**
@@ -296,6 +326,7 @@ export function scanSourceFile(root: string, absolutePath: string): SourceFileFa
     pipes: [],
     directives: [],
     classReferences: classReferencesOf(source),
+    bindingNamesInCode: [],
   };  const anyExempt = lintExemptLines(text, '@typescript-eslint/no-explicit-any');
 
 
@@ -358,6 +389,9 @@ export function scanSourceFile(root: string, absolutePath: string): SourceFileFa
       } else if (ts.isIdentifier(node.expression) && node.expression.text === 'eval' && !locals.has('eval')) {
         facts.dynamicCodeLines.push(lineOf(node));
       }
+      const [firstArgument] = node.arguments;
+      const callee = ts.isPropertyAccessExpression(node.expression) ? node.expression.name.text : ts.isIdentifier(node.expression) ? node.expression.text : undefined;
+      if ((callee === 'setInput' || callee === 'inputBinding' || callee === 'outputBinding' || callee === 'twoWayBinding') && firstArgument && ts.isStringLiteralLike(firstArgument)) facts.bindingNamesInCode.push(firstArgument.text);
       if (node.expression.kind === ts.SyntaxKind.ImportKeyword) {
         const [argument] = node.arguments;
         if (argument && ts.isStringLiteralLike(argument)) {
@@ -377,6 +411,12 @@ export function scanSourceFile(root: string, absolutePath: string): SourceFileFa
       if (ts.isPropertyAccessExpression(node.left) && /^(innerHTML|outerHTML)$/.test(node.left.name.text) && !isConstantString(node.right)) facts.unsafeDomLines.push(lineOf(node));
     } else if (ts.isObjectLiteralExpression(node)) {
       const names = new Set(node.properties.map((property) => (property.name && (ts.isIdentifier(property.name) || ts.isStringLiteral(property.name)) ? property.name.text : '')));
+      if (names.has('bindToComponentInputs')) facts.bindsRouteInputs = true;
+      // Ionic's `modalController.create({ component: X, componentProps: { label: 'Save' } })` sets inputs by name.
+      for (const property of node.properties) {
+        if (!ts.isPropertyAssignment(property) || !property.name || !ts.isIdentifier(property.name) || property.name.text !== 'componentProps' || !ts.isObjectLiteralExpression(property.initializer)) continue;
+        for (const prop of property.initializer.properties) if (prop.name && (ts.isIdentifier(prop.name) || ts.isStringLiteral(prop.name))) facts.bindingNamesInCode.push(prop.name.text);
+      }
       // Angular 7 and older: `loadChildren: './admin/admin.module#AdminModule'`, a module loaded by a string the bundler resolves.
       for (const property of node.properties) {
         if (!ts.isPropertyAssignment(property) || !property.name || !ts.isIdentifier(property.name) || property.name.text !== 'loadChildren') continue;
@@ -414,6 +454,50 @@ export function scanSourceFile(root: string, absolutePath: string): SourceFileFa
   const decoratorKey = (decorator: ts.Decorator): string | undefined => {
     const expression = ts.isCallExpression(decorator.expression) ? decorator.expression.expression : decorator.expression;
     return keyOf(expression);
+  };
+
+  /** See `BindingFact`. Empty lists are left out, so a class without inputs carries no `inputs` key. */
+  const bindingsOf = (node: ts.ClassDeclaration, metadata: ts.Expression | undefined): { inputs?: BindingFact[]; outputs?: BindingFact[] } => {
+    const inputs: BindingFact[] = [];
+    const outputs: BindingFact[] = [];
+    const aliasIn = (argument: ts.Expression | undefined): string | undefined => {
+      if (!argument) return undefined;
+      if (ts.isStringLiteralLike(argument)) return argument.text;
+      if (!ts.isObjectLiteralExpression(argument)) return undefined;
+      const alias = argument.properties.find((property) => ts.isPropertyAssignment(property) && ts.isIdentifier(property.name) && property.name.text === 'alias');
+      return alias && ts.isPropertyAssignment(alias) && ts.isStringLiteralLike(alias.initializer) ? alias.initializer.text : undefined;
+    };
+    for (const member of node.members) {
+      if (!member.name || !(ts.isIdentifier(member.name) || ts.isStringLiteral(member.name))) continue;
+      const property = member.name.text;
+      const line = lineOf(member);
+      for (const decorator of (ts.canHaveDecorators(member) ? ts.getDecorators(member) : undefined) ?? []) {
+        const key = decoratorKey(decorator);
+        const argument = ts.isCallExpression(decorator.expression) ? decorator.expression.arguments[0] : undefined;
+        if (key === '@angular/core#Input') inputs.push({ name: aliasIn(argument) ?? property, line });
+        else if (key === '@angular/core#Output') outputs.push({ name: aliasIn(argument) ?? property, line });
+      }
+      const initializer = ts.isPropertyDeclaration(member) ? member.initializer : undefined;
+      if (!initializer || !ts.isCallExpression(initializer)) continue;
+      const key = keyOf(initializer.expression);
+      const alias = initializer.arguments.map((argument) => (ts.isObjectLiteralExpression(argument) ? aliasIn(argument) : undefined)).find((value) => value !== undefined);
+      const bound = alias ?? property;
+      if (key === '@angular/core#input' || key === '@angular/core#input.required') inputs.push({ name: bound, line });
+      else if (key === '@angular/core#model' || key === '@angular/core#model.required') inputs.push({ name: bound, line, alsoAs: `${bound}Change` });
+      else if (key === '@angular/core#output' || key === '@angular/core/rxjs-interop#outputFromObservable') outputs.push({ name: bound, line });
+    }
+    // `inputs: ['label', 'value: initialValue']` in the metadata: the name after the colon is what templates bind.
+    if (metadata && ts.isObjectLiteralExpression(metadata)) {
+      for (const property of metadata.properties) {
+        if (!ts.isPropertyAssignment(property) || !ts.isIdentifier(property.name) || !ts.isArrayLiteralExpression(property.initializer)) continue;
+        const into = property.name.text === 'inputs' ? inputs : property.name.text === 'outputs' ? outputs : undefined;
+        if (!into) continue;
+        for (const element of property.initializer.elements) {
+          if (ts.isStringLiteralLike(element)) into.push({ name: element.text.split(':').pop()!.trim(), line: lineOf(element) });
+        }
+      }
+    }
+    return { ...(inputs.length > 0 ? { inputs } : {}), ...(outputs.length > 0 ? { outputs } : {}) };
   };
 
   const visitClassDecorators = (node: ts.ClassDeclaration): void => {
@@ -463,7 +547,7 @@ export function scanSourceFile(root: string, absolutePath: string): SourceFileFa
         const metadata = ts.isCallExpression(decorator.expression) ? decorator.expression.arguments[0] : undefined;
         const selector = metadata && ts.isObjectLiteralExpression(metadata) ? metadata.properties.find((property) => ts.isPropertyAssignment(property) && ts.isIdentifier(property.name) && property.name.text === 'selector') : undefined;
         const value = selector && ts.isPropertyAssignment(selector) ? selector.initializer : undefined;
-        facts.directives.push({ name, line: lineOf(node), ...(value && ts.isStringLiteralLike(value) ? { selector: value.text } : {}), ...(isDefaultExport(node) ? { defaultExport: true } : {}) });
+        facts.directives.push({ name, line: lineOf(node), ...(value && ts.isStringLiteralLike(value) ? { selector: value.text } : {}), ...(isDefaultExport(node) ? { defaultExport: true } : {}), ...bindingsOf(node, metadata) });
       } else if (key === '@angular/core#Pipe') {
         const metadata = ts.isCallExpression(decorator.expression) ? decorator.expression.arguments[0] : undefined;
         const nameProperty = metadata && ts.isObjectLiteralExpression(metadata) ? metadata.properties.find((property) => ts.isPropertyAssignment(property) && ts.isIdentifier(property.name) && property.name.text === 'name') : undefined;
@@ -500,6 +584,7 @@ export function scanSourceFile(root: string, absolutePath: string): SourceFileFa
             }
           }
         }
+        Object.assign(component, bindingsOf(node, metadata));
         facts.components.push(component);
       }
     }

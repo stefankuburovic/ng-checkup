@@ -244,3 +244,61 @@ export function unusedDeclarables(files: SourceFileFacts[], templates: TemplateF
   }
   return result.sort((left, right) => left.path.localeCompare(right.path) || left.line - right.line);
 }
+
+/** An input or output no template binds (see `unusedBindings`). */
+export interface UnusedBinding {
+  kind: 'input' | 'output';
+  /** The name a template would bind: the alias when there is one. */
+  name: string;
+  /** The component or directive that declares it. */
+  owner: string;
+  path: string;
+  line: number;
+}
+
+/**
+ * Inputs and outputs of the used components and directives that no template
+ * binds, in path order. Only with `--attribute-selectors`, since it rests
+ * on the same attribute matching.
+ *
+ * Names are compared across the whole repository, not per element: an input
+ * called `value` is used as soon as any template binds a `value`, whichever
+ * component that template meant. That can only call an unused input used.
+ * An input counts as bound by a plain attribute (`label="Save"`), a binding
+ * (`[label]`), a two-way binding, or code that sets it by name
+ * (`setInput('label', x)`, `inputBinding('label', ...)`); an output by an
+ * event binding or `outputBinding`; a `model()` by either of its names.
+ *
+ * Left out: classes that are unused themselves (they are already listed),
+ * classes in library projects, and every component input when some file
+ * calls `withComponentInputBinding()` or sets `bindToComponentInputs`, since
+ * the router then fills inputs from the URL by name, which no template shows.
+ */
+export function unusedBindings(files: SourceFileFacts[], templates: TemplateFact[], workspace: WorkspaceInfo, declarables: UnusedDeclarable[] | undefined, unimported: string[] | undefined): UnusedBinding[] | undefined {
+  if (!declarables || !unimported) return undefined;
+  const bound = new Set([...templates.flatMap((template) => template.usage.attributes), ...files.flatMap((file) => file.bindingNamesInCode.map((name) => name.toLowerCase()))]);
+  const routerBindsInputs = files.some((file) => file.calls.has('@angular/router#withComponentInputBinding') || file.bindsRouteInputs === true);
+  const dead = new Set([...unimported, ...declarables.map((entry) => `${entry.path}#${entry.name}`)]);
+  const result: UnusedBinding[] = [];
+  for (const file of files) {
+    if (file.isSpec || file.isGenerated || dead.has(file.path)) continue;
+    const owner = owningProject(file.path, workspace.projects);
+    if (!owner || owner.type === 'library') continue;
+    for (const [kind, classes] of [['component', file.components], ['directive', file.directives]] as const) {
+      for (const declarable of classes) {
+        if (dead.has(`${file.path}#${declarable.name}`)) continue;
+        if (!(kind === 'component' && routerBindsInputs)) {
+          for (const input of declarable.inputs ?? []) {
+            if (bound.has(input.name.toLowerCase()) || (input.alsoAs !== undefined && bound.has(input.alsoAs.toLowerCase()))) continue;
+            result.push({ kind: 'input', name: input.name, owner: declarable.name, path: file.path, line: input.line });
+          }
+        }
+        for (const output of declarable.outputs ?? []) {
+          if (bound.has(output.name.toLowerCase())) continue;
+          result.push({ kind: 'output', name: output.name, owner: declarable.name, path: file.path, line: output.line });
+        }
+      }
+    }
+  }
+  return result.sort((left, right) => left.path.localeCompare(right.path) || left.line - right.line);
+}

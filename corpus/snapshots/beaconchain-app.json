@@ -206,9 +206,9 @@
     {
       "id": "testing",
       "grade": "poor",
-      "summary": "Karma, 31 spec files, 65% of components and services with a spec, 0% of stores and utilities.",
+      "summary": "Karma, 31 spec files, 69% of components and services with a spec, 0% of stores and utilities.",
       "measures": {
-        "untested-files": 17
+        "untested-files": 15
       },
       "findings": [
         {

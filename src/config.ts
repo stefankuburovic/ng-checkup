@@ -32,7 +32,7 @@ export interface CheckupConfig {
   baseline?: string;
   /** As `--plan`: add the upgrade plan to every report. */
   plan?: boolean;
-  /** As `--attribute-selectors`: also report directives and attribute-selector components no template matches. */
+  /** As `--attribute-selectors`: also report directives and attribute-selector components no template matches, and inputs and outputs no template binds. */
   attributeSelectors?: boolean;
   /** As `--only`: the check ids to keep. */
   only?: string[];

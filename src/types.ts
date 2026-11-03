@@ -170,8 +170,8 @@ export interface CheckupOptions {
   plan?: boolean;
   /**
    * Also look for directives, and components with an attribute selector
-   * (`[appTooltip]`, `button[mat-button]`), that no template matches
-   * (`--attribute-selectors`). Off by default: matching attributes is looser
+   * (`[appTooltip]`, `button[mat-button]`), that no template matches, and
+   * inputs and outputs no template binds (`--attribute-selectors`). Off by default: matching attributes is looser
    * than matching tags, so it reports under a measure of its own and a
    * baseline taken without it is not disturbed.
    */

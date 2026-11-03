@@ -23,7 +23,8 @@ function listOf(parts: Array<string | undefined>): string {
 /**
  * How the code is put together: lazy loading, oversized files, dead code
  * (files nothing imports, components and pipes no template uses, and with
- * `--attribute-selectors` directives no template matches), and the
+ * `--attribute-selectors` directives no template matches and inputs and
+ * outputs no template binds), and the
  * dependency-injection and guard style.
  *
  * Graded only on what makes an app slower to load or harder to change:
@@ -137,6 +138,21 @@ export function architectureCheck(context: AnalysisContext): CheckResult {
       count: byAttribute.length,
     });
   }
+  const bindings = context.unusedBindings;
+  const unusedInputs = bindings?.filter((entry) => entry.kind === 'input') ?? [];
+  const unusedOutputs = bindings?.filter((entry) => entry.kind === 'output') ?? [];
+  if (bindings && bindings.length > 0) {
+    findings.push({
+      severity: 'low',
+      message: `${listOf([unusedInputs.length > 0 ? plural(unusedInputs.length, 'input') : undefined, unusedOutputs.length > 0 ? plural(unusedOutputs.length, 'output') : undefined])} no template binds`,
+      detail: `${bindings
+        .slice(0, 3)
+        .map((entry) => `\`${entry.owner}.${entry.name}\``)
+        .join(', ')}${bindings.length > 3 ? ', …' : ''}. No template binds these by name, as an attribute, a property, a two-way or an event binding, and no code sets them with \`setInput\` or \`inputBinding\`. Names are compared across the whole repository, so an input called \`value\` counts as bound as soon as any template binds a \`value\`: the list can miss unused ones, but what it lists is unbound. Component inputs are not checked when the router binds inputs from the URL (\`withComponentInputBinding\`).`,
+      files: bindings.slice(0, max).map((entry) => ({ path: entry.path, line: entry.line })),
+      count: bindings.length,
+    });
+  }
   if (classGuards.length > 0) {
     findings.push({
       severity: 'low',
@@ -195,6 +211,7 @@ export function architectureCheck(context: AnalysisContext): CheckResult {
       ...(declarables ? [{ id: 'unused-components', label: 'Components no template uses', value: unusedComponents.length }, { id: 'unused-pipes', label: 'Pipes no template uses', value: unusedPipes.length }] : []),
       // Only with --attribute-selectors, so a baseline taken without it never sees the measure appear or vanish.
       ...(declarables && context.attributeSelectors ? [{ id: 'unused-attribute-selectors', label: 'Directives and attribute selectors no template matches', value: byAttribute.length }] : []),
+      ...(bindings ? [{ id: 'unused-inputs', label: 'Inputs no template binds', value: unusedInputs.length }, { id: 'unused-outputs', label: 'Outputs no template binds', value: unusedOutputs.length }] : []),
     ],
   };
 }

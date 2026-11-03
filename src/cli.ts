@@ -83,7 +83,8 @@ Options:
       --attribute-selectors
                          Also list directives, and components with an attribute
                          selector ([appTooltip], button[mat-button]), that no
-                         template matches
+                         template matches, and inputs and outputs no template
+                         binds
       --offline          Nothing online: no npm registry, no osv.dev lookup
       --config <file>    Config file (default: ng-checkup.config.json in the root)
       --no-color         Plain output (also off when NO_COLOR is set or not a TTY)

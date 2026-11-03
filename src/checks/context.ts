@@ -10,7 +10,7 @@ import type { TypingsSource } from '../typings.js';
 import type { VulnerabilityScan } from '../vulnerabilities.js';
 import type { SourceFileFacts, TemplateFact } from '../scan.js';
 import type { CheckResult, FileRef } from '../types.js';
-import type { UnusedDeclarable } from '../unused.js';
+import type { UnusedBinding, UnusedDeclarable } from '../unused.js';
 import type { WorkspaceInfo } from '../workspace.js';
 
 /**
@@ -50,6 +50,8 @@ export interface AnalysisContext {
   unusedDeclarables?: UnusedDeclarable[];
   /** True when `--attribute-selectors` asked for directives and attribute-selector components to be judged too. */
   attributeSelectors?: boolean;
+  /** Inputs and outputs no template binds (see `unusedBindings`); only with `--attribute-selectors`. */
+  unusedBindings?: UnusedBinding[];
   /** Stats of the last `ng build --stats-json` per application. Empty when there is none. */
   bundles: BundleStats[];
   /** Installed third-party packages that depend on Angular. Empty without node_modules. */

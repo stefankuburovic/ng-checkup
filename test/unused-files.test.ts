@@ -218,6 +218,48 @@ describe('components and pipes no template uses', () => {
     expect(unusedDeclarables(await runCheckup(root, { offline: true }), 'no template matches')).toEqual({ components: 0, attributeSelectors: undefined, pipes: 0, files: [] });
   });
 
+  it('with --attribute-selectors, lists the inputs and outputs no template binds and no code sets', async () => {
+    /** The architecture finding about bindings, as `path:line`, and its two measures. */
+    const bindings = (report: Report): { inputs?: number; outputs?: number; files: string[] } => {
+      const architecture = report.checks.find((check) => check.id === 'architecture');
+      const finding = architecture?.findings.find((entry) => entry.message.endsWith('no template binds'));
+      const measure = (id: string): number | undefined => architecture?.measures?.find((entry) => entry.id === id)?.value;
+      return { inputs: measure('unused-inputs'), outputs: measure('unused-outputs'), files: finding?.files?.map((file) => `${file.path}:${file.line}`) ?? [] };
+    };
+    const files = cliApp({
+      'src/index.html': '<app-root></app-root>\n',
+      'src/app/app.component.ts': [
+        "import { Component } from '@angular/core';",
+        "import { CardComponent } from './card.component';",
+        "@Component({ selector: 'app-root', imports: [CardComponent], template: `<app-card title=\"Hi\" [size]=\"2\" [(open)]=\"o\" (closed)=\"c()\"></app-card>` })",
+        'export class AppComponent {}',
+        '',
+      ].join('\n'),
+      'src/app/card.component.ts': [
+        "import { Component, EventEmitter, Input, Output, input, model, output } from '@angular/core';",
+        "@Component({ selector: 'app-card', template: '' })",
+        'export class CardComponent {',
+        '  title = input(\'\');',
+        '  @Input() size = 1;',
+        '  open = model(false);',
+        '  fromCode = input(0);',
+        '  neverSet = input(42);',
+        '  closed = output();',
+        '  @Output() neverHeard = new EventEmitter<void>();',
+        '}',
+        '',
+      ].join('\n'),
+      'src/app/host.service.ts': "export function render(ref: { setInput(name: string, value: unknown): void }) { ref.setInput('fromCode', 1); }\n",
+    });
+    root = writeTemp(files);
+    expect(bindings(await runCheckup(root, { offline: true, attributeSelectors: true }))).toEqual({ inputs: 1, outputs: 1, files: ['src/app/card.component.ts:8', 'src/app/card.component.ts:10'] });
+    expect(bindings(await runCheckup(root, { offline: true }))).toEqual({ inputs: undefined, outputs: undefined, files: [] });
+    removeTemp(root);
+    // The router fills component inputs from the URL by name: then no component input is judged, outputs still are.
+    root = writeTemp({ ...files, 'src/app/config.ts': "import { provideRouter, withComponentInputBinding } from '@angular/router';\nexport const providers = [provideRouter([], withComponentInputBinding())];\n" });
+    expect(bindings(await runCheckup(root, { offline: true, attributeSelectors: true }))).toEqual({ inputs: 0, outputs: 1, files: ['src/app/card.component.ts:10'] });
+  });
+
   it('leaves library projects alone, whose consumers may live elsewhere', async () => {
     root = writeTemp({
       'nx.json': '{}',

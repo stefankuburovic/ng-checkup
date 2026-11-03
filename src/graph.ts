@@ -61,7 +61,8 @@ export function buildImportGraph(files: SourceFileFacts[], compilerOptions: ts.C
       if (fact.typeOnly || fact.dynamic) continue;
       // Bare specifiers that are not path aliases resolve into node_modules and are dropped below;
       // skipping the obvious ones first saves most of the resolution work.
-      if (!fact.specifier.startsWith('.') && !options.paths) continue;
+      // A bare specifier can be a file of the repository through `paths` or through `baseUrl` (`'src/app/x'`).
+      if (!fact.specifier.startsWith('.') && !options.paths && !options.baseUrl) continue;
       const resolved = ts.resolveModuleName(fact.specifier, file.absolutePath, options, ts.sys, cache).resolvedModule;
       if (!resolved || resolved.isExternalLibraryImport) continue;
       const target = resolve(resolved.resolvedFileName);
@@ -115,7 +116,7 @@ export function filesImportedBySpecs(files: SourceFileFacts[], compilerOptions: 
   const options: ts.CompilerOptions = { ...compilerOptions, moduleResolution: ts.ModuleResolutionKind.Bundler, module: ts.ModuleKind.ESNext, allowJs: false };
   const cache = ts.createModuleResolutionCache(process.cwd(), (name) => name, options);
   const resolveFrom = (from: string, specifier: string): SourceFileFacts | undefined => {
-    if (!specifier.startsWith('.') && !options.paths) return undefined;
+    if (!specifier.startsWith('.') && !options.paths && !options.baseUrl) return undefined;
     const resolved = ts.resolveModuleName(specifier, from, options, ts.sys, cache).resolvedModule;
     return resolved && !resolved.isExternalLibraryImport ? byAbsolute.get(resolve(resolved.resolvedFileName)) : undefined;
   };

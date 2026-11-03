@@ -60,7 +60,7 @@ describe('scanSourceFile', () => {
       export class M {}
     `);
     expect(facts.components).toStrictEqual([
-      { name: 'A', line: 3, standalone: false, changeDetection: 'OnPush', selector: 'a' },
+      { name: 'A', line: 3, standalone: false, changeDetection: 'OnPush', selector: 'a', inputs: [{ name: 'x', line: 5 }, { name: 'y', line: 6 }], outputs: [{ name: 'changed', line: 7 }] },
       // Nothing written, so nothing recorded: what absent means depends on the Angular version.
       { name: 'B', line: 9, selector: 'b' },
     ]);
@@ -72,6 +72,33 @@ describe('scanSourceFile', () => {
     expect(facts.inlineTemplates[0]?.firstLegacyLine).toBe(3);
   });
 
+
+  it('reads inputs and outputs by the name templates bind, and names code sets by string', () => {
+    const facts = scan(`
+      import { Component, Directive, Input, Output, input, model, output } from '@angular/core';
+      import { outputFromObservable } from '@angular/core/rxjs-interop';
+      @Component({ selector: 'app-a', template: '', inputs: ['legacy', 'prop: renamed'] })
+      export class A {
+        @Input('aliased') internal = 1;
+        @Input({ alias: 'objectAlias' }) other = 1;
+        label = input('');
+        required = input.required<string>({ alias: 'must' });
+        value = model(0);
+        closed = output();
+        ticks = outputFromObservable(source, { alias: 'tick' });
+        @Output() saved = 1;
+      }
+      @Directive({ selector: '[appD]' })
+      export class D { appD = input(); }
+      ref.setInput('fromCode', 1);
+      modal.create({ component: A, componentProps: { fromModal: 1 } });
+    `);
+    expect(facts.components[0]?.inputs?.map((binding) => binding.name)).toEqual(['aliased', 'objectAlias', 'label', 'must', 'value', 'legacy', 'renamed']);
+    expect(facts.components[0]?.inputs?.find((binding) => binding.name === 'value')?.alsoAs).toBe('valueChange');
+    expect(facts.components[0]?.outputs?.map((binding) => binding.name)).toEqual(['closed', 'tick', 'saved']);
+    expect(facts.directives).toEqual([{ name: 'D', line: 15, selector: '[appD]', inputs: [{ name: 'appD', line: 16 }] }]);
+    expect(facts.bindingNamesInCode).toEqual(['fromCode', 'fromModal']);
+  });
   it('ignores a decorator named Component that does not come from Angular', () => {
     const facts = scan(`
       import { Component } from './my-decorators';
