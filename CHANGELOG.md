@@ -1,6 +1,8 @@
 # Changelog
 
-## Unreleased (2.0.0)
+## 2.0.0 (2026-11-03)
+
+A major release because the report grows: two new areas (`translations`, `accessibility`, both never graded, so no score changes) and new measures in three others, which a consumer counting areas or reading the JSON by position notices. Nothing is removed and no flag changes meaning; a baseline from 1.x keeps working, the new measures count as "not known yet", never as a failure. The GitHub Action moves to `@v2` and the GitLab component to `@2`; `@v1` and `@1` stay on 1.6.1.
 
 - **Translations**, a new area (`translations`) that reports but is never graded, so no score changes: literal ngx-translate and Transloco keys judged against the JSON bundles of every language, merged deeply per language, Transloco scopes under their folder name. A key some language lacks while it knows the namespace, or another language has, is a medium finding and the measure `missing-keys`; a key under a namespace no bundle has is listed apart and not graded. Both libraries render a missing key as the key itself, which nothing else catches. On the corpus: 5 in airgap-wallet, all real (`walletconnect.error` against `walletconnect.connection_error`, `transaction-qr.qr-data-too-big_warning` in no language, three keys only English has); 0 of 2 858 in a 1 669-file production app whose own guard already holds it at 0. The measure sits in the baseline, so `--fail-on regression` fails on a new missing key. Keys in test code, inline test-host templates included, are not judged.
 - **`ng-checkup fleet <list>`**: one page across many repositories, worst first, with the Angular version, score, high findings and a grade per area for each; local paths and remote repositories, offline unless `--online`, an entry that fails is a row saying why. `.html`, `.md` or `.json`.

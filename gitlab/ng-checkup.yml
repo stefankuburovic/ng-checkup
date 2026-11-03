@@ -1,7 +1,7 @@
 # ng-checkup for GitLab CI. Add to .gitlab-ci.yml:
 #
 #   include:
-#     - remote: https://raw.githubusercontent.com/stefankuburovic/ng-checkup/v1/gitlab/ng-checkup.yml
+#     - remote: https://raw.githubusercontent.com/stefankuburovic/ng-checkup/v2/gitlab/ng-checkup.yml
 #
 # On every merge request and on the default branch it runs the checkup and
 #   - puts the findings in the merge request's Code Quality widget, where
@@ -41,7 +41,7 @@ ng-checkup:
     NG_CHECKUP_PATH: .
     NG_CHECKUP_FAIL_ON: ''
     NG_CHECKUP_ARGS: ''
-    NG_CHECKUP_VERSION: 1.6.1
+    NG_CHECKUP_VERSION: 2.0.0
     NG_CHECKUP_TREND: 'true'
     # Read-only unless a rule below says otherwise, so a job whose rules are overridden still has a valid policy.
     NG_CHECKUP_TREND_POLICY: pull

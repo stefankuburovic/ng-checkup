@@ -4,8 +4,8 @@
 # package's settings), and the package gets a provenance statement linking it to this build.
 # `npm publish` runs prepublishOnly (typecheck and the test suite) before anything is uploaded.
 #
-# The moving v1 tag is not touched here: move it only after the tarball answers 200
-# (docs/new-angular-major.md), since a v1 that names an unpublished version breaks every @v1 run.
+# The moving major tag (v2) is not touched here: move it only after the tarball answers 200
+# (docs/new-angular-major.md), since a v2 that names an unpublished version breaks every @v2 run.
 name: Release
 
 on:

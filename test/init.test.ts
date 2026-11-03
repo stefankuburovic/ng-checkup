@@ -117,9 +117,9 @@ describe('CI templates', () => {
     expect(githubWorkflow('yarn')).toContain('yarn ng-checkup --fail-on poor');
   });
 
-  it('include the GitLab template at the v1 tag and set only fail-on', () => {
+  it('include the GitLab template at the v2 tag and set only fail-on', () => {
     const job = gitlabJob('regression');
-    expect(job).toContain('- remote: https://raw.githubusercontent.com/stefankuburovic/ng-checkup/v1/gitlab/ng-checkup.yml');
+    expect(job).toContain('- remote: https://raw.githubusercontent.com/stefankuburovic/ng-checkup/v2/gitlab/ng-checkup.yml');
     expect(job).toMatch(/ng-checkup:\n {2}variables:\n {4}NG_CHECKUP_FAIL_ON: regression\n$/);
   });
 
