@@ -6,7 +6,7 @@ import { CHART_STYLES, historySection } from './charts.js';
 import { escape } from './escape.js';
 import { trendSentence } from '../trend.js';
 import { renderNotes } from './notes.js';
-import { formatDuration, formatLocation, gradeLabel, kindLabel, migrationTarget, overallScore, projectAreas, remainingCount, SCORE_EXPLANATION, severityLabel, topPriorities } from './summary.js';
+import { formatDuration, formatLocation, gradeLabel, kindLabel, migrationTarget, overallScore, projectAreas, remainingCount, SCORE_EXPLANATION, severityLabel, sinceSentence, topPriorities } from './summary.js';
 
 /**
  * Renders the report as one self-contained HTML file.
@@ -23,7 +23,7 @@ export function renderHtml(report: Report): string {
   const { project } = report;
   const score = overallScore(report);
   const priorities = topPriorities(report);
-  const meta = [`${kindLabel(report)}${project.workspaceFolder ? ` in ${project.workspaceFolder}` : ''}`, project.angularVersion ? `Angular ${project.angularVersion}` : undefined, `${plural(project.sourceFiles, 'TypeScript file')}${project.javascriptFiles ? `, ${plural(project.javascriptFiles, 'JavaScript file')}` : ''}`, plural(project.templateFiles, 'template'), plural(project.linesOfCode, 'line') + ' of code', project.generatedFiles ? `${plural(project.generatedFiles, 'generated file')} left out` : undefined]
+  const meta = [`${kindLabel(report)}${project.workspaceFolder ? ` in ${project.workspaceFolder}` : ''}`, project.angularVersion ? `Angular ${project.angularVersion}` : undefined, `${plural(project.sourceFiles, 'TypeScript file')}${project.javascriptFiles ? `, ${plural(project.javascriptFiles, 'JavaScript file')}` : ''}`, plural(project.templateFiles, 'template'), plural(project.linesOfCode, 'line') + ' of code', project.generatedFiles ? `${plural(project.generatedFiles, 'generated file')} left out` : undefined, sinceSentence(report)]
     .filter(Boolean)
     .join(' · ');
 

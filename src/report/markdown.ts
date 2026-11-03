@@ -1,7 +1,7 @@
 import { trendSentence } from '../trend.js';
 import { formatCount, plural } from '../checks/context.js';
 import type { Report } from '../types.js';
-import { formatDuration, formatLocation, gradeLabel, kindLabel, migrationTarget, overallScore, projectAreas, remainingCount, SCORE_EXPLANATION, severityLabel, topPriorities } from './summary.js';
+import { formatDuration, formatLocation, gradeLabel, kindLabel, migrationTarget, overallScore, projectAreas, remainingCount, SCORE_EXPLANATION, severityLabel, sinceSentence, topPriorities } from './summary.js';
 
 /**
  * Renders the report as GitHub-flavoured Markdown, for a pull request, a
@@ -19,6 +19,8 @@ export function renderMarkdown(report: Report): string {
     `${kindLabel(report)}${project.workspaceFolder ? ` in \`${project.workspaceFolder}\`` : ''}${project.angularVersion ? ` · Angular ${project.angularVersion}` : ''} · ${`${plural(project.sourceFiles, 'TypeScript file')}${project.javascriptFiles ? `, ${plural(project.javascriptFiles, 'JavaScript file')}` : ''}`} · ${plural(project.templateFiles, 'template')} · ${plural(project.linesOfCode, 'line')} of application code${project.generatedFiles ? ` (${plural(project.generatedFiles, 'generated file')} left out)` : ''}`,
     '',
   );
+  const since = sinceSentence(report);
+  if (since) lines.push(`**${since}**`, '');
   if (score !== undefined) lines.push(`**Score: ${score}/100.** ${SCORE_EXPLANATION}`, '');
   const trend = report.trend ? trendSentence(report.trend) : undefined;
   if (trend) {

@@ -1,7 +1,7 @@
 import { formatCount, plural } from '../checks/context.js';
 import type { Grade, Report } from '../types.js';
 import { trendSentence } from '../trend.js';
-import { gradeLabel, overallScore, severityLabel, topPriorities } from './summary.js';
+import { gradeLabel, overallScore, severityLabel, sinceSentence, topPriorities } from './summary.js';
 
 /**
  * The first line of every comment ng-checkup writes. The GitHub Action finds
@@ -36,6 +36,9 @@ export function renderComment(report: Report): string {
     `\`${project.name}\`${project.angularVersion ? ` · Angular ${project.angularVersion}` : ''} · ${plural(project.linesOfCode, 'line')} of application code · ${report.tool.name} ${report.tool.version}`,
     '',
   );
+
+  const since = sinceSentence(report);
+  if (since) lines.push(`_${since}_`, '');
 
   // Where the default branch is heading, beside what this change does to the baseline.
   const trend = report.trend ? trendSentence(report.trend) : undefined;

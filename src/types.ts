@@ -103,6 +103,8 @@ export interface Report {
     workspaceFolder?: string;
   };
   checks: CheckResult[];
+  /** Set by a `--since` run: what the findings were narrowed to. */
+  since?: import('./since.js').SinceInfo;
   durationMs: number;
   /**
    * The comparison with the committed baseline, when the run had one. Set by
@@ -197,6 +199,12 @@ export interface CheckupOptions {
    * Throws, listing the names, when there is no such project.
    */
   project?: string;
+  /**
+   * `--since <ref>`: keep only the findings that name a file changed since
+   * the merge base of `ref` and `HEAD` (see `narrowToChanged`). Grades,
+   * score and measures stay the whole repository's.
+   */
+  since?: string;
 }
 
 /**

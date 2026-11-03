@@ -25,6 +25,7 @@ npx ng-checkup-cli
 - [Configuration](#configuration)
 - [Baseline: adopt it on legacy code](#baseline-adopt-it-on-legacy-code)
 - [Watch mode](#watch-mode)
+- [Only what a branch changed](#only-what-a-branch-changed)
 - [History](#history)
 - [Upgrade plan](#upgrade-plan)
 - [AngularJS and hybrid apps](#angularjs-and-hybrid-apps)
@@ -164,6 +165,14 @@ Score 72 -> 76 (+4 since the watch started)
 ```
 
 Only the changed files are parsed again, and the registry is asked again only when `package.json` or a lockfile changes, so a run after a save takes a fraction of the first one. Keep it open next to the editor while working through a refactor; run `npx ng-checkup-cli baseline` in another terminal to lock a drop in, and the next run compares against it.
+
+## Only what a branch changed
+
+```bash
+npx ng-checkup-cli --since origin/main --report checkup.comment.md
+```
+
+Keeps only the findings in files the branch changed since its merge base with `origin/main`, committed or not, untracked files included: the list a pull-request comment wants, without the backlog the repository already had. The analysis still reads everything, since a cycle or an unused file only shows against the rest, and the grades, score and measures stay the whole repository's, so `--fail-on regression` means the same with and without it. Every report format says the findings were narrowed. In CI the target branch has to be fetched (`actions/checkout` with `fetch-depth: 0`); a shallow clone has no merge base, and the run says so.
 
 ## History
 

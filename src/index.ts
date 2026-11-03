@@ -33,6 +33,10 @@ import { unimportedFiles, unusedBindings, unusedDeclarables } from './unused.js'
 import { buildPlan } from './plan.js';
 import { scanSourceFile, scanTemplateFile, type SourceFileFacts, type TemplateFact } from './scan.js';
 import { judgeTranslations, type TranslationFacts, type TranslationLibrary } from './translations.js';
+import { changedFilesSince, narrowToChanged } from './since.js';
+
+/** The example cap of a `--since` run before narrowing: high enough that no finding in a real repository is cut. */
+const UNCAPPED_EXAMPLES = 1_000_000;
 import { overallScore } from './report/summary.js';
 import type { CheckupOptions, ProjectSummary, Report } from './types.js';
 import { applicationEntries, asRecord, majorOf, owningProject, readJson, resolveWorkspace, restrictToProject, type ProjectInfo, type WorkspaceInfo } from './workspace.js';
@@ -47,6 +51,7 @@ export { renderSarif } from './report/sarif.js';
 export { COMMENT_MARKER, renderComment } from './report/comment.js';
 export { renderCodeQuality } from './report/codequality.js';
 export { createAnalysisCache, type AnalysisCache } from './cache.js';
+export { SinceError, type SinceInfo } from './since.js';
 export { overallScore, topPriorities } from './report/summary.js';
 export { CONFIG_FILE, loadConfig, type CheckupConfig } from './config.js';
 export { buildPlan, type PlanItem, type PlanRequirement, type UpgradePlan, type UpgradeStep } from './plan.js';
@@ -162,7 +167,9 @@ export async function runCheckup(root: string, options: CheckupOptions = {}): Pr
   const started = Date.now();
   const keep = checkFilter(options);
   const absoluteRoot = resolve(root);
-  const context = await buildContext(absoluteRoot, options);
+  // Read the changed files first, so a bad ref fails before a minute of analysis. Examples are uncapped for the run and capped again after narrowing, or a changed file past the fifth example would be lost.
+  const changed = options.since ? changedFilesSince(absoluteRoot, options.since) : undefined;
+  const context = await buildContext(absoluteRoot, changed ? { ...options, maxExamples: UNCAPPED_EXAMPLES } : options);
   // AngularJS comes first when there is any: it blocks everything else. A Primo VE customization
   // package is AngularJS too, but it does not move to Angular through ngUpgrade; it is rebuilt in
   // the NDE custom module, so it gets its own area and plan instead of the general AngularJS ones.
@@ -174,7 +181,8 @@ export async function runCheckup(root: string, options: CheckupOptions = {}): Pr
   // AngularJS code is mostly JavaScript; without it an AngularJS app or a Primo package reported 0 lines.
   const javascript = context.angularJs.files.filter((file) => file.language === 'js' && !file.isSpec);
   const plan = options.plan ? buildPlan(context.workspace, allChecks, context.latestAngular.major, undefined, context.compatibility, context.nextMajor) : undefined;
-  const checks = allChecks.filter((check) => keep(check.id));
+  const kept = allChecks.filter((check) => keep(check.id));
+  const checks = changed ? narrowToChanged(kept, changed.files, options.maxExamples ?? 5) : kept;
   const migration = !options.plan
     ? undefined
     : primo.present
@@ -200,6 +208,7 @@ export async function runCheckup(root: string, options: CheckupOptions = {}): Pr
       ...(context.workspace.subfolder ? { workspaceFolder: context.workspace.subfolder } : {}),
     },
     checks,
+    ...(changed && options.since ? { since: { ref: options.since, base: changed.base, changedFiles: changed.files.size } } : {}),
     durationMs: Date.now() - started,
     ...(plan ? { plan } : {}),
     ...(migration ? { migration } : {}),

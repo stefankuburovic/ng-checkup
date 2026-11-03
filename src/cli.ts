@@ -7,7 +7,7 @@ import { parseArgs } from 'node:util';
 import { BASELINE_FILE, baselineDecreases, baselineIncreases, baselineMeasures, compareWithBaseline, createBaseline, measuresOf, readBaseline, serializeBaseline, type Baseline } from './baseline.js';
 import { createAnalysisCache } from './cache.js';
 import { loadConfig, REPORT_FORMATS, type CheckupConfig } from './config.js';
-import { BUNDLED_LATEST_ANGULAR_MAJOR, fetchLatestAngularMajor, ProjectNotFoundError, runCheckup, TOOL, UnknownCheckError } from './index.js';
+import { BUNDLED_LATEST_ANGULAR_MAJOR, fetchLatestAngularMajor, ProjectNotFoundError, runCheckup, SinceError, TOOL, UnknownCheckError } from './index.js';
 import { planInit, type CiChoice, type InitPlan } from './init.js';
 import { cloneRemote, describeCheckout, parseRemote, type RemoteRepository } from './remote.js';
 import { renderHtml } from './report/html.js';
@@ -80,6 +80,9 @@ Options:
                          (security,testing); the rest stay out of the score
       --skip <ids>       Leave these areas out of the report and the score
       --max-examples <n> Example files listed per finding (default 5)
+      --since <ref>      Keep only the findings in files changed since the merge
+                         base of <ref> and HEAD (origin/main); grades, score
+                         and baseline stay the whole repository's
       --attribute-selectors
                          Also list directives, and components with an attribute
                          selector ([appTooltip], button[mat-button]), that no
@@ -131,7 +134,8 @@ Examples:
   npx ng-checkup-cli init
   npx ng-checkup-cli baseline && npx ng-checkup-cli --fail-on regression
   npx ng-checkup-cli url https://app.example.com
-  npx ng-checkup-cli history --report history.html`;
+  npx ng-checkup-cli history --report history.html
+  npx ng-checkup-cli --since origin/main --report checkup.comment.md`;
 
 /** Grades in order of how bad they are, for `--fail-on`. */
 const SEVERITY_ORDER: Grade[] = ['good', 'fair', 'poor'];
@@ -155,6 +159,8 @@ export interface CliArguments {
   attributeSelectors: boolean;
   /** `--project`: one project of the workspace, by name. */
   project?: string;
+  /** `--since <ref>`: narrow the findings to the files changed since the merge base with `ref`. */
+  since?: string;
   /** `--only` and `--skip`, comma-separated check ids; undefined when not given, so the config can supply them. */
   only?: string[];
   skip?: string[];
@@ -224,6 +230,7 @@ export function parseCliArguments(argv: string[], environment: NodeJS.ProcessEnv
       'attribute-selectors': { type: 'boolean' },
       watch: { type: 'boolean', short: 'w' },
       project: { type: 'string', short: 'p' },
+      since: { type: 'string' },
       only: { type: 'string' },
       skip: { type: 'string' },
       client: { type: 'string' },
@@ -280,6 +287,7 @@ export function parseCliArguments(argv: string[], environment: NodeJS.ProcessEnv
     plan: (values.plan ?? false) || values.client !== undefined,
     attributeSelectors: values['attribute-selectors'] ?? false,
     project: values.project,
+    ...(values.since !== undefined ? { since: values.since } : {}),
     ...(values.only !== undefined ? { only: idList(values.only) } : {}),
     ...(values.skip !== undefined ? { skip: idList(values.skip) } : {}),
     ...(values.client !== undefined ? { client: { name: values.client.trim(), ...(preparedBy ? { preparedBy } : {}), ...(values.notes !== undefined ? { notes: resolve(values.notes) } : {}) } } : {}),
@@ -503,9 +511,9 @@ async function mainCheckup(parsed: CliArguments, rootLabel?: string): Promise<nu
 
   let report: Report;
   try {
-    report = await runCheckup(parsed.root, { offline: settings.offline, maxExamples: settings.maxExamples, ignore: analysisIgnores(parsed.root, settings), plan: settings.plan, attributeSelectors: settings.attributeSelectors, project: parsed.project, only: settings.only, skip: settings.skip });
+    report = await runCheckup(parsed.root, { offline: settings.offline, maxExamples: settings.maxExamples, ignore: analysisIgnores(parsed.root, settings), plan: settings.plan, attributeSelectors: settings.attributeSelectors, project: parsed.project, only: settings.only, skip: settings.skip, since: parsed.since });
   } catch (error) {
-    if (error instanceof ProjectNotFoundError || error instanceof UnknownCheckError) return usageError(error);
+    if (error instanceof ProjectNotFoundError || error instanceof UnknownCheckError || error instanceof SinceError) return usageError(error);
     throw error;
   }
   if (baseline) report.baseline = compareWithBaseline(report, baseline, settings.baselinePath, parsed.project);
@@ -607,7 +615,7 @@ async function mainWatch(parsed: CliArguments, initial: RunSettings): Promise<nu
     run: async () => {
       const { config, directory } = loadConfig(parsed.root, parsed.config);
       const settings = resolveSettings(parsed, config, directory);
-      const report = await runCheckup(parsed.root, { offline: settings.offline, maxExamples: settings.maxExamples, ignore: analysisIgnores(parsed.root, settings), plan: settings.plan, attributeSelectors: settings.attributeSelectors, project: parsed.project, only: settings.only, skip: settings.skip, cache });
+      const report = await runCheckup(parsed.root, { offline: settings.offline, maxExamples: settings.maxExamples, ignore: analysisIgnores(parsed.root, settings), plan: settings.plan, attributeSelectors: settings.attributeSelectors, project: parsed.project, only: settings.only, skip: settings.skip, since: parsed.since, cache });
       const baseline = applicableBaseline(readBaseline(settings.baselinePath), parsed.project);
       if (baseline) report.baseline = compareWithBaseline(report, baseline, settings.baselinePath, parsed.project);
       writeReports(report, settings.reports);

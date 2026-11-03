@@ -110,3 +110,14 @@ export function remainingCount(finding: Finding): number {
 export function migrationTarget(migration: NonNullable<Report['migration']>): string {
   return migration.targetLabel ?? `Angular ${migration.to}`;
 }
+
+/**
+ * The line every format shows for a `--since` run, so nobody reads a short
+ * findings list as a clean repository. Undefined for a full run.
+ */
+export function sinceSentence(report: Pick<Report, 'since'>): string | undefined {
+  const since = report.since;
+  if (!since) return undefined;
+  const files = since.changedFiles === 1 ? 'the file' : `the ${since.changedFiles.toLocaleString('en-US').replace(/,/g, ' ')} files`;
+  return `Findings limited to ${files} changed since ${since.ref} (${since.base}); grades, score and measures are the whole repository's.`;
+}

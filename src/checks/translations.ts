@@ -34,9 +34,10 @@ export function translationsCheck(context: AnalysisContext): CheckResult {
 
   const findings: Finding[] = [];
   const example = (entries: typeof facts.missing) => entries.slice(0, context.maxExamples).map((entry) => entry.file);
+  // Capped on its own: a `--since` run lifts maxExamples for the narrowing, and the detail would list every key.
   const listed = (entries: typeof facts.missing) =>
     entries
-      .slice(0, context.maxExamples)
+      .slice(0, Math.min(context.maxExamples, 10))
       .map((entry) => `\`${entry.key}\`${entry.languages.length < facts.languages.length ? ` (${entry.languages.join(', ')})` : ''}`)
       .join(', ');
   if (facts.missing.length > 0) {
