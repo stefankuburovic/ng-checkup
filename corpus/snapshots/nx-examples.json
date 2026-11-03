@@ -160,9 +160,23 @@
       "grade": "good",
       "summary": "Jest, 13 spec files, 100% of components and services with a spec.",
       "measures": {
-        "untested-files": 0
+        "untested-files": 0,
+        "tests-without-assertions": 0,
+        "unawaited-subscribe-assertions": 0,
+        "schema-suppressed-specs": 3
       },
-      "findings": []
+      "findings": [
+        {
+          "severity": "low",
+          "message": "3 spec files silence template errors with `NO_ERRORS_SCHEMA` or `CUSTOM_ELEMENTS_SCHEMA`",
+          "files": [
+            "apps/products/src/app/app.component.spec.ts:14",
+            "libs/products/home-page/src/lib/home-page/home-page.component.spec.ts:23",
+            "libs/products/product-detail-page/src/lib/product-detail-page/product-detail-page.component.spec.ts:30"
+          ],
+          "count": 3
+        }
+      ]
     },
     {
       "id": "type-safety",

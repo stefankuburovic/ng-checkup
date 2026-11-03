@@ -151,7 +151,10 @@
       "grade": "fair",
       "summary": "Vitest, 5 spec files, 6% of components and services with a spec, 29% of stores and utilities.",
       "measures": {
-        "untested-files": 49
+        "untested-files": 49,
+        "tests-without-assertions": 0,
+        "unawaited-subscribe-assertions": 0,
+        "schema-suppressed-specs": 0
       },
       "findings": [
         {

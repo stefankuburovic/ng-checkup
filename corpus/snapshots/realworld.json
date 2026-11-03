@@ -207,7 +207,10 @@
       "grade": "poor",
       "summary": "Karma, 0 spec files, 0% of components and services with a spec.",
       "measures": {
-        "untested-files": 32
+        "untested-files": 32,
+        "tests-without-assertions": 0,
+        "unawaited-subscribe-assertions": 0,
+        "schema-suppressed-specs": 0
       },
       "findings": [
         {

@@ -333,7 +333,10 @@
       "grade": "fair",
       "summary": "Jest, 116 spec files, 1% of components and services with a spec, 9% of stores and utilities.",
       "measures": {
-        "untested-files": 1114
+        "untested-files": 1114,
+        "tests-without-assertions": 5,
+        "unawaited-subscribe-assertions": 17,
+        "schema-suppressed-specs": 0
       },
       "findings": [
         {
@@ -345,6 +348,26 @@
             "apps/demos/src/app/app-config.service.ts"
           ],
           "count": 1114
+        },
+        {
+          "severity": "medium",
+          "message": "5 tests assert nothing",
+          "files": [
+            "libs/cdk/internals/core/src/lib/accumulateObservables.spec.ts:198",
+            "libs/state/selections/spec/select.spec.ts:57",
+            "libs/state/selections/spec/stateful.spec.ts:52"
+          ],
+          "count": 4
+        },
+        {
+          "severity": "low",
+          "message": "17 assertions inside a `.subscribe()` the test does not wait for",
+          "files": [
+            "libs/cdk/coalescing/spec/coalesceWith.spec.ts:141",
+            "libs/state/selections/spec/accumulation-observable.spec.ts:65",
+            "libs/state/spec/rx-state.service.spec.ts:102"
+          ],
+          "count": 3
         }
       ]
     },

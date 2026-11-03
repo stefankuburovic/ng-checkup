@@ -2,7 +2,7 @@ import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { isSpecFile } from '../files.js';
 import type { CheckResult, Finding, Grade } from '../types.js';
-import { applicationFiles, formatCount, percent, plural, specFiles, type AnalysisContext } from './context.js';
+import { applicationFiles, formatCount, percent, plural, specFiles, verb, type AnalysisContext } from './context.js';
 
 /** A unit-test runner the check recognises. */
 type Runner = 'Karma' | 'Jest' | 'Vitest';
@@ -78,6 +78,35 @@ export function testingCheck(context: AnalysisContext): CheckResult {
     findings.push({ severity: 'info', message: 'No end-to-end test setup found', detail: 'Neither Playwright nor Cypress is a dependency. A handful of smoke tests over the main flows is the cheapest safety net for an upgrade.' });
   }
 
+  // Test quality: tests that cannot fail. Findings and measures, never part of the grade, since each is read from syntax and errs towards silence.
+  const quality = specs.flatMap((file) => (file.testQuality ? [{ path: file.path, ...file.testQuality }] : []));
+  const qualityFinding = (lines: (entry: (typeof quality)[number]) => number[], severity: Finding['severity'], message: (count: number) => string, detail: string): number => {
+    const hits = quality.filter((entry) => lines(entry).length > 0);
+    const count = hits.reduce((sum, entry) => sum + lines(entry).length, 0);
+    if (count > 0) {
+      findings.push({ severity, message: message(count), detail, files: hits.slice(0, context.maxExamples).map((entry) => ({ path: entry.path, line: lines(entry)[0] })), count: hits.length });
+    }
+    return count;
+  };
+  const withoutAssertions = qualityFinding(
+    (entry) => entry.withoutAssertions,
+    'medium',
+    (count) => `${plural(count, 'test')} ${verb(count, 'asserts', 'assert')} nothing`,
+    'No `expect`, no assertion helper and no function of the file that asserts is called in the test body, so it passes whatever the code does; it only fails when the code throws. The usual causes are a test that renders a component and stops (`should create` without `toBeTruthy()`), an assertion moved into a helper that never got called, and a placeholder that was never filled in. Skipped tests (`xit`, `.skip`, `.todo`) are not counted.',
+  );
+  const unawaited = qualityFinding(
+    (entry) => entry.unawaitedSubscribeAssertions,
+    'low',
+    (count) => `${plural(count, 'assertion')} inside a \`.subscribe()\` the test does not wait for`,
+    'The `expect` sits in a subscribe callback, and the test neither takes `done`, nor runs in `fakeAsync` / `waitForAsync`, nor awaits or flushes anything. When the source is asynchronous (HTTP without `expectOne().flush()`, a timer, a promise) the test ends before the callback runs and passes without asserting. A synchronous source (`of()`, a `BehaviorSubject`) does run it, which the code cannot show, hence low. `expect(await firstValueFrom(source$))` asserts either way.',
+  );
+  const schemaSuppressed = qualityFinding(
+    (entry) => entry.schemaSuppressions.slice(0, 1),
+    'low',
+    (count) => `${plural(count, 'spec file')} ${verb(count, 'silences', 'silence')} template errors with \`NO_ERRORS_SCHEMA\` or \`CUSTOM_ELEMENTS_SCHEMA\``,
+    'Both schemas turn an unknown element or property into silence, so a misspelt input or a component missing from `imports` passes the spec and fails in the app. In `configureTestingModule` they do not even apply to a standalone component\'s own template; there they only look like protection. Stub the child components or import the real ones instead.',
+  );
+
   const grade: Grade = testable.length === 0 ? 'info' : runners.has('Karma') || protractor || specs.length === 0 ? 'poor' : overall < 30 ? 'fair' : 'good';
 
   return {
@@ -95,6 +124,9 @@ export function testingCheck(context: AnalysisContext): CheckResult {
     findings,
     measures: [
       { id: 'untested-files', label: 'Components and services without a spec', value: untested.length },
+      { id: 'tests-without-assertions', label: 'Tests that assert nothing', value: withoutAssertions },
+      { id: 'unawaited-subscribe-assertions', label: 'Assertions in a subscribe the test does not wait for', value: unawaited },
+      { id: 'schema-suppressed-specs', label: 'Spec files with NO_ERRORS_SCHEMA or CUSTOM_ELEMENTS_SCHEMA', value: schemaSuppressed },
     ],
   };
 }

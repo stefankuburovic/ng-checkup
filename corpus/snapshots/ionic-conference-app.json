@@ -147,7 +147,10 @@
       "grade": "poor",
       "summary": "Karma, 5 spec files, 39% of components and services with a spec.",
       "measures": {
-        "untested-files": 11
+        "untested-files": 11,
+        "tests-without-assertions": 0,
+        "unawaited-subscribe-assertions": 0,
+        "schema-suppressed-specs": 5
       },
       "findings": [
         {
@@ -167,6 +170,16 @@
         {
           "severity": "info",
           "message": "No end-to-end test setup found"
+        },
+        {
+          "severity": "low",
+          "message": "5 spec files silence template errors with `NO_ERRORS_SCHEMA` or `CUSTOM_ELEMENTS_SCHEMA`",
+          "files": [
+            "src/app/app.component.spec.ts:34",
+            "src/app/pages/schedule-filter/schedule-filter.spec.ts:28",
+            "src/app/pages/speaker-list/speaker-list.spec.ts:25"
+          ],
+          "count": 5
         }
       ]
     },

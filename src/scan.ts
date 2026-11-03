@@ -1,7 +1,8 @@
 import { readFileSync } from 'node:fs';
 import ts from 'typescript';
 import { scanAngularJsTemplate, type AngularJsTemplateStats } from './angularjs.js';
-import { isTestCode, toReportPath } from './files.js';
+import { isSpecFile, isTestCode, toReportPath } from './files.js';
+import { testQualityOf, type TestQuality } from './test-quality.js';
 import { translationKeysInCode, translationKeysInTemplate, type TranslationKeyUse } from './translations.js';
 import { withoutHtmlComments } from './template-text.js';
 
@@ -290,6 +291,8 @@ export interface SourceFileFacts {
   translationKeys: TranslationKeyUse[];
   /** True when the file passes `bindToComponentInputs` to the router, which then sets component inputs from the URL. */
   bindsRouteInputs?: boolean;
+  /** What the tests in a unit spec (`*.spec.ts`, `*.test.ts`) assert (see `testQualityOf`); absent for every other file. */
+  testQuality?: TestQuality;
 }
 
 /**
@@ -340,6 +343,7 @@ export function scanSourceFile(root: string, absolutePath: string): SourceFileFa
     classReferences: classReferencesOf(source),
     bindingNamesInCode: [],
     translationKeys: translationKeysInCode(source),
+    ...(isSpecFile(path) ? { testQuality: testQualityOf(source) } : {}),
   };  const anyExempt = lintExemptLines(text, '@typescript-eslint/no-explicit-any');
 
 

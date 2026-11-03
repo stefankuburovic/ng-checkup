@@ -217,7 +217,10 @@
       "grade": "poor",
       "summary": "Karma, 31 spec files, 69% of components and services with a spec, 0% of stores and utilities.",
       "measures": {
-        "untested-files": 15
+        "untested-files": 15,
+        "tests-without-assertions": 0,
+        "unawaited-subscribe-assertions": 0,
+        "schema-suppressed-specs": 1
       },
       "findings": [
         {
@@ -227,6 +230,14 @@
         {
           "severity": "high",
           "message": "End-to-end tests use Protractor, which is end of life"
+        },
+        {
+          "severity": "low",
+          "message": "1 spec file silences template errors with `NO_ERRORS_SCHEMA` or `CUSTOM_ELEMENTS_SCHEMA`",
+          "files": [
+            "src/app/tabs/tabs.page.spec.ts:33"
+          ],
+          "count": 1
         }
       ]
     },

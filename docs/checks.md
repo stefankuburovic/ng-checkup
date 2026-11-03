@@ -216,7 +216,15 @@ A file or class loaded in a way the analysis cannot see (a path built at runtime
 | fair | under 30% with a spec |
 | poor | Karma, Protractor, or no specs at all |
 
-**Fixing it:** the Angular CLI's default runner is Vitest since v21 (`@angular/build:unit-test`). The finding counts the Jasmine-specific calls a move would touch.
+**Test quality.** Three patterns that let a spec pass while checking nothing are findings and measures of their own, none part of the grade, since each is read from the syntax and errs towards silence:
+
+- **Tests that assert nothing** (`tests-without-assertions`, medium): an `it` / `test` body that calls no `expect`, no `expect*` / `assert*` / `verify*` / `check*` / `should*` helper, no function of the same file that asserts, no namespace assertion (`expect.element`, `assert.equal`) and no Cypress command. `xit`, `.skip` and `.todo` are not counted.
+- **Assertions in a subscribe the test does not wait for** (`unawaited-subscribe-assertions`, low): the `expect` sits in a `.subscribe()` callback and the test takes no `done`, runs in no `fakeAsync` / `waitForAsync`, awaits nothing and flushes nothing (`flush`, `tick`, `expectOne`, `whenStable`, fake timers). With an asynchronous source the test ends first and passes without asserting; a synchronous one runs it, which the syntax cannot show.
+- **Spec files with `NO_ERRORS_SCHEMA` or `CUSTOM_ELEMENTS_SCHEMA`** (`schema-suppressed-specs`, low): a misspelt input or a component missing from `imports` passes; in `configureTestingModule` neither even applies to a standalone component's own template.
+
+Zone-based helpers in a zoneless app (`fakeAsync`, `waitForAsync`) are counted by [change detection](#change-detection) already. On the corpus: 5 empty tests and 17 unwaited assertions (several on `timer()` with no `done`) in rx-angular, 0 to 3 elsewhere.
+
+**Fixing it:** the Angular CLI's default runner is Vitest since v21 (`@angular/build:unit-test`). The finding counts the Jasmine-specific calls a move would touch. For a subscribe, `expect(await firstValueFrom(source$))` asserts whether the source is synchronous or not.
 
 ---
 
@@ -361,6 +369,9 @@ The largest packages in the initial bundle are listed with their size, from the 
 | `state.behaviorsubject-services` | Services holding state in a `BehaviorSubject` |
 | `state.classic-ngrx-files` | Files on classic NgRx |
 | `state.effect-decorators` | Removed `@Effect()` decorators |
+| `testing.schema-suppressed-specs` | Spec files with `NO_ERRORS_SCHEMA` or `CUSTOM_ELEMENTS_SCHEMA` |
+| `testing.tests-without-assertions` | Tests that assert nothing |
+| `testing.unawaited-subscribe-assertions` | Assertions in a subscribe the test does not wait for |
 | `testing.untested-files` | Components and services without a spec |
 | `translations.missing-keys` | Translation keys that resolve to no string |
 | `type-safety.explicit-any` | Explicit `any` in application code |

@@ -200,7 +200,10 @@
       "grade": "poor",
       "summary": "Karma, 62 spec files, 15% of components and services with a spec, 50% of stores and utilities.",
       "measures": {
-        "untested-files": 216
+        "untested-files": 216,
+        "tests-without-assertions": 0,
+        "unawaited-subscribe-assertions": 0,
+        "schema-suppressed-specs": 0
       },
       "findings": [
         {
