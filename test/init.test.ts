@@ -24,7 +24,7 @@ describe('planInit', () => {
     ]);
     const packageJson = JSON.parse(plan.changes[0]!.content) as { scripts: Record<string, string>; devDependencies: Record<string, string> };
     expect(packageJson.scripts).toEqual({ start: 'ng serve', checkup: 'ng-checkup' });
-    expect(packageJson.devDependencies).toEqual({ 'ng-checkup': '^0.2.0' });
+    expect(packageJson.devDependencies).toEqual({ 'ng-checkup-cli': '^0.2.0' });
     expect(JSON.parse(plan.changes[1]!.content)).toEqual({ reports: ['checkup.html'], ignore: [] });
     expect(plan.changes[2]!.content).toBe('node_modules\n\n# ng-checkup reports\n/checkup.html\n/checkup.md\n');
     expect(plan.ci).toBe('github');
@@ -94,7 +94,7 @@ describe('formatJsonLike', () => {
 
 describe('CI templates', () => {
   it('fail on a poor area and keep both reports', () => {
-    expect(githubWorkflow('npm')).toContain('npx ng-checkup --fail-on poor --report checkup.md --report checkup.html');
+    expect(githubWorkflow('npm')).toContain('npx ng-checkup-cli --fail-on poor --report checkup.md --report checkup.html');
     expect(githubWorkflow('yarn')).toContain('yarn ng-checkup --fail-on poor');
   });
 

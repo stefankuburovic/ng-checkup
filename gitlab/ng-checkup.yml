@@ -41,7 +41,7 @@ ng-checkup:
     NG_CHECKUP_PATH: .
     NG_CHECKUP_FAIL_ON: ''
     NG_CHECKUP_ARGS: ''
-    NG_CHECKUP_VERSION: 1.6.0
+    NG_CHECKUP_VERSION: 1.6.1
     NG_CHECKUP_TREND: 'true'
     # Read-only unless a rule below says otherwise, so a job whose rules are overridden still has a valid policy.
     NG_CHECKUP_TREND_POLICY: pull
@@ -66,16 +66,18 @@ ng-checkup:
       [ -n "$NG_CHECKUP_FAIL_ON" ] && fail="--fail-on $NG_CHECKUP_FAIL_ON"
       # npx from an empty folder, so a project named ng-checkup cannot shadow the release.
       cd /tmp/ng-checkup-npx
+      # 1.6.1 renamed the npm package; older versions exist only as ng-checkup.
+      case "$NG_CHECKUP_VERSION" in 0.*|1.[0-5].*|1.6.0) package=ng-checkup ;; *) package=ng-checkup-cli ;; esac
       trend=""
       # A NG_CHECKUP_VERSION older than 1.4.0 has no --trend; ask its help rather than fail on an unknown option.
       # Captured, not piped into grep -q: under pipefail an early grep exit fails the pipe with SIGPIPE.
-      help="$(npx -y "ng-checkup@$NG_CHECKUP_VERSION" --help 2>/dev/null || true)"
+      help="$(npx -y "$package@$NG_CHECKUP_VERSION" --help 2>/dev/null || true)"
       if [ "$NG_CHECKUP_TREND" = "true" ] && case "$help" in *"--trend "*) true ;; *) false ;; esac; then
         trend="--trend $CI_PROJECT_DIR/.ng-checkup-trend/$CI_JOB_NAME_SLUG.json"
         if [ "$CI_COMMIT_BRANCH" = "$CI_DEFAULT_BRANCH" ]; then trend="$trend --trend-record"; fi
       fi
       set +e
-      npx -y "ng-checkup@$NG_CHECKUP_VERSION" "$root" --no-color \
+      npx -y "$package@$NG_CHECKUP_VERSION" "$root" --no-color \
         --report "$out/ng-checkup.html" --report "$out/ng-checkup.md" --report "$out/ng-checkup.json" \
         --report "$out/ng-checkup.codequality.json" --report "$out/ng-checkup.comment.md" \
         $fail $trend $NG_CHECKUP_ARGS

@@ -12,7 +12,7 @@ import { asRecord, readJson, type WorkspaceInfo } from './workspace.js';
  * plan's first step already removes it with TSLint.
  */
 const EXCLUDED_PREFIXES = ['@angular/', '@angular-devkit/', '@schematics/', '@ngrx/', '@nx/', '@nrwl/'];
-const EXCLUDED_NAMES = new Set(['typescript', 'rxjs', 'zone.js', 'tslib', 'nx', 'ng-checkup', ...END_OF_LIFE_PACKAGES.map((entry) => entry.name)]);
+const EXCLUDED_NAMES = new Set(['typescript', 'rxjs', 'zone.js', 'tslib', 'nx', 'ng-checkup', 'ng-checkup-cli', ...END_OF_LIFE_PACKAGES.map((entry) => entry.name)]);
 
 /** A release of a package and the Angular range it declares. */
 export interface PackageRelease {

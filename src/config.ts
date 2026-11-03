@@ -10,7 +10,7 @@ export const CONFIG_FILE = 'ng-checkup.config.json';
 /**
  * What `ng-checkup.config.json` may set. Every key is optional and every one
  * has a command-line flag that overrides it, so a config file only ever
- * supplies defaults: a developer running `npx ng-checkup --report x.md` gets
+ * supplies defaults: a developer running `npx ng-checkup-cli --report x.md` gets
  * exactly that, whatever the file says.
  */
 export interface CheckupConfig {

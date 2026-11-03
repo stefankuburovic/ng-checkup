@@ -1,13 +1,15 @@
 # ng-checkup
 
-[![npm](https://img.shields.io/npm/v/ng-checkup)](https://www.npmjs.com/package/ng-checkup) [![CI](https://github.com/stefankuburovic/ng-checkup/actions/workflows/ci.yml/badge.svg)](https://github.com/stefankuburovic/ng-checkup/actions/workflows/ci.yml) [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](https://github.com/stefankuburovic/ng-checkup/blob/main/LICENSE) [![XERJ Corpus Hub contributor](https://hub.xerj.org/contributors/stefankuburovic/badge.svg)](https://hub.xerj.org/contributors/stefankuburovic)
+[![npm](https://img.shields.io/npm/v/ng-checkup-cli)](https://www.npmjs.com/package/ng-checkup-cli) [![CI](https://github.com/stefankuburovic/ng-checkup/actions/workflows/ci.yml/badge.svg)](https://github.com/stefankuburovic/ng-checkup/actions/workflows/ci.yml) [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](https://github.com/stefankuburovic/ng-checkup/blob/main/LICENSE) [![XERJ Corpus Hub contributor](https://hub.xerj.org/contributors/stefankuburovic/badge.svg)](https://hub.xerj.org/contributors/stefankuburovic)
+
+> **Renamed on npm:** since 1.6.1 the package is `ng-checkup-cli` (`npx ng-checkup-cli`). Versions up to 1.5.0 are still on npm as `ng-checkup`. The command it installs is still `ng-checkup`.
 
 **A one-minute modernization report for any Angular codebase.**
 
 Point it at a repository and it tells you how far the code is from current Angular, what will break on the next upgrade, and where the work is. Twelve areas get a grade, from the Angular version and third-party packages to security and bundle size (and a thirteenth for AngularJS code still waiting to be migrated), every finding names the files, and the HTML report is one self-contained page you can hand to your team lead.
 
 ```bash
-npx ng-checkup
+npx ng-checkup-cli
 ```
 
 ![ng-checkup in a terminal](https://raw.githubusercontent.com/stefankuburovic/ng-checkup/main/docs/terminal.png)
@@ -46,14 +48,14 @@ Run it in the root of an Angular CLI or Nx workspace. It needs Node 22 or newer 
 
 ```bash
 # 1. The summary in your terminal
-npx ng-checkup
+npx ng-checkup-cli
 
 # 2. The full report as a page to share
-npx ng-checkup --report checkup.html
+npx ng-checkup-cli --report checkup.html
 
 # 3. Record today's numbers, then fail CI only when one gets worse
-npx ng-checkup baseline
-npx ng-checkup --fail-on regression
+npx ng-checkup-cli baseline
+npx ng-checkup-cli --fail-on regression
 ```
 
 No `npm install` needed. Without `node_modules`, the exact versions come from the lockfile (npm, yarn or pnpm), and the Angular type definitions the deprecated-API check reads are downloaded once for those versions and cached. So it works on a fresh clone and in a CI job before `npm ci`.
@@ -61,8 +63,8 @@ No `npm install` needed. Without `node_modules`, the exact versions come from th
 Or check a repository without cloning it yourself:
 
 ```bash
-npx ng-checkup github:owner/repo --report checkup.html
-npx ng-checkup https://gitlab.com/group/app#release-2.4
+npx ng-checkup-cli github:owner/repo --report checkup.html
+npx ng-checkup-cli https://gitlab.com/group/app#release-2.4
 ```
 
 It clones only the one commit into a temporary folder, runs, and deletes it. Nothing from the repository is installed or run.
@@ -72,16 +74,16 @@ It clones only the one commit into a temporary folder, runs, and deletes it. Not
 To keep the checkup in the project, with a script, a config file and a CI step:
 
 ```bash
-ng add ng-checkup        # Angular CLI: installs it and asks which CI to use
+ng add ng-checkup-cli        # Angular CLI: installs it and asks which CI to use
 # or
-npx ng-checkup init      # any workspace, including Nx
+npx ng-checkup-cli init      # any workspace, including Nx
 ```
 
 Both make the same changes and list what they changed:
 
 | File | Change |
 | --- | --- |
-| `package.json` | a `"checkup": "ng-checkup"` script, and `ng-checkup` in `devDependencies` (`init` only; `ng add` installs it itself) |
+| `package.json` | a `"checkup": "ng-checkup"` script, and `ng-checkup-cli` in `devDependencies` (`init` only; `ng add` installs it itself) |
 | `ng-checkup.config.json` | writes `checkup.html` on every run, and an empty `ignore` list |
 | `.gitignore` | the generated reports, if the repository has a `.gitignore` |
 | `ng-checkup.baseline.json` | today's numbers, so CI fails only when one gets worse ([baseline](#baseline-adopt-it-on-legacy-code)) |
@@ -91,8 +93,8 @@ Both make the same changes and list what they changed:
 After that it is `npm run checkup` (or `pnpm checkup`, `yarn checkup`; the lockfile decides). Running either command again changes nothing. It never overwrites a file you wrote: an existing workflow or config is kept, and a different `checkup` script is kept unless you pass `--force`.
 
 ```bash
-npx ng-checkup init --dry-run      # show the changes, write nothing
-npx ng-checkup init --ci gitlab    # pick the CI instead of detecting it (github, gitlab, none)
+npx ng-checkup-cli init --dry-run      # show the changes, write nothing
+npx ng-checkup-cli init --ci gitlab    # pick the CI instead of detecting it (github, gitlab, none)
 ```
 
 ## Configuration
@@ -129,8 +131,8 @@ An unknown key or a wrong type stops the run with an error, so a typo cannot sil
 A ten-year-old Angular app will not pass `--fail-on poor` on day one, and a CI check that is red from the start gets switched off. The baseline fixes that: it records today's numbers, and CI fails only when one of them gets worse.
 
 ```bash
-npx ng-checkup baseline                    # writes ng-checkup.baseline.json; commit it
-npx ng-checkup --fail-on regression        # in CI: fails only on a number that went up
+npx ng-checkup-cli baseline                    # writes ng-checkup.baseline.json; commit it
+npx ng-checkup-cli --fail-on regression        # in CI: fails only on a number that went up
 ```
 
 ```text
@@ -140,17 +142,17 @@ Baseline  2 worse
 ```
 
 - **It records counts, not grades:** explicit `any`, `x!`, files in import cycles, components without OnPush or a spec, NgModule-declared components, deprecated API uses, sanitizer bypasses, eager routes, manual subscriptions and [35 more](https://github.com/stefankuburovic/ng-checkup/blob/main/docs/checks.md#measures). Lower is better for every one.
-- **It only goes down.** When numbers drop, the run says so; `npx ng-checkup baseline` locks the new numbers in. If a number went up, `baseline` refuses and lists it, so a regression cannot be waved through by re-running the command. `--force` accepts it, which is the moment someone has to explain why in review.
+- **It only goes down.** When numbers drop, the run says so; `npx ng-checkup-cli baseline` locks the new numbers in. If a number went up, `baseline` refuses and lists it, so a regression cannot be waved through by re-running the command. `--force` accepts it, which is the moment someone has to explain why in review.
 - **It is a plain, sorted JSON file**, so lowering a number is a one-line diff in a merge request.
 - **In a monorepo it holds each project too**, so `--project` runs gate on their own numbers ([monorepos](#monorepos)).
 - **The gap to the latest Angular is not in it.** That grows when Angular ships, not when the code gets worse.
 
-`ng add ng-checkup` and `npx ng-checkup init` create the first baseline and set CI to `--fail-on regression` for you.
+`ng add ng-checkup-cli` and `npx ng-checkup-cli init` create the first baseline and set CI to `--fail-on regression` for you.
 
 ## Watch mode
 
 ```bash
-npx ng-checkup --watch
+npx ng-checkup-cli --watch
 ```
 
 Re-runs on every save and prints, under the usual summary, how the score and every measure moved since the watch started:
@@ -161,12 +163,12 @@ Score 72 -> 76 (+4 since the watch started)
   down Components without OnPush: 12 -> 11
 ```
 
-Only the changed files are parsed again, and the registry is asked again only when `package.json` or a lockfile changes, so a run after a save takes a fraction of the first one. Keep it open next to the editor while working through a refactor; run `npx ng-checkup baseline` in another terminal to lock a drop in, and the next run compares against it.
+Only the changed files are parsed again, and the registry is asked again only when `package.json` or a lockfile changes, so a run after a save takes a fraction of the first one. Keep it open next to the editor while working through a refactor; run `npx ng-checkup-cli baseline` in another terminal to lock a drop in, and the next run compares against it.
 
 ## History
 
 ```bash
-npx ng-checkup history --report history.html
+npx ng-checkup-cli history --report history.html
 ```
 
 ```text
@@ -195,7 +197,7 @@ It is the slide for "what did the refactoring buy us", and the first thing to lo
 ## Upgrade plan
 
 ```bash
-npx ng-checkup --plan --report plan.md
+npx ng-checkup-cli --plan --report plan.md
 ```
 
 `--plan` adds the way from your Angular version to the latest, one major at a time as `ng update` requires:
@@ -224,7 +226,7 @@ The plan is in every format, including the HTML report ([example](https://stefan
 ## AngularJS and hybrid apps
 
 ```bash
-npx ng-checkup github:orientechnologies/orientdb-studio --plan
+npx ng-checkup-cli github:orientechnologies/orientdb-studio --plan
 ```
 
 When a repository still has AngularJS (1.x), a thirteenth area comes first in the report, **AngularJS migration**. It reads the JavaScript as well as the TypeScript, in every registration style real apps use (`angular.module('app').component(…)` chains, modules held in variables, ES-module AngularJS), and counts what there is to move: components, directives and controllers, services, filters, and templates with AngularJS syntax. It names what makes a piece hard to move: controllers and `ng-controller`, `$scope`, scope events used as a message bus, runtime `$compile`, `$watch`, `ng-include`, and directives using `compile`, `replace` or `terminal`, which `UpgradeComponent` cannot wrap. AngularJS packages get their Angular replacement (`angular-route`, `angular-translate`, AngularJS Material, ...), and the version comes from `package.json`, the lockfile, `bower.json`, a CDN script tag or a checked-in `angular.js`.
@@ -246,7 +248,7 @@ Every count is a [measure](https://github.com/stefankuburovic/ng-checkup/blob/ma
 ## Primo VE to NDE
 
 ```bash
-npx ng-checkup github:Swiss-Library-Service-Platform/swisscovery --plan
+npx ng-checkup-cli github:Swiss-Library-Service-Platform/swisscovery --plan
 ```
 
 Libraries on Ex Libris Primo VE customize it with an AngularJS package, and those customizations do not carry over to the New Discovery Experience, announced as the only Primo UI from January 2028: NDE is extended through an Angular custom module ([ExLibrisGroup/customModule](https://github.com/ExLibrisGroup/customModule)). When ng-checkup finds a Primo VE package (the `viewCustom` module, components named after Primo's hooks), the AngularJS area becomes **Primo NDE migration**, view by view:
@@ -260,7 +262,7 @@ A `js/custom.js` built from the view's other files and copies outside the view f
 ## A live site
 
 ```bash
-npx ng-checkup url https://app.example.com
+npx ng-checkup-cli url https://app.example.com
 ```
 
 ```text
@@ -291,28 +293,28 @@ Projects  5, worst first, graded on their own code
 
 Each project is graded on the files it owns (a nested library keeps its own) with its own tsconfig. The Angular version and the third-party packages are shared, so they are graded once, for the workspace. Projects that import nothing from Angular (React apps, Node services, Cypress e2e folders) get no row.
 
-**An Angular app in a subfolder.** A repository whose root is no Angular workspace (a Python or Java server with its web UI in `server/static`, say) is analysed from its root all the same: when exactly one subfolder has an `angular.json`, ng-checkup reads the workspace there (its `package.json`, lockfile, tsconfig and build targets) and the header says `Angular CLI in server/static`. With several such subfolders it names them, and you run it on the one you mean: `npx ng-checkup server/static`.
+**An Angular app in a subfolder.** A repository whose root is no Angular workspace (a Python or Java server with its web UI in `server/static`, say) is analysed from its root all the same: when exactly one subfolder has an `angular.json`, ng-checkup reads the workspace there (its `package.json`, lockfile, tsconfig and build targets) and the header says `Angular CLI in server/static`. With several such subfolders it names them, and you run it on the one you mean: `npx ng-checkup-cli server/static`.
 
 `--project <name>` narrows the whole report to one project, which is how a team owning one app runs it in CI:
 
 ```bash
-npx ng-checkup --project admin --report admin.html
+npx ng-checkup-cli --project admin --report admin.html
 ```
 
-**Each project has its own baseline.** In a workspace with several projects, `npx ng-checkup baseline` records each project's numbers next to the workspace's, so the team owning one app gates on its own code:
+**Each project has its own baseline.** In a workspace with several projects, `npx ng-checkup-cli baseline` records each project's numbers next to the workspace's, so the team owning one app gates on its own code:
 
 ```bash
-npx ng-checkup --project admin --fail-on regression
+npx ng-checkup-cli --project admin --fail-on regression
 ```
 
-That run fails when admin's numbers get worse, not when another team's library does. The Angular version and the third-party packages are shared, so they stay with the whole-workspace run. Every project follows the same rule as the workspace: its numbers only go down, and `baseline` refuses one that went up even when the workspace total stayed put because code moved from one project to another. A baseline written before 1.5.0 has no project numbers; run `npx ng-checkup baseline` once to add them.
+That run fails when admin's numbers get worse, not when another team's library does. The Angular version and the third-party packages are shared, so they stay with the whole-workspace run. Every project follows the same rule as the workspace: its numbers only go down, and `baseline` refuses one that went up even when the workspace total stayed put because code moved from one project to another. A baseline written before 1.5.0 has no project numbers; run `npx ng-checkup-cli baseline` once to add them.
 
 ## Client report
 
 For consultants and tech leads who hand the result to someone else: `--client` turns the HTML report into a deliverable for a paid Health Check or an upgrade proposal.
 
 ```bash
-npx ng-checkup --client "Acme GmbH" --prepared-by "Jane Doe, jane.dev" --notes acme.md --history --report acme-health-check.html
+npx ng-checkup-cli --client "Acme GmbH" --prepared-by "Jane Doe, jane.dev" --notes acme.md --history --report acme-health-check.html
 ```
 
 - **For management, in front:** a cover, a summary in sentences ("Angular 17.1.1, 5 majors behind 22. Of 10 graded areas, 3 are poor…"), the key figures, a table of what to act on with the number of places each touches, and the roadmap one major at a time.
@@ -353,15 +355,15 @@ Defaults that changed between versions are applied per version: a component with
 
 | Command | Output |
 | --- | --- |
-| `npx ng-checkup` | summary and top five priorities in the terminal |
-| `npx ng-checkup --verbose` | every finding with its files in the terminal |
-| `npx ng-checkup --report checkup.html` | self-contained page: light and dark mode, prints cleanly to PDF, loads nothing from the network |
-| `npx ng-checkup --report checkup.md` | Markdown for a pull request, an issue or a wiki |
-| `npx ng-checkup --report checkup.json` | everything, machine-readable |
-| `npx ng-checkup --report checkup.sarif` | SARIF 2.1.0 for [GitHub code scanning](#in-ci) and other SARIF viewers |
-| `npx ng-checkup --report checkup.codequality.json` | GitLab Code Quality, for the merge request widget |
-| `npx ng-checkup --report checkup.comment.md` | a short pull-request comment: what changed against the baseline, a grade per area, the top priorities |
-| `npx ng-checkup --json` | the JSON on stdout, for piping |
+| `npx ng-checkup-cli` | summary and top five priorities in the terminal |
+| `npx ng-checkup-cli --verbose` | every finding with its files in the terminal |
+| `npx ng-checkup-cli --report checkup.html` | self-contained page: light and dark mode, prints cleanly to PDF, loads nothing from the network |
+| `npx ng-checkup-cli --report checkup.md` | Markdown for a pull request, an issue or a wiki |
+| `npx ng-checkup-cli --report checkup.json` | everything, machine-readable |
+| `npx ng-checkup-cli --report checkup.sarif` | SARIF 2.1.0 for [GitHub code scanning](#in-ci) and other SARIF viewers |
+| `npx ng-checkup-cli --report checkup.codequality.json` | GitLab Code Quality, for the merge request widget |
+| `npx ng-checkup-cli --report checkup.comment.md` | a short pull-request comment: what changed against the baseline, a grade per area, the top priorities |
+| `npx ng-checkup-cli --json` | the JSON on stdout, for piping |
 
 `--report` is repeatable, so one run can write all three files.
 
@@ -462,9 +464,9 @@ Exit codes: `0` done, `1` `--fail-on` tripped, `2` usage error (including `--fai
 
 ## In CI
 
-![How ng-checkup runs on GitHub and GitLab: a pull or merge request starts a workflow or pipeline on a runner, the runner runs npx ng-checkup, and the results come back into the pull or merge request](https://raw.githubusercontent.com/stefankuburovic/ng-checkup/main/docs/ci-flow.png)
+![How ng-checkup runs on GitHub and GitLab: a pull or merge request starts a workflow or pipeline on a runner, the runner runs npx ng-checkup-cli, and the results come back into the pull or merge request](https://raw.githubusercontent.com/stefankuburovic/ng-checkup/main/docs/ci-flow.png)
 
-The same tool runs in both: a pull request (GitHub) or merge request (GitLab) starts a job on a runner, the job runs `npx ng-checkup` from npm without installing your project, and the results come back where the review happens. With `fail-on` the job turns red, which blocks the merge when the branch requires the check.
+The same tool runs in both: a pull request (GitHub) or merge request (GitLab) starts a job on a runner, the job runs `npx ng-checkup-cli` from npm without installing your project, and the results come back where the review happens. With `fail-on` the job turns red, which blocks the merge when the branch requires the check.
 
 **GitHub Action** ([on the Marketplace](https://github.com/marketplace/actions/ng-checkup)). One comment on every pull request, edited in place on each push, with what got worse or better than the baseline, a grade per area and the top priorities. Plus the job summary, the full reports as an artifact, and optionally annotations on the changed lines:
 
@@ -485,7 +487,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: stefankuburovic/ng-checkup@v1
         with:
-          fail-on: regression   # needs a committed baseline: npx ng-checkup baseline
+          fail-on: regression   # needs a committed baseline: npx ng-checkup-cli baseline
           sarif: true
 ```
 
@@ -493,7 +495,7 @@ No `npm ci` needed: versions come from the lockfile. Inputs: `path` (a folder in
 
 **The trend.** Every run on the default branch adds a point (the score, every measure, and the initial bundle when a build with `--stats-json` ran before the step) to a small file in the CI cache, and pull and merge requests show where the default branch has been heading: `Score 72, +4 since 2026-09-23 ▃▄▄▆▇ · initial bundle 812 kB, +23 kB`. Unlike `ng-checkup history`, which rebuilds the past from git without building anything, this follows the bundle too, from the first recorded run on. On by default in the Action (`trend: false` turns it off) and in both GitLab integrations (`trend` input, `NG_CHECKUP_TREND`). By hand: `--trend <file.json>`, plus `--trend-record` on the default branch. Outputs: `score`, `exit-code`. On a pull request from a fork the token cannot write, so the comment is skipped with a warning and the job summary still has it.
 
-`ng add ng-checkup` and `npx ng-checkup init` write a plain workflow for you instead. By hand:
+`ng add ng-checkup-cli` and `npx ng-checkup-cli init` write a plain workflow for you instead. By hand:
 
 **GitHub Actions, without the Action**
 
@@ -502,7 +504,7 @@ No `npm ci` needed: versions come from the lockfile. Inputs: `path` (a folder in
   with:
     node-version: 22
 - run: npm ci
-- run: npx ng-checkup --fail-on regression --report checkup.md --report checkup.html
+- run: npx ng-checkup-cli --fail-on regression --report checkup.md --report checkup.html
 - uses: actions/upload-artifact@v4
   if: always()
   with:
@@ -530,7 +532,7 @@ ng-checkup:
     NG_CHECKUP_FAIL_ON: regression   # optional; also NG_CHECKUP_PATH, NG_CHECKUP_ARGS
 ```
 
-The job runs on merge requests and on the default branch, which is what the widget compares with. For the comment, add a token with the `api` scope as the CI/CD variable `NG_CHECKUP_TOKEN`, **masked but not protected** (merge request branches are not protected, so a protected variable never reaches them). A project access token comments as a bot; on gitlab.com Free, where those need Premium, a personal access token works and comments as you. GitLab's own job token cannot write comments, so without the variable the comment is skipped and the rest runs. A live example: [ng-checkup-demo](https://gitlab.com/stefankuburovic/ng-checkup-demo). `npx ng-checkup init` writes this for a repository with a `.gitlab-ci.yml`. If your GitLab cannot reach GitHub, copy [`gitlab/ng-checkup.yml`](https://github.com/stefankuburovic/ng-checkup/blob/main/gitlab/ng-checkup.yml) into the repository and include it with `local:`.
+The job runs on merge requests and on the default branch, which is what the widget compares with. For the comment, add a token with the `api` scope as the CI/CD variable `NG_CHECKUP_TOKEN`, **masked but not protected** (merge request branches are not protected, so a protected variable never reaches them). A project access token comments as a bot; on gitlab.com Free, where those need Premium, a personal access token works and comments as you. GitLab's own job token cannot write comments, so without the variable the comment is skipped and the rest runs. A live example: [ng-checkup-demo](https://gitlab.com/stefankuburovic/ng-checkup-demo). `npx ng-checkup-cli init` writes this for a repository with a `.gitlab-ci.yml`. If your GitLab cannot reach GitHub, copy [`gitlab/ng-checkup.yml`](https://github.com/stefankuburovic/ng-checkup/blob/main/gitlab/ng-checkup.yml) into the repository and include it with `local:`.
 
 **GitHub code scanning**
 
@@ -542,7 +544,7 @@ permissions:
 steps:
   - uses: actions/checkout@v4
   - run: npm ci
-  - run: npx ng-checkup --offline --max-examples 1000 --report ng-checkup.sarif
+  - run: npx ng-checkup-cli --offline --max-examples 1000 --report ng-checkup.sarif
   - uses: github/codeql-action/upload-sarif@v3
     if: always()
     with:
@@ -558,7 +560,7 @@ On an existing codebase, start with a [baseline](#baseline-adopt-it-on-legacy-co
 
 ```ts
 import { writeFile } from 'node:fs/promises';
-import { runCheckup, renderMarkdown, overallScore } from 'ng-checkup';
+import { runCheckup, renderMarkdown, overallScore } from 'ng-checkup-cli';
 
 const report = await runCheckup('path/to/app', { offline: true });
 

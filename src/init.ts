@@ -63,12 +63,15 @@ export type PackageManager = 'npm' | 'pnpm' | 'yarn';
 /** The script `init` adds. Reports come from the config file, so the script stays this short. */
 const CHECKUP_SCRIPT = 'ng-checkup';
 
+/** The npm package `init` adds; the binary it installs is still called `ng-checkup`, which is what `CHECKUP_SCRIPT` runs. */
+const PACKAGE_NAME = 'ng-checkup-cli';
+
 /** Report files the generated config writes locally and the CI step writes as artifacts. */
 const LOCAL_REPORT = 'checkup.html';
 const CI_REPORTS = ['checkup.md', 'checkup.html'];
 
 /**
- * Plans what `ng-checkup init` and `ng add ng-checkup` set up in a repository:
+ * Plans what `ng-checkup init` and `ng add ng-checkup-cli` set up in a repository:
  *
  * 1. a `checkup` script in `package.json` (and `ng-checkup` in `devDependencies`),
  * 2. `ng-checkup.config.json` with the local report and an empty `ignore` list,
@@ -125,10 +128,12 @@ export function planInit(files: InitFileSystem, options: InitOptions): InitPlan 
     notes.push(`Kept your existing "checkup" script (${String(existingScript)}). Run with --force to replace it with "${CHECKUP_SCRIPT}".`);
   }
   const addDependency = options.addDependency ?? true;
-  if (addDependency && !('ng-checkup' in dependencies) && !('ng-checkup' in devDependencies)) {
-    packageJson['devDependencies'] = { ...devDependencies, 'ng-checkup': `^${options.version}` };
+  // 1.6.1 renamed the npm package from ng-checkup to ng-checkup-cli; a project that already has the old one keeps it.
+  const installed = ['ng-checkup', PACKAGE_NAME].some((name) => name in dependencies || name in devDependencies);
+  if (addDependency && !installed) {
+    packageJson['devDependencies'] = { ...devDependencies, [PACKAGE_NAME]: `^${options.version}` };
     packageChanged = true;
-    summaryParts.push(`ng-checkup ^${options.version} in devDependencies`);
+    summaryParts.push(`${PACKAGE_NAME} ^${options.version} in devDependencies`);
   }
   if (packageChanged) {
     changes.push({ path: 'package.json', action: 'update', content: formatJsonLike(packageText, packageJson), summary: `Adds ${summaryParts.join(' and ')}` });
@@ -220,7 +225,7 @@ function runScriptCommand(manager: PackageManager): string {
 function binCommand(manager: PackageManager): string {
   if (manager === 'pnpm') return 'pnpm exec ng-checkup';
   if (manager === 'yarn') return 'yarn ng-checkup';
-  return 'npx ng-checkup';
+  return 'npx ng-checkup-cli';
 }
 
 /** What the CI step fails on: a worse number against the baseline, or a poor area without one. */

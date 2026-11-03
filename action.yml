@@ -93,7 +93,8 @@ runs:
           cli=(node "$GITHUB_ACTION_PATH/dist/cli.js")
         else
           version="${INPUT_VERSION:-$(node -p "require(process.env.GITHUB_ACTION_PATH + '/package.json').version")}"
-          cli=(npx -y "ng-checkup@$version")
+          case "$version" in 0.*|1.[0-5].*|1.6.0) package=ng-checkup ;; *) package=ng-checkup-cli ;; esac
+          cli=(npx -y "$package@$version")
         fi
         # npx runs from an empty folder: in a project whose own package.json is
         # named ng-checkup, it would otherwise pick that project over the release.

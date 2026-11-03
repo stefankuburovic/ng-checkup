@@ -37,7 +37,7 @@
   <text x="250" y="192" class="s">GitHub Marketplace</text>
 
   <rect x="480" y="60" width="200" height="150" rx="8" class="tool"/>
-  <text x="494" y="86" class="h">npx ng-checkup</text>
+  <text x="494" y="86" class="h">npx ng-checkup-cli</text>
   <text x="494" y="108" class="t">from npm, no npm ci;</text>
   <text x="494" y="125" class="t">reads the code, runs</text>
   <text x="494" y="142" class="t">nothing of it</text>
@@ -78,7 +78,7 @@
   <text x="250" y="424" class="s">self-managed: include: remote</text>
 
   <rect x="480" y="296" width="200" height="150" rx="8" class="tool"/>
-  <text x="494" y="322" class="h">npx ng-checkup</text>
+  <text x="494" y="322" class="h">npx ng-checkup-cli</text>
   <text x="494" y="344" class="t">the same tool, the same</text>
   <text x="494" y="361" class="t">options, plus a Code</text>
   <text x="494" y="378" class="t">Quality report</text>

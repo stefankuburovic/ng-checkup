@@ -120,18 +120,18 @@ History (ng-checkup history [path]):
       --json             Print it as JSON
 
 Examples:
-  npx ng-checkup
-  npx ng-checkup ../my-app --report checkup.html
-  npx ng-checkup --plan --report plan.md
-  npx ng-checkup --watch
-  npx ng-checkup --project admin --report admin.html
-  npx ng-checkup github:angular/angular-cli --report checkup.html
-  npx ng-checkup --client "Acme GmbH" --notes acme.md --report acme.html
-  npx ng-checkup --fail-on poor --report checkup.md
-  npx ng-checkup init
-  npx ng-checkup baseline && npx ng-checkup --fail-on regression
-  npx ng-checkup url https://app.example.com
-  npx ng-checkup history --report history.html`;
+  npx ng-checkup-cli
+  npx ng-checkup-cli ../my-app --report checkup.html
+  npx ng-checkup-cli --plan --report plan.md
+  npx ng-checkup-cli --watch
+  npx ng-checkup-cli --project admin --report admin.html
+  npx ng-checkup-cli github:angular/angular-cli --report checkup.html
+  npx ng-checkup-cli --client "Acme GmbH" --notes acme.md --report acme.html
+  npx ng-checkup-cli --fail-on poor --report checkup.md
+  npx ng-checkup-cli init
+  npx ng-checkup-cli baseline && npx ng-checkup-cli --fail-on regression
+  npx ng-checkup-cli url https://app.example.com
+  npx ng-checkup-cli history --report history.html`;
 
 /** Grades in order of how bad they are, for `--fail-on`. */
 const SEVERITY_ORDER: Grade[] = ['good', 'fair', 'poor'];

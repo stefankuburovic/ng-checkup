@@ -46,7 +46,7 @@ export function renderComment(report: Report): string {
     for (const delta of comparison.regressions) lines.push(`| **Worse** | ${cell(delta.label)} | ${formatCount(delta.before)} | **${formatCount(delta.after)}** |`);
     for (const delta of comparison.improvements) lines.push(`| Better | ${cell(delta.label)} | ${formatCount(delta.before)} | ${formatCount(delta.after)} |`);
     lines.push('');
-    if (worse === 0) lines.push('Lock the improvements in with `npx ng-checkup baseline` and commit the file.', '');
+    if (worse === 0) lines.push('Lock the improvements in with `npx ng-checkup-cli baseline` and commit the file.', '');
   }
 
   lines.push('| Area | Grade | |', '| --- | --- | --- |');

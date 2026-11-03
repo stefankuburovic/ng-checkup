@@ -45,6 +45,6 @@ describe('an Angular workspace in a subfolder', () => {
     root = writeTemp({ 'README.md': '# two apps', ...angularApp('admin', 20), ...angularApp('shop', 21) });
     const report = await runCheckup(root, { offline: true });
     expect(report.project.workspaceFolder).toBeUndefined();
-    expect(report.checks.find((check) => check.id === 'version')?.summary).toBe('No Angular workspace at the root; 2 subfolders have one: `admin`, `shop`. Run ng-checkup on one of them (`npx ng-checkup admin`).');
+    expect(report.checks.find((check) => check.id === 'version')?.summary).toBe('No Angular workspace at the root; 2 subfolders have one: `admin`, `shop`. Run ng-checkup on one of them (`npx ng-checkup-cli admin`).');
   });
 });

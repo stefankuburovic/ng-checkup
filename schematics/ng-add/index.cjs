@@ -1,6 +1,6 @@
 'use strict';
 /**
- * `ng add ng-checkup`.
+ * `ng add ng-checkup-cli`.
  *
  * The Angular CLI has already installed the package and saved it to
  * devDependencies (see "ng-add" in package.json) by the time this runs, so the

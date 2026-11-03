@@ -377,11 +377,15 @@ export function readAngularCompilerOptions(tsconfigPath: string, depth = 0): Rec
   return { ...inherited, ...asRecord(config['angularCompilerOptions']) };
 }
 
-/** Reads name and version from this package's package.json, one level above both `src/` and `dist/`. */
+/**
+ * Reads the version from this package's package.json, one level above both `src/` and `dist/`.
+ * The name is the tool's, not the npm package's: since 1.6.1 the package is `ng-checkup-cli`,
+ * but baselines, trends and SARIF drivers keep saying `ng-checkup`.
+ */
 function readToolInfo(): { name: string; version: string } {
   try {
-    const packageJson = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')) as { name?: string; version?: string };
-    return { name: packageJson.name ?? 'ng-checkup', version: packageJson.version ?? '0.0.0' };
+    const packageJson = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')) as { version?: string };
+    return { name: 'ng-checkup', version: packageJson.version ?? '0.0.0' };
   } catch {
     return { name: 'ng-checkup', version: '0.0.0' };
   }

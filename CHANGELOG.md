@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.6.1 (2026-11-03)
+
+- **The npm package is now `ng-checkup-cli`.** The name `ng-checkup` is no longer available to me on npm, so from 1.6.1 on it is published as `ng-checkup-cli`: run `npx ng-checkup-cli`, install `npm i -D ng-checkup-cli`, add it with `ng add ng-checkup-cli`, import from `ng-checkup-cli`. The installed binary is still `ng-checkup`, so an existing `"checkup": "ng-checkup"` script keeps working once the dependency is swapped. Versions up to 1.5.0 stay on npm as `ng-checkup`.
+- The GitHub Action and the GitLab component run `ng-checkup-cli` for 1.6.1 and later, and `ng-checkup` for an older `version:` / `NG_CHECKUP_VERSION`.
+- `init` and `ng add` add `ng-checkup-cli` to `devDependencies`, unless the project already has either name. Code is unchanged from 1.6.0, which was tagged but never reached npm.
+
 ## 1.6.0 (2026-11-03)
 
 - The bundled Angular versions are refreshed (20.3.35, 21.2.26, 22.2.4).
