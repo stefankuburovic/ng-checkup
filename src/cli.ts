@@ -25,6 +25,8 @@ import { readTrend, recordTrend, summarizeTrend, trendPoint } from './trend.js';
 import { renderHistoryHtml, renderHistoryMarkdown, renderHistoryTerminal } from './report/history.js';
 import { assessSite, probeSite } from './site.js';
 import { serveMcp } from './mcp.js';
+import { readFleetList, runFleet } from './fleet.js';
+import { renderFleetForFile, renderFleetTerminal } from './report/fleet.js';
 
 const HELP = `Usage: ng-checkup [path | repository] [options]
        ng-checkup init [path] [init options]
@@ -123,6 +125,14 @@ History (ng-checkup history [path]):
   -r, --report <file>    Write it as .html (with charts), .md or .json
       --json             Print it as JSON
 
+Fleet (ng-checkup fleet <list>):
+                         One page across many repositories, worst first: the
+                         list file names one local path (relative to it) or
+                         github:owner/repo per line, # for comments
+  -r, --report <file>    Write it as .html, .md or .json
+      --online           Ask the npm registry and osv.dev for each (slower)
+      --json             Print it as JSON
+
 MCP server (ng-checkup mcp):
                          Serves the checkup to an editor agent over the Model
                          Context Protocol (stdio): tools checkup, findings
@@ -142,7 +152,8 @@ Examples:
   npx ng-checkup-cli baseline && npx ng-checkup-cli --fail-on regression
   npx ng-checkup-cli url https://app.example.com
   npx ng-checkup-cli history --report history.html
-  npx ng-checkup-cli --since origin/main --report checkup.comment.md`;
+  npx ng-checkup-cli --since origin/main --report checkup.comment.md
+  npx ng-checkup-cli fleet repos.txt --report fleet.html`;
 
 /** Grades in order of how bad they are, for `--fail-on`. */
 const SEVERITY_ORDER: Grade[] = ['good', 'fair', 'poor'];
@@ -450,6 +461,7 @@ async function main(argv: string[]): Promise<number> {
   if (argv[0] === 'baseline') return mainBaseline(argv.slice(1));
   if (argv[0] === 'url') return mainUrl(argv.slice(1));
   if (argv[0] === 'history') return mainHistory(argv.slice(1));
+  if (argv[0] === 'fleet') return mainFleet(argv.slice(1));
   if (argv[0] === 'mcp') {
     // A Model Context Protocol server on stdin/stdout until the client closes it (see `serveMcp`).
     await serveMcp(process.stdin, process.stdout);
@@ -832,6 +844,47 @@ async function mainHistory(argv: string[]): Promise<number> {
       writeFileSync(target, renderHistoryForFile(report, target));
     }
     return 0;
+  } catch (error) {
+    return usageError(error);
+  }
+}
+
+/**
+ * `ng-checkup fleet <list>`: checks every repository the list names and
+ * prints the ranking; `--report` writes it as a page (see `runFleet`).
+ * Progress goes to stderr, so `--json` on stdout stays parseable.
+ */
+async function mainFleet(argv: string[]): Promise<number> {
+  let values: { report?: string[]; online?: boolean; json?: boolean; 'no-color'?: boolean; help?: boolean };
+  let positionals: string[];
+  try {
+    ({ values, positionals } = parseArgs({ args: argv, allowPositionals: true, options: { report: { type: 'string', short: 'r', multiple: true }, online: { type: 'boolean' }, json: { type: 'boolean' }, 'no-color': { type: 'boolean' }, help: { type: 'boolean', short: 'h' } } }));
+    if (values.help) {
+      process.stdout.write(`${HELP}\n`);
+      return 0;
+    }
+    if (positionals.length !== 1) throw new Error('fleet takes one list file: one local path or github:owner/repo per line');
+    for (const path of values.report ?? []) if (!['.html', '.md', '.json'].includes(extname(path).toLowerCase())) throw new Error(`Unknown fleet format for ${path}: use .html, .md or .json`);
+  } catch (error) {
+    return usageError(error);
+  }
+  try {
+    const entries = readFleetList(positionals[0]!);
+    const progress = Boolean(process.stderr.isTTY);
+    const report = await runFleet(entries, {
+      online: values.online ?? false,
+      onProgress: (done, total, entry) => {
+        if (progress) process.stderr.write(`\r\u001b[2KChecking ${done + 1}/${total}: ${entry}`);
+      },
+    });
+    if (progress) process.stderr.write('\r\u001b[2K');
+    const color = !values['no-color'] && process.env['NO_COLOR'] === undefined && Boolean(process.stdout.isTTY);
+    process.stdout.write(values.json ? `${JSON.stringify(report, null, 2)}\n` : `${renderFleetTerminal(report, { color })}\n`);
+    for (const target of (values.report ?? []).map((path) => resolve(path))) {
+      mkdirSync(dirname(target), { recursive: true });
+      writeFileSync(target, renderFleetForFile(report, target));
+    }
+    return report.rows.some((row) => !row.error) ? 0 : 2;
   } catch (error) {
     return usageError(error);
   }

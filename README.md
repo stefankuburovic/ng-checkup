@@ -32,6 +32,7 @@ npx ng-checkup-cli
 - [Primo VE to NDE](#primo-ve-to-nde)
 - [A live site](#a-live-site)
 - [Monorepos](#monorepos)
+- [Many repositories](#many-repositories)
 - [Client report](#client-report)
 - [What it checks](#what-it-checks)
 - [Reports](#reports)
@@ -320,6 +321,14 @@ npx ng-checkup-cli --project admin --fail-on regression
 ```
 
 That run fails when admin's numbers get worse, not when another team's library does. The Angular version and the third-party packages are shared, so they stay with the whole-workspace run. Every project follows the same rule as the workspace: its numbers only go down, and `baseline` refuses one that went up even when the workspace total stayed put because code moved from one project to another. A baseline written before 1.5.0 has no project numbers; run `npx ng-checkup-cli baseline` once to add them.
+
+## Many repositories
+
+```bash
+npx ng-checkup-cli fleet repos.txt --report fleet.html
+```
+
+One page across all of them, worst first: the Angular version, the score, the number of high findings and a grade per area for each repository. `repos.txt` names one per line, a local path (relative to the file) or a remote repository as the main command takes it (`github:acme/portal#release`), with `#` for comments. Remote entries are cloned shallow into a temporary folder and deleted; an entry that cannot be checked is a row saying why. The runs are offline unless you pass `--online`, since across many repositories the registry lookups are most of the time and the comparison is between them. `.md` and `.json` work too.
 
 ## Client report
 
