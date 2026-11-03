@@ -140,6 +140,8 @@ From Angular 22, OnPush is the default, so a component without `changeDetection`
 
 **What it reads:** standalone vs. NgModule-declared components (standalone is the default from Angular 19), `input()` / `model()` / `output()` vs. `@Input()` / `@Output()`, built-in control flow (`@if`, `@for`, `@switch`) vs. structural directives, `@defer` blocks, and manual `.subscribe()` calls in components and directives: state moved by hand, where `toSignal()` or the `async` pipe would let Angular own the subscription. A subscription counts as tied to the component's lifetime when `takeUntilDestroyed`, `takeUntil`, `take` or `first` is in its chain. The count is a low finding and a baseline measure, not part of the grade: it is the number a move to signals should watch fall, in `ng-checkup history` too.
 
+**Colour literals outside the design tokens** are a low finding and the measure `hardcoded-colors`: `#fff`, `rgb()`/`rgba()`/`hsl()`/`hsla()` and the common named colours in a colour declaration (`color`, `background`, `border`, `fill`, `box-shadow`, ...) of any `.css`, `.scss`, `.sass` or `.less` file, and in inline `style="..."` attributes and `[style.x]="'...'"` bindings. A theme changes the tokens; a colour written into a rule does not change with it and shows up wrong in dark mode or another brand. The value of a custom property (`--brand: #0b5`) or of a SCSS/Less variable is a token definition and not counted, files named for the tokens (`_tokens.scss`, `variables.less`, `theme.css`, `palette.scss`, `colors.scss`) are skipped, and so are comments, `transition` values and anything inside `url(...)`. On the corpus: 0 to 89 per repository.
+
 **Subscriptions nothing ends** are a finding and a measure of their own (`unended-subscriptions`): no `takeUntilDestroyed`, `takeUntil`, `take`, `first` or `takeWhile` in the chain, no cleanup anywhere in the class (`ngOnDestroy`, `unsubscribe()`, `DestroyRef`, `Subscription.add`), and a source that outlives the component. Sources that complete or die with the component are left out: `HttpClient`, `ActivatedRoute`, a form's `valueChanges`, a dialog's close event, `translate.get()`, and a `Subject` or `EventEmitter` the class creates itself. A service call that completes after one value cannot be told from one that never completes, so the finding is low and the count is an upper bound. On the corpus it lists 0 to 25 per repository; a codebase that already guards every component file (one with a `check-subscriptions` script, say) reads 0.
 
 **Grading:** the average adoption of standalone, signal inputs and built-in control flow, counting only the areas the code uses: 80% or more is good, 40% or more is fair, below that is poor.
@@ -353,6 +355,7 @@ The largest packages in the initial bundle are listed with their size, from the 
 | `change-detection.zone-test-helpers` | Zone-based test helper calls |
 | `circular-deps.files-in-cycles` | Files in import cycles |
 | `components.decorator-inputs-outputs` | `@Input()` / `@Output()` decorators |
+| `components.hardcoded-colors` | Colour literals outside the design tokens |
 | `components.legacy-control-flow` | `*ngIf` / `*ngFor` / `[ngSwitch]` uses |
 | `components.manual-subscriptions` | Manual `.subscribe()` in components and directives |
 | `components.module-components` | Components declared in NgModules |

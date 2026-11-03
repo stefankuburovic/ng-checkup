@@ -101,6 +101,7 @@
         "decorator-inputs-outputs": 12,
         "legacy-control-flow": 13,
         "manual-subscriptions": 22,
+        "hardcoded-colors": 0,
         "unended-subscriptions": 9
       },
       "findings": [

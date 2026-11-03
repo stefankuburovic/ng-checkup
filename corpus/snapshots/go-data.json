@@ -93,6 +93,7 @@
         "decorator-inputs-outputs": 406,
         "legacy-control-flow": 680,
         "manual-subscriptions": 601,
+        "hardcoded-colors": 28,
         "unended-subscriptions": 25
       },
       "findings": [
@@ -135,6 +136,16 @@
             "src/app/features/contacts-of-contacts/pages/view-chronology-contact-of-contact/view-chronology-contact-of-contact.component.ts:58"
           ],
           "count": 17
+        },
+        {
+          "severity": "low",
+          "message": "28 colour literals outside the design tokens",
+          "files": [
+            "src/app/features/dashboard/components/bb-combination-stacked-bar-chart/bb-combination-stacked-bar-chart.component.scss:15",
+            "src/app/features/reference-data/pages/manage-icons-create/manage-icons-create.component.scss:35",
+            "src/app/features/dashboard/components/bb-stacked-bar-chart/bb-stacked-bar-chart.component.scss:11"
+          ],
+          "count": 7
         }
       ]
     },

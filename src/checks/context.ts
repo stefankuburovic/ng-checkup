@@ -10,6 +10,7 @@ import type { TypingsSource } from '../typings.js';
 import type { VulnerabilityScan } from '../vulnerabilities.js';
 import type { SourceFileFacts, TemplateFact } from '../scan.js';
 import type { TranslationFacts } from '../translations.js';
+import type { StylesheetFact } from '../stylesheets.js';
 import type { CheckResult, FileRef } from '../types.js';
 import type { UnusedBinding, UnusedDeclarable } from '../unused.js';
 import type { WorkspaceInfo } from '../workspace.js';
@@ -25,6 +26,8 @@ export interface AnalysisContext {
   sources: SourceFileFacts[];
   /** External template files and inline `template:` strings. */
   templates: TemplateFact[];
+  /** Every stylesheet outside vendor folders, with its colour literals (see `scanStylesheetFile`). */
+  stylesheets: StylesheetFact[];
   /** AngularJS code, templates and version. Empty lists for an app without AngularJS. */
   angularJs: AngularJsFacts;
   /** Empty when no typings could be read, neither installed nor from the registry. */

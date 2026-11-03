@@ -1,3 +1,4 @@
+import { isTestCode } from '../files.js';
 import type { ComponentFact } from '../scan.js';
 import type { CheckResult, FileRef, Finding, Grade, Metric } from '../types.js';
 import { applicationFiles, countCalls, formatCount, percent, plural, type AnalysisContext } from './context.js';
@@ -108,6 +109,24 @@ export function componentsCheck(context: AnalysisContext): CheckResult {
     });
   }
 
+  // Colour literals outside the tokens: what a theme cannot reach. Stylesheets and inline template styles, test code left out. Advice, not graded.
+  const colorFiles = [
+    ...context.stylesheets.filter((sheet) => !isTestCode(sheet.path)).map((sheet) => ({ path: sheet.path, lines: sheet.colorLines })),
+    ...context.templates.filter((template) => !isTestCode(template.path)).map((template) => ({ path: template.path, lines: template.colorLines })),
+  ]
+    .filter((entry) => entry.lines.length > 0)
+    .sort((left, right) => right.lines.length - left.lines.length);
+  const hardcodedColors = colorFiles.reduce((sum, entry) => sum + entry.lines.length, 0);
+  if (hardcodedColors > 0) {
+    findings.push({
+      severity: 'low',
+      message: `${plural(hardcodedColors, 'colour literal')} outside the design tokens`,
+      detail: 'A theme (dark mode, a brand per customer, high contrast) changes the tokens: CSS custom properties, SCSS or Less variables. A colour written straight into a rule (`color: #fff`, `rgba(0, 0, 0, .1)`, `white`) or an inline `style` does not change with them and shows up wrong in the other theme. A value given to a custom property or a variable is a token definition and not counted, and files named for the tokens (`_tokens.scss`, `variables.less`, `theme.css`, `palette.scss`, `colors.scss`) are skipped. Replace each with `var(--token)` or the variable.',
+      files: colorFiles.slice(0, context.maxExamples).map((entry) => ({ path: entry.path, line: entry.lines[0] })),
+      count: colorFiles.length,
+    });
+  }
+
   const shares = [standaloneShare, ...(inputs > 0 ? [signalInputShare] : []), ...(controlFlow > 0 ? [controlFlowShare] : [])];
   const average = shares.reduce((sum, share) => sum + share, 0) / shares.length;
   const grade: Grade = average >= 80 ? 'good' : average >= 40 ? 'fair' : 'poor';
@@ -134,6 +153,7 @@ export function componentsCheck(context: AnalysisContext): CheckResult {
       { id: 'decorator-inputs-outputs', label: '@Input() / @Output() decorators', value: decoratorInputs + decoratorOutputs },
       { id: 'legacy-control-flow', label: '*ngIf / *ngFor / [ngSwitch] uses', value: totals.legacy },
       { id: 'manual-subscriptions', label: 'Manual .subscribe() in components and directives', value: subscribes },
+      { id: 'hardcoded-colors', label: 'Colour literals outside the design tokens', value: hardcodedColors },
       { id: 'unended-subscriptions', label: '.subscribe() in components and directives that nothing ends', value: unended },
     ],
   };

@@ -34,6 +34,7 @@ import { buildPlan } from './plan.js';
 import { scanSourceFile, scanTemplateFile, type SourceFileFacts, type TemplateFact } from './scan.js';
 import { judgeTranslations, type TranslationFacts, type TranslationLibrary } from './translations.js';
 import { changedFilesSince, narrowToChanged } from './since.js';
+import { scanStylesheetFile } from './stylesheets.js';
 
 /** The example cap of a `--since` run before narrowing: high enough that no finding in a real repository is cut. */
 const UNCAPPED_EXAMPLES = 1_000_000;
@@ -263,6 +264,7 @@ function narrowContext(context: AnalysisContext, project: ProjectInfo, ownerOf: 
     workspace,
     sources: context.sources.filter((file) => ownerOf(file.path) === project),
     templates: context.templates.filter((template) => ownerOf(template.path) === project),
+    stylesheets: context.stylesheets.filter((sheet) => ownerOf(sheet.path) === project),
     angularJs: {
       ...context.angularJs,
       files: context.angularJs.files.filter((file) => ownerOf(file.path) === project),
@@ -289,10 +291,11 @@ export async function buildContext(root: string, options: CheckupOptions): Promi
   const { cache } = options;
   const sources = files.typescript.map((path) => cachedFacts(cache, path, () => scanSourceFile(root, path)));
   const templates = [...files.html.map((path) => cachedFacts(cache, path, () => scanTemplateFile(root, path))), ...sources.flatMap((file) => file.inlineTemplates)];
+  const stylesheets = files.stylesheets.map((path) => cachedFacts(cache, path, () => scanStylesheetFile(root, path)));
   const angularJsScans = [...files.javascript, ...files.typescript].map((path) => cachedFacts(cache, path, () => ({ angularJs: scanAngularJsFile(root, path) }), `angularjs:${path}`).angularJs);
   // Drop entries for files that no longer exist, so a deleted file stops counting.
   if (cache) {
-    const present = new Set([...files.typescript, ...files.html, ...files.javascript]);
+    const present = new Set([...files.typescript, ...files.html, ...files.javascript, ...files.stylesheets]);
     for (const key of cache.files.keys()) if (!present.has(key.replace(/^angularjs:/, ''))) cache.files.delete(key);
   }
   const appCompilerOptions = readCompilerOptions(workspace.appTsconfig);
@@ -325,6 +328,7 @@ export async function buildContext(root: string, options: CheckupOptions): Promi
     workspace,
     sources,
     templates,
+    stylesheets,
     angularJs,
     churn: readChurn(root),
     deprecations: dependencies.deprecations,

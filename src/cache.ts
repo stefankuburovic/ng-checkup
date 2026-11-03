@@ -4,6 +4,7 @@ import type { AngularJsScan } from './angularjs.js';
 import type { PackageCompatibility } from './compatibility.js';
 import type { DeprecationIndex } from './deprecations.js';
 import type { SourceFileFacts, TemplateFact } from './scan.js';
+import type { StylesheetFact } from './stylesheets.js';
 
 /**
  * Results that can be reused between runs on the same repository, for
@@ -31,7 +32,7 @@ export interface AnalysisCache {
 }
 
 /** What one file's scan produces, by kind of scan. */
-export type CachedFacts = SourceFileFacts | TemplateFact | { angularJs: AngularJsScan };
+export type CachedFacts = SourceFileFacts | TemplateFact | StylesheetFact | { angularJs: AngularJsScan };
 
 /** An empty cache. */
 export function createAnalysisCache(): AnalysisCache {

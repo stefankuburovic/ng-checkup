@@ -3,6 +3,7 @@ import ts from 'typescript';
 import { scanAngularJsTemplate, type AngularJsTemplateStats } from './angularjs.js';
 import { isSpecFile, isTestCode, toReportPath } from './files.js';
 import { testQualityOf, type TestQuality } from './test-quality.js';
+import { colorLinesInTemplate } from './stylesheets.js';
 import { translationKeysInCode, translationKeysInTemplate, type TranslationKeyUse } from './translations.js';
 import { withoutHtmlComments } from './template-text.js';
 
@@ -131,6 +132,8 @@ export interface TemplateFact {
   usage: TemplateUsage;
   /** Literal translation keys it looks up (see `translationKeysInTemplate`), with lines of the file that holds the template. */
   translationKeys: TranslationKeyUse[];
+  /** Lines of colour literals in inline `style` attributes and `[style.x]` string bindings (see `colorLinesInTemplate`). */
+  colorLines: number[];
 }
 
 /**
@@ -608,6 +611,7 @@ export function scanSourceFile(root: string, absolutePath: string): SourceFileFa
                   usage: templateUsage(template.text),
                   // Lines counted inside the template string, moved to the line the string starts on.
                   translationKeys: translationKeysInTemplate(template.text).map((use) => ({ ...use, line: use.line + source.getLineAndCharacterOfPosition(template.start).line })),
+                  colorLines: colorLinesInTemplate(template.text).map((line) => line + source.getLineAndCharacterOfPosition(template.start).line),
                   firstLegacyLine: legacyOffset === undefined ? undefined : source.getLineAndCharacterOfPosition(template.start + legacyOffset).line + 1,
                 });
               }
@@ -939,6 +943,7 @@ export function scanTemplateFile(root: string, absolutePath: string): TemplateFa
     stats: scanTemplate(text),
     usage: templateUsage(text),
     translationKeys: translationKeysInTemplate(text),
+    colorLines: colorLinesInTemplate(text),
     firstLegacyLine: offset === undefined ? undefined : text.slice(0, offset).split('\n').length,
     ...(angularJs.attributes > 0 || angularJs.apps > 0 || angularJs.cdnVersion ? { angularJs } : {}),
   };

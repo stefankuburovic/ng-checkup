@@ -89,6 +89,7 @@
         "decorator-inputs-outputs": 0,
         "legacy-control-flow": 19,
         "manual-subscriptions": 11,
+        "hardcoded-colors": 125,
         "unended-subscriptions": 4
       },
       "findings": [
@@ -126,6 +127,16 @@
             "src/app/devices/devices.component.ts:18"
           ],
           "count": 3
+        },
+        {
+          "severity": "low",
+          "message": "125 colour literals outside the design tokens",
+          "files": [
+            "src/app/flasher/flasher.component.css:22",
+            "src/app/diagnostics/diagnostics.component.css:18",
+            "src/app/devices/devices.component.css:11"
+          ],
+          "count": 6
         }
       ]
     },

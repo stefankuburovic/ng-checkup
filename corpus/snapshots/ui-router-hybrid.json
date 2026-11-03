@@ -150,6 +150,7 @@
         "decorator-inputs-outputs": 5,
         "legacy-control-flow": 1,
         "manual-subscriptions": 0,
+        "hardcoded-colors": 17,
         "unended-subscriptions": 0
       },
       "findings": [
@@ -167,6 +168,14 @@
           "severity": "medium",
           "message": "5 `@Input()` decorators and 0 `@Output()` decorators left",
           "count": 5
+        },
+        {
+          "severity": "low",
+          "message": "17 colour literals outside the design tokens",
+          "files": [
+            "src/styles.css:41"
+          ],
+          "count": 1
         }
       ]
     },

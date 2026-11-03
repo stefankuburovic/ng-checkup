@@ -103,6 +103,7 @@
         "decorator-inputs-outputs": 0,
         "legacy-control-flow": 0,
         "manual-subscriptions": 0,
+        "hardcoded-colors": 2,
         "unended-subscriptions": 0
       },
       "findings": [
@@ -115,6 +116,14 @@
             "libs/products/product-detail-page/src/lib/product-detail-page/product-detail-page.component.ts:14"
           ],
           "count": 3
+        },
+        {
+          "severity": "low",
+          "message": "2 colour literals outside the design tokens",
+          "files": [
+            "libs/shared/header/src/lib/header/header.element.scss:5"
+          ],
+          "count": 1
         }
       ]
     },

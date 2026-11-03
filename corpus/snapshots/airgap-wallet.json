@@ -124,6 +124,7 @@
         "decorator-inputs-outputs": 90,
         "legacy-control-flow": 395,
         "manual-subscriptions": 43,
+        "hardcoded-colors": 18,
         "unended-subscriptions": 3
       },
       "findings": [
@@ -166,6 +167,16 @@
             "src/app/pages/sub-account-select/sub-account-select.ts:30"
           ],
           "count": 3
+        },
+        {
+          "severity": "low",
+          "message": "18 colour literals outside the design tokens",
+          "files": [
+            "src/app/pages/account-transaction-list/account-transaction-list.scss:2",
+            "src/app/pages/portfolio/portfolio.scss:6",
+            "src/app/pages/trading-settings/trading-settings.page.scss:17"
+          ],
+          "count": 9
         }
       ]
     },

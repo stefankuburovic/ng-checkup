@@ -200,6 +200,7 @@
         "decorator-inputs-outputs": 103,
         "legacy-control-flow": 249,
         "manual-subscriptions": 2,
+        "hardcoded-colors": 309,
         "unended-subscriptions": 1
       },
       "findings": [
@@ -239,6 +240,16 @@
             "src/app/administration/teleporter/graphmodelpanel/graphmodelpanel.component.ts:73"
           ],
           "count": 1
+        },
+        {
+          "severity": "low",
+          "message": "309 colour literals outside the design tokens",
+          "files": [
+            "src/styles/layout.css:7",
+            "src/styles/main.css:8",
+            "src/styles/orientdb-graphviz.css:13"
+          ],
+          "count": 9
         }
       ]
     },

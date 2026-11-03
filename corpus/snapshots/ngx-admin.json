@@ -117,6 +117,7 @@
         "decorator-inputs-outputs": 62,
         "legacy-control-flow": 47,
         "manual-subscriptions": 90,
+        "hardcoded-colors": 5,
         "unended-subscriptions": 1
       },
       "findings": [
@@ -157,6 +158,15 @@
             "src/app/pages/layout/infinite-list/infinite-list.component.ts:33"
           ],
           "count": 1
+        },
+        {
+          "severity": "low",
+          "message": "5 colour literals outside the design tokens",
+          "files": [
+            "src/app/pages/dashboard/rooms/room-selector/room-selector.component.scss:22",
+            "src/app/pages/dashboard/security-cameras/security-cameras.component.scss:76"
+          ],
+          "count": 2
         }
       ]
     },

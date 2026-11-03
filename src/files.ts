@@ -46,6 +46,8 @@ export interface CollectedFiles {
   nestedAngularJsons: string[];
   /** JSON files named after a language below an `i18n`-style folder (see `isTranslationBundle`). */
   translationBundles: string[];
+  /** `.css`, `.scss`, `.sass` and `.less` files, for the colour literals written outside the tokens. */
+  stylesheets: string[];
 }
 
 /**
@@ -61,13 +63,14 @@ export interface CollectedFiles {
  *   what makes ignoring a large generated folder cheap.
  */
 export function collectFiles(root: string, isIgnored?: (relativePath: string) => boolean): CollectedFiles {
-  const result: CollectedFiles = { typescript: [], html: [], javascript: [], projectJsons: [], nestedAngularJsons: [], translationBundles: [] };
+  const result: CollectedFiles = { typescript: [], html: [], javascript: [], projectJsons: [], nestedAngularJsons: [], translationBundles: [], stylesheets: [] };
   walk(root, root, result, isIgnored);
   result.typescript.sort();
   result.html.sort();
   result.projectJsons.sort();
   result.nestedAngularJsons.sort();
   result.translationBundles.sort();
+  result.stylesheets.sort();
   const compiled = new Set(result.typescript.map((path) => path.replace(/\.ts$/, '.js')));
   result.javascript = result.javascript.filter((path) => !compiled.has(path)).sort();
   return result;
@@ -96,6 +99,8 @@ function walk(root: string, directory: string, into: CollectedFiles, isIgnored?:
       into.projectJsons.push(path);
     } else if (entry.name === 'angular.json' && directory !== root) {
       into.nestedAngularJsons.push(path);
+    } else if (/\.(css|scss|sass|less)$/.test(entry.name) && !/\.min\.css$/.test(entry.name)) {
+      if (!inVendor && isWithinSizeLimit(path)) into.stylesheets.push(path);
     } else if (entry.name.endsWith('.json')) {
       if (isTranslationBundle(toReportPath(root, path)) && isWithinSizeLimit(path)) into.translationBundles.push(path);
     } else if (entry.name.endsWith('.ts') && !entry.name.endsWith('.d.ts')) {

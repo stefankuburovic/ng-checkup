@@ -112,6 +112,7 @@
         "decorator-inputs-outputs": 38,
         "legacy-control-flow": 90,
         "manual-subscriptions": 40,
+        "hardcoded-colors": 16,
         "unended-subscriptions": 16
       },
       "findings": [
@@ -154,6 +155,16 @@
             "src/app/account/components/account-customer-details/account-customer-details.component.ts:33"
           ],
           "count": 14
+        },
+        {
+          "severity": "low",
+          "message": "16 colour literals outside the design tokens",
+          "files": [
+            "src/app/core/components/collections-menu/collections-menu.component.scss:6",
+            "src/app/core/components/home-page/home-page.component.scss:2",
+            "src/app/app.component.scss:16"
+          ],
+          "count": 7
         }
       ]
     },

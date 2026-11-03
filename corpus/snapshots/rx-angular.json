@@ -212,6 +212,7 @@
         "decorator-inputs-outputs": 266,
         "legacy-control-flow": 1,
         "manual-subscriptions": 75,
+        "hardcoded-colors": 89,
         "unended-subscriptions": 11
       },
       "findings": [
@@ -239,6 +240,16 @@
             "apps/demos/src/app/shared/debug-helper/work/work.component.ts:84"
           ],
           "count": 3
+        },
+        {
+          "severity": "low",
+          "message": "89 colour literals outside the design tokens",
+          "files": [
+            "apps/ssr-hydration/src/app/app.component.scss:15",
+            "apps/demos/src/styles/_logger.scss:6",
+            "apps/demos/src/styles/_design-system.scss:136"
+          ],
+          "count": 17
         }
       ]
     },
