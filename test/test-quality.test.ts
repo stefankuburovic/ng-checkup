@@ -22,6 +22,7 @@ describe('test quality', () => {
       "it.skip('is skipped too', () => {});",
       "it.todo('later');",
       "test.only('is focused and empty', () => {});",
+      "it('is a type test', () => {\n  // @ts-expect-error a number is no string\n  const x: string = 1;\n});",
       'function rowIsShown() { expect(row).toBeTruthy(); }',
     ]);
     expect(facts.withoutAssertions).toEqual([1, 2, 11]);
@@ -35,6 +36,9 @@ describe('test quality', () => {
       "it('flushed', () => { service.load().subscribe((x) => expect(x).toBe(0)); http.expectOne('/x').flush(0); });",
       "it('awaited', async () => { source$.subscribe((x) => expect(x).toBe(0)); await fixture.whenStable(); });",
       "it('no assertion inside', () => { source$.subscribe((x) => seen.push(x)); expect(seen).toEqual([]); });",
+      "it('returns a promise', () => new Promise<void>((done) => { source$.subscribe((x) => { expect(x).toBe(0); done(); }); }));",
+      "it('marble', () => { testScheduler.run(() => { state$.subscribe((x) => expect(x).toBe(1)); }); });",
+      "it('returns in a block', () => { return new Promise<void>((resolve) => source$.subscribe((x) => { expect(x).toBe(0); resolve(); })); });",
     ]);
     expect(facts.unawaitedSubscribeAssertions).toEqual([1]);
   });

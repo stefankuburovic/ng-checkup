@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.0.2 (2026-11-03)
+
+- **Test quality, fewer false positives.** A test that returns a promise (`() => new Promise((done) => ...)`, `return firstValueFrom(...)`) is awaited by the runner, so an assertion in its subscription is no longer reported as unwaited; neither is one inside `testScheduler.run(...)`, which runs its virtual time before it returns. A type test (`// @ts-expect-error` in the body) asserts at compile time and is no longer reported as asserting nothing. On rx-angular's main branch this takes the unwaited assertions from 22 to 1; on the corpus snapshot from 17 to 16, and the empty tests from 5 to 3.
+
 ## 2.0.1 (2026-11-03)
 
 - Documentation only, so the npm page matches 2.0: the README lists every option of `--help` again (`--since`, `fleet`, `mcp`), counts the 19 corpus repositories and the 61 baseline measures, and `docs/checks.md` lists the six dead-code measures it was missing. The usage lines of `--help` name `fleet` and `mcp`. No check, grade or measure changed.

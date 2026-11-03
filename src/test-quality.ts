@@ -16,7 +16,8 @@ export interface TestQuality {
   withoutAssertions: number[];
   /**
    * Lines of `.subscribe(...)` calls whose callback asserts, in a test that
-   * does nothing to wait for it: no `done` parameter, no `fakeAsync` /
+   * does nothing to wait for it: no `done` parameter, no returned promise
+   * (`() => new Promise((done) => ...)`), no `fakeAsync` /
    * `waitForAsync`, no `await`, nothing that flushes (`flush`, `tick`,
    * `expectOne`, `whenStable`). When the source is asynchronous the test
    * ends first and passes without the assertion ever running; a synchronous
@@ -114,14 +115,18 @@ export function testQualityOf(source: ts.SourceFile): TestQuality {
     let waits = false;
     if (ts.isArrowFunction(last) || ts.isFunctionExpression(last)) {
       body = last.body;
-      waits = last.parameters.length > 0 || (last.modifiers ?? []).some((modifier) => modifier.kind === ts.SyntaxKind.AsyncKeyword);
+      // A test waits when it takes `done`, is async, or returns something: the runner awaits a returned promise, `() => new Promise((done) => ...)` and `return firstValueFrom(...)` alike.
+      const returnsValue = !ts.isBlock(last.body) || last.body.statements.some((statement) => ts.isReturnStatement(statement) && statement.expression !== undefined);
+      waits = last.parameters.length > 0 || (last.modifiers ?? []).some((modifier) => modifier.kind === ts.SyntaxKind.AsyncKeyword) || returnsValue;
     } else if (ts.isCallExpression(last) && ts.isIdentifier(last.expression) && WAITING_WRAPPERS.has(last.expression.text)) {
       const inner = last.arguments[last.arguments.length - 1];
       if (inner && (ts.isArrowFunction(inner) || ts.isFunctionExpression(inner))) body = inner.body;
       waits = true;
     }
     if (!body) return;
-    if (!asserts(body)) quality.withoutAssertions.push(lineOf(call));
+    // A type test asserts at compile time: `// @ts-expect-error` fails the build when the error it expects goes away.
+    const assertsTypes = /@ts-expect-error/.test(body.getFullText(source));
+    if (!asserts(body) && !assertsTypes) quality.withoutAssertions.push(lineOf(call));
     if (waits) return;
 
     let flushes = false;
@@ -131,6 +136,8 @@ export function testQualityOf(source: ts.SourceFile): TestQuality {
       if (ts.isCallExpression(child)) {
         const name = calledName(child);
         if (name && FLUSHING_CALL.test(name)) flushes = true;
+        // `testScheduler.run(...)` runs its virtual time synchronously before it returns, so a subscription inside it has emitted by then.
+        if (name === 'run' && ts.isPropertyAccessExpression(child.expression) && /scheduler/i.test(child.expression.expression.getText(source))) flushes = true;
         if (name === 'subscribe' && ts.isPropertyAccessExpression(child.expression) && child.arguments.some((argument) => asserts(argument))) subscribes.push(child);
       }
       ts.forEachChild(child, visit);
