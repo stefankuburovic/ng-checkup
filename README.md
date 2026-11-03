@@ -6,7 +6,7 @@
 
 **A one-minute modernization report for any Angular codebase.**
 
-Point it at a repository and it tells you how far the code is from current Angular, what will break on the next upgrade, and where the work is. Twelve areas get a grade, from the Angular version and third-party packages to security and bundle size (and a thirteenth for AngularJS code still waiting to be migrated), every finding names the files, and the HTML report is one self-contained page you can hand to your team lead.
+Point it at a repository and it tells you how far the code is from current Angular, what will break on the next upgrade, and where the work is. Thirteen areas get a grade, from the Angular version and third-party packages to security, missing translations and bundle size (and a fourteenth for AngularJS code still waiting to be migrated), every finding names the files, and the HTML report is one self-contained page you can hand to your team lead.
 
 ```bash
 npx ng-checkup-cli
@@ -342,6 +342,7 @@ The codebase is named by its repository and commit, never by a path on your disk
 | [**Testing**](https://github.com/stefankuburovic/ng-checkup/blob/main/docs/checks.md#testing) | Karma / Jest / Vitest, which components, services, stores and utilities have a spec (beside them or importing them), Protractor / Playwright / Cypress | Karma, Protractor or no specs |
 | [**Type safety**](https://github.com/stefankuburovic/ng-checkup/blob/main/docs/checks.md#type-safety) | `strictNullChecks`, `strictTemplates`, `noImplicitAny`, `any`, `x!`, `@ts-ignore`, `$any()` | both `strictNullChecks` and `strictTemplates` off |
 | [**Security**](https://github.com/stefankuburovic/ng-checkup/blob/main/docs/checks.md#security) | known vulnerabilities of the dependencies (from [osv.dev](https://osv.dev), AngularJS included), `bypassSecurityTrust*`, HTML written straight into the DOM (`innerHTML =`, `insertAdjacentHTML`, `Renderer2.setProperty`), `eval`, `[innerHTML]` bindings | a high or critical advisory in a runtime dependency, HTML written into the DOM past the sanitizer, or `eval` |
+| [**Translations**](https://github.com/stefankuburovic/ng-checkup/blob/main/docs/checks.md#translations) | literal ngx-translate and Transloco keys against the JSON bundles of every language, merged per language, Transloco scopes included | more than 10 keys that resolve to no string, which the user sees as the raw key |
 | [**Circular dependencies**](https://github.com/stefankuburovic/ng-checkup/blob/main/docs/checks.md#circular-deps) | import cycles through relative paths, barrels and tsconfig `paths` | more than three groups or ten files in loops |
 | [**Bundle size**](https://github.com/stefankuburovic/ng-checkup/blob/main/docs/checks.md#bundle) | the initial bundle from the last `ng build --stats-json` (esbuild or webpack) against the build's budget, its largest packages, lazy chunks | over the `initial` error budget (1 MB by default) |
 

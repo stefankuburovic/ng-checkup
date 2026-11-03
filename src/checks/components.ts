@@ -95,6 +95,18 @@ export function componentsCheck(context: AnalysisContext): CheckResult {
       count: subscribeFiles.length,
     });
   }
+  // The subset that leaks: nothing in the chain or the class ends it, and the source outlives the component. A defect, not a style choice, so a finding of its own.
+  const unendedFiles = subscribeFiles.filter((file) => file.manualSubscribes.some((entry) => entry.unended));
+  const unended = unendedFiles.reduce((sum, file) => sum + file.manualSubscribes.filter((entry) => entry.unended).length, 0);
+  if (unended > 0) {
+    findings.push({
+      severity: 'low',
+      message: `${plural(unended, '`.subscribe()` call')} in components and directives that nothing ever ends`,
+      detail: `No \`takeUntilDestroyed\`, \`takeUntil\`, \`take\` or \`first\` in the chain, and no cleanup anywhere in the class (\`ngOnDestroy\`, \`unsubscribe()\`, \`DestroyRef\`). When the source outlives the component (a service, a store, \`router.events\`, \`interval\`, \`fromEvent(window)\`), the subscription keeps the destroyed component in memory and its callback keeps running, once more each time the component is created. Calls to \`HttpClient\`, \`ActivatedRoute\`, a form's \`valueChanges\`, a dialog's close event and the component's own subjects are left out, since those complete or die with the component. A service call that completes after one value (a GraphQL query, a notification) cannot be told apart from the code and is counted; for those \`take(1)\` documents it. \`takeUntilDestroyed()\` or \`toSignal()\` fixes the rest.`,
+      files: unendedFiles.slice(0, context.maxExamples).map((file) => ({ path: file.path, line: file.manualSubscribes.find((entry) => entry.unended)!.line })),
+      count: unendedFiles.length,
+    });
+  }
 
   const shares = [standaloneShare, ...(inputs > 0 ? [signalInputShare] : []), ...(controlFlow > 0 ? [controlFlowShare] : [])];
   const average = shares.reduce((sum, share) => sum + share, 0) / shares.length;
@@ -122,6 +134,7 @@ export function componentsCheck(context: AnalysisContext): CheckResult {
       { id: 'decorator-inputs-outputs', label: '@Input() / @Output() decorators', value: decoratorInputs + decoratorOutputs },
       { id: 'legacy-control-flow', label: '*ngIf / *ngFor / [ngSwitch] uses', value: totals.legacy },
       { id: 'manual-subscriptions', label: 'Manual .subscribe() in components and directives', value: subscribes },
+      { id: 'unended-subscriptions', label: '.subscribe() in components and directives that nothing ends', value: unended },
     ],
   };
 }

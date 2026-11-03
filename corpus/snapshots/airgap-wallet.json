@@ -9,7 +9,7 @@
     "templateFiles": 88,
     "linesOfCode": 24719
   },
-  "score": 52,
+  "score": 53,
   "checks": [
     {
       "id": "version",
@@ -123,7 +123,8 @@
         "module-components": 90,
         "decorator-inputs-outputs": 90,
         "legacy-control-flow": 395,
-        "manual-subscriptions": 43
+        "manual-subscriptions": 43,
+        "unended-subscriptions": 3
       },
       "findings": [
         {
@@ -155,6 +156,16 @@
             "src/app/pages/delegation-detail/delegation-detail.ts:277"
           ],
           "count": 19
+        },
+        {
+          "severity": "low",
+          "message": "3 `.subscribe()` calls in components and directives that nothing ever ends",
+          "files": [
+            "src/app/pages/transaction-prepare/transaction-prepare.ts:158",
+            "src/app/pages/sub-account-import/sub-account-import.ts:64",
+            "src/app/pages/sub-account-select/sub-account-select.ts:30"
+          ],
+          "count": 3
         }
       ]
     },
@@ -354,6 +365,35 @@
             "src/app/components/interaction-selection/interaction-selection.component.html"
           ],
           "count": 25
+        }
+      ]
+    },
+    {
+      "id": "translations",
+      "grade": "fair",
+      "summary": "5 of 367 literal translation keys resolve to no string in some language.",
+      "measures": {
+        "missing-keys": 5
+      },
+      "findings": [
+        {
+          "severity": "medium",
+          "message": "5 translation keys resolve to no string in at least one language",
+          "files": [
+            "src/app/components/portfolio-item/portfolio-item.html:44",
+            "src/app/pages/transaction-qr/transaction-qr.html:28",
+            "src/app/services/walletconnect/walletconnect.service.ts:147"
+          ],
+          "count": 5
+        },
+        {
+          "severity": "low",
+          "message": "2 translation keys under a namespace no bundle has",
+          "files": [
+            "src/app/pages/isolated-modules-onboarding/isolated-modules-onboarding.page.html:18",
+            "src/app/pages/isolated-modules-onboarding/isolated-modules-onboarding.page.html:7"
+          ],
+          "count": 2
         }
       ]
     },

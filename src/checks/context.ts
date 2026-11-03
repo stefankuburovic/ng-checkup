@@ -9,6 +9,7 @@ import type { NextMajorChanges } from '../next-major.js';
 import type { TypingsSource } from '../typings.js';
 import type { VulnerabilityScan } from '../vulnerabilities.js';
 import type { SourceFileFacts, TemplateFact } from '../scan.js';
+import type { TranslationFacts } from '../translations.js';
 import type { CheckResult, FileRef } from '../types.js';
 import type { UnusedBinding, UnusedDeclarable } from '../unused.js';
 import type { WorkspaceInfo } from '../workspace.js';
@@ -72,6 +73,11 @@ export interface AnalysisContext {
   appCompilerOptions: ts.CompilerOptions;
   /** `angularCompilerOptions` of the application tsconfig, merged along its `extends` chain. */
   angularCompilerOptions: Record<string, unknown>;
+  /**
+   * Literal translation keys judged against the bundles (see `judgeTranslations`).
+   * Undefined without ngx-translate or Transloco, or without a bundle to read.
+   */
+  translations?: TranslationFacts;
   maxExamples: number;
 }
 

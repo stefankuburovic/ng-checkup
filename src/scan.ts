@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import ts from 'typescript';
 import { scanAngularJsTemplate, type AngularJsTemplateStats } from './angularjs.js';
 import { isTestCode, toReportPath } from './files.js';
+import { translationKeysInCode, translationKeysInTemplate, type TranslationKeyUse } from './translations.js';
 import { withoutHtmlComments } from './template-text.js';
 
 /** One name brought in by an import or re-export. */
@@ -127,6 +128,8 @@ export interface TemplateFact {
   angularJs?: AngularJsTemplateStats;
   /** See `TemplateUsage`. */
   usage: TemplateUsage;
+  /** Literal translation keys it looks up (see `translationKeysInTemplate`), with lines of the file that holds the template. */
+  translationKeys: TranslationKeyUse[];
 }
 
 /**
@@ -208,8 +211,15 @@ export interface SourceFileFacts {
    * Angular own the subscription. `bound` is true when the chain hands its
    * lifetime to the class (`takeUntilDestroyed`, `takeUntil`, `take`, `first`),
    * false when only an explicit `unsubscribe()` (or nothing) ends it.
+   * `unended` is true when nothing at all ends it: not bound, the class has
+   * no cleanup of any kind (`ngOnDestroy`, `unsubscribe()`, `DestroyRef`,
+   * `Subscription.add`), and the source is not one that completes or dies
+   * with the component (`HttpClient`, `ActivatedRoute`, a form's
+   * `valueChanges`, a dialog's `afterClosed()`, a `Subject` the class itself
+   * creates), and no `takeWhile` stops it. Those are the ones that
+   * keep a destroyed component alive.
    */
-  manualSubscribes: Array<{ line: number; bound: boolean }>;
+  manualSubscribes: Array<{ line: number; bound: boolean; unended: boolean }>;
   /** Lines of every `x!` non-null assertion. */
   nonNullLines: number[];
   /** `x!: T` property declarations, which skip definite-assignment checking. */
@@ -276,6 +286,8 @@ export interface SourceFileFacts {
    * template has it.
    */
   bindingNamesInCode: string[];
+  /** Literal translation keys looked up through a translation service or marked with `marker()` (see `translationKeysInCode`). */
+  translationKeys: TranslationKeyUse[];
   /** True when the file passes `bindToComponentInputs` to the router, which then sets component inputs from the URL. */
   bindsRouteInputs?: boolean;
 }
@@ -327,6 +339,7 @@ export function scanSourceFile(root: string, absolutePath: string): SourceFileFa
     directives: [],
     classReferences: classReferencesOf(source),
     bindingNamesInCode: [],
+    translationKeys: translationKeysInCode(source),
   };  const anyExempt = lintExemptLines(text, '@typescript-eslint/no-explicit-any');
 
 
@@ -514,6 +527,14 @@ export function scanSourceFile(root: string, absolutePath: string): SourceFileFa
     const viewClass = (ts.getDecorators(node) ?? []).some((decorator) => ['@angular/core#Component', '@angular/core#Directive'].includes(decoratorKey(decorator) ?? ''));
     if (viewClass) {
       const TIED = /\b(takeUntilDestroyed|takeUntil|untilDestroyed|take|first)\s*\(/;
+      // `takeWhile(() => this.alive)` with `alive = false` in a hook is the pre-DestroyRef idiom: it ends the chain, though only on the next emission, so it does not count as tied above.
+      const ENDED = /\btakeWhile\s*\(/;
+      // Any cleanup in the class: the subscription may be stored and ended there, which the text of the chain cannot show.
+      const classCleans = /\bngOnDestroy\b|\.unsubscribe\s*\(|\bDestroyRef\b|\.onDestroy\s*\(|\.add\s*\(/.test(node.getText(source));
+      // Sources that complete on their own or are owned by the component, so an unended subscription to them leaks nothing.
+      const SHORT_LIVED = /^(this\.)?(http|httpClient|route|activatedRoute|dialogRef)\b|\.(valueChanges|statusChanges|afterClosed\(\)|afterOpened\(\)|changes)(?![\w$])|^(of|from|forkJoin|timer|EMPTY)\b|\b(http|httpClient)\.(get|post|put|patch|delete|request)\s*[<(]|\btranslate\w*\s*\.get\s*\(|\.(onClose|afterDismissed\(\))(?![\w$])/;
+      // Subjects and emitters the component creates itself die with it: `this.state$.subscribe` on a field initialised with `new BehaviorSubject()` holds nothing alive.
+      const ownStreams = new Set(node.members.flatMap((member) => (ts.isPropertyDeclaration(member) && ts.isIdentifier(member.name) && member.initializer && /^new\s+(\w*Subject|EventEmitter)\b/.test(member.initializer.getText(source)) ? [member.name.text] : [])));
       // Local variables of the member and what they were initialised with: `const order$ = this.order$().pipe(takeUntilDestroyed(...))`
       // ties every `order$.subscribe(...)` below it, and so does a local factory `const load$ = () => x.pipe(take(1))` called as `load$()`.
       let locals = new Map<string, string>();
@@ -527,7 +548,10 @@ export function scanSourceFile(root: string, absolutePath: string): SourceFileFa
           const chain = child.expression.expression.getText(source);
           const root = /^([A-Za-z_$][\w$]*)/.exec(chain)?.[1];
           const viaLocal = root !== undefined && root !== 'this' && TIED.test(locals.get(root) ?? '');
-          facts.manualSubscribes.push({ line: lineOf(child), bound: TIED.test(chain) || viaLocal });
+          const bound = TIED.test(chain) || viaLocal;
+          const ownStream = /^this\.([A-Za-z_$][\w$]*)/.exec(chain)?.[1];
+          const ends = classCleans || ENDED.test(chain) || SHORT_LIVED.test(chain) || (ownStream !== undefined && ownStreams.has(ownStream));
+          facts.manualSubscribes.push({ line: lineOf(child), bound, unended: !bound && !ends });
         }
         ts.forEachChild(child, findSubscribes);
       };
@@ -578,6 +602,8 @@ export function scanSourceFile(root: string, absolutePath: string): SourceFileFa
                   inline: true,
                   stats,
                   usage: templateUsage(template.text),
+                  // Lines counted inside the template string, moved to the line the string starts on.
+                  translationKeys: translationKeysInTemplate(template.text).map((use) => ({ ...use, line: use.line + source.getLineAndCharacterOfPosition(template.start).line })),
                   firstLegacyLine: legacyOffset === undefined ? undefined : source.getLineAndCharacterOfPosition(template.start + legacyOffset).line + 1,
                 });
               }
@@ -908,6 +934,7 @@ export function scanTemplateFile(root: string, absolutePath: string): TemplateFa
     inline: false,
     stats: scanTemplate(text),
     usage: templateUsage(text),
+    translationKeys: translationKeysInTemplate(text),
     firstLegacyLine: offset === undefined ? undefined : text.slice(0, offset).split('\n').length,
     ...(angularJs.attributes > 0 || angularJs.apps > 0 || angularJs.cdnVersion ? { angularJs } : {}),
   };

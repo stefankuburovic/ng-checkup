@@ -1,5 +1,5 @@
 import { readdirSync, statSync } from 'node:fs';
-import { join, relative, sep } from 'node:path';
+import { basename, join, relative, sep } from 'node:path';
 
 /**
  * Directory names never descended into.
@@ -44,6 +44,8 @@ export interface CollectedFiles {
   projectJsons: string[];
   /** Every `angular.json` below the root (not the root's own): Angular workspaces in subfolders. */
   nestedAngularJsons: string[];
+  /** JSON files named after a language below an `i18n`-style folder (see `isTranslationBundle`). */
+  translationBundles: string[];
 }
 
 /**
@@ -59,12 +61,13 @@ export interface CollectedFiles {
  *   what makes ignoring a large generated folder cheap.
  */
 export function collectFiles(root: string, isIgnored?: (relativePath: string) => boolean): CollectedFiles {
-  const result: CollectedFiles = { typescript: [], html: [], javascript: [], projectJsons: [], nestedAngularJsons: [] };
+  const result: CollectedFiles = { typescript: [], html: [], javascript: [], projectJsons: [], nestedAngularJsons: [], translationBundles: [] };
   walk(root, root, result, isIgnored);
   result.typescript.sort();
   result.html.sort();
   result.projectJsons.sort();
   result.nestedAngularJsons.sort();
+  result.translationBundles.sort();
   const compiled = new Set(result.typescript.map((path) => path.replace(/\.ts$/, '.js')));
   result.javascript = result.javascript.filter((path) => !compiled.has(path)).sort();
   return result;
@@ -93,6 +96,8 @@ function walk(root: string, directory: string, into: CollectedFiles, isIgnored?:
       into.projectJsons.push(path);
     } else if (entry.name === 'angular.json' && directory !== root) {
       into.nestedAngularJsons.push(path);
+    } else if (entry.name.endsWith('.json')) {
+      if (isTranslationBundle(toReportPath(root, path)) && isWithinSizeLimit(path)) into.translationBundles.push(path);
     } else if (entry.name.endsWith('.ts') && !entry.name.endsWith('.d.ts')) {
       if (isWithinSizeLimit(path)) into.typescript.push(path);
     } else if (entry.name.endsWith('.html')) {
@@ -122,6 +127,23 @@ function isWithinSizeLimit(path: string): boolean {
  */
 export function toReportPath(root: string, absolute: string): string {
   return relative(root, absolute).split(sep).join('/');
+}
+
+/** A language tag as bundle files are named: `en`, `de`, `pt_BR`, `zh-CN`, `sr-Latn`. */
+const LANGUAGE_FILE = /^([a-z]{2,3}(?:[_-][A-Za-z]{2,4})?)\.json$/;
+
+/** Folder names a translation bundle lives under. */
+const BUNDLE_FOLDERS = new Set(['i18n', 'l10n', 'locale', 'locales', 'translations', 'lang', 'langs', 'languages']);
+
+/** True for a JSON file that reads like a translation bundle: named after a language, below an `i18n`-style folder. */
+export function isTranslationBundle(path: string): boolean {
+  if (!LANGUAGE_FILE.test(basename(path))) return false;
+  return path.split(/[\\/]/).slice(0, -1).some((segment) => BUNDLE_FOLDERS.has(segment.toLowerCase()));
+}
+
+/** The language a bundle file is named after (`de` for `i18n/de.json`). Only called for paths `isTranslationBundle` accepted. */
+export function languageOfBundle(path: string): string {
+  return LANGUAGE_FILE.exec(basename(path))![1]!;
 }
 
 /**

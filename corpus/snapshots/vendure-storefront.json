@@ -111,7 +111,8 @@
         "module-components": 53,
         "decorator-inputs-outputs": 38,
         "legacy-control-flow": 90,
-        "manual-subscriptions": 40
+        "manual-subscriptions": 40,
+        "unended-subscriptions": 16
       },
       "findings": [
         {
@@ -143,6 +144,16 @@
             "src/app/core/components/cart-drawer/cart-drawer.component.ts:65"
           ],
           "count": 25
+        },
+        {
+          "severity": "low",
+          "message": "16 `.subscribe()` calls in components and directives that nothing ever ends",
+          "files": [
+            "src/app/core/components/cart-drawer/cart-drawer.component.ts:78",
+            "src/app/account/components/account-change-credentials/account-change-credentials.component.ts:30",
+            "src/app/account/components/account-customer-details/account-customer-details.component.ts:33"
+          ],
+          "count": 14
         }
       ]
     },
@@ -299,6 +310,13 @@
           "count": 2
         }
       ]
+    },
+    {
+      "id": "translations",
+      "grade": "info",
+      "summary": "No ngx-translate or Transloco bundle found to check translation keys against.",
+      "measures": {},
+      "findings": []
     },
     {
       "id": "circular-deps",

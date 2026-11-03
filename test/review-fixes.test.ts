@@ -97,5 +97,6 @@ describe('manual subscriptions', () => {
     const check = (await runCheckup(root, { offline: true })).checks.find((entry) => entry.id === 'components');
     expect(check?.measures?.find((measure) => measure.id === 'manual-subscriptions')?.value).toBe(2);
     expect(check?.findings.find((finding) => finding.message.includes('.subscribe()'))?.message).toBe("2 manual `.subscribe()` calls in components and directives, 1 not tied to the component's lifetime");
+    expect(check?.measures?.find((measure) => measure.id === 'unended-subscriptions')?.value).toBe(0);
   });
 });

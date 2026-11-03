@@ -88,7 +88,8 @@
         "module-components": 3,
         "decorator-inputs-outputs": 0,
         "legacy-control-flow": 0,
-        "manual-subscriptions": 0
+        "manual-subscriptions": 0,
+        "unended-subscriptions": 0
       },
       "findings": [
         {
@@ -171,6 +172,13 @@
         "sanitizer-bypasses": 0,
         "inner-html-bindings": 0
       },
+      "findings": []
+    },
+    {
+      "id": "translations",
+      "grade": "info",
+      "summary": "No ngx-translate or Transloco bundle found to check translation keys against.",
+      "measures": {},
       "findings": []
     },
     {

@@ -1,6 +1,6 @@
 # The checks
 
-Twelve checks run on every repository. A thirteenth runs first when there is legacy code: [AngularJS migration](#angularjs) for AngularJS code or packages, or, for an Ex Libris Primo VE customization package, [Primo NDE migration](#primo-nde) in its place.
+Thirteen checks run on every repository. A fourteenth runs first when there is legacy code: [AngularJS migration](#angularjs) for AngularJS code or packages, or, for an Ex Libris Primo VE customization package, [Primo NDE migration](#primo-nde) in its place.
 
 Every check grades one area **good**, **fair**, **poor** or **info**. `info` means there was nothing to grade (no components, no tests) or an input was missing (no `node_modules`), and it never counts against the score.
 
@@ -140,6 +140,8 @@ From Angular 22, OnPush is the default, so a component without `changeDetection`
 
 **What it reads:** standalone vs. NgModule-declared components (standalone is the default from Angular 19), `input()` / `model()` / `output()` vs. `@Input()` / `@Output()`, built-in control flow (`@if`, `@for`, `@switch`) vs. structural directives, `@defer` blocks, and manual `.subscribe()` calls in components and directives: state moved by hand, where `toSignal()` or the `async` pipe would let Angular own the subscription. A subscription counts as tied to the component's lifetime when `takeUntilDestroyed`, `takeUntil`, `take` or `first` is in its chain. The count is a low finding and a baseline measure, not part of the grade: it is the number a move to signals should watch fall, in `ng-checkup history` too.
 
+**Subscriptions nothing ends** are a finding and a measure of their own (`unended-subscriptions`): no `takeUntilDestroyed`, `takeUntil`, `take`, `first` or `takeWhile` in the chain, no cleanup anywhere in the class (`ngOnDestroy`, `unsubscribe()`, `DestroyRef`, `Subscription.add`), and a source that outlives the component. Sources that complete or die with the component are left out: `HttpClient`, `ActivatedRoute`, a form's `valueChanges`, a dialog's close event, `translate.get()`, and a `Subject` or `EventEmitter` the class creates itself. A service call that completes after one value cannot be told from one that never completes, so the finding is low and the count is an upper bound. On the corpus it lists 0 to 25 per repository; a codebase that already guards every component file (one with a `check-subscriptions` script, say) reads 0.
+
 **Grading:** the average adoption of standalone, signal inputs and built-in control flow, counting only the areas the code uses: 80% or more is good, 40% or more is fair, below that is poor.
 
 **Fixing it**
@@ -263,6 +265,29 @@ Angular sanitizes every bound value, so an Angular app is safe from cross-site s
 
 ---
 
+## Translations (`translations`) <a id="translations"></a>
+
+**What it reads:** with `@ngx-translate/core`, `@jsverse/transloco` or `@ngneat/transloco` among the dependencies, every JSON bundle named after a language below an `i18n`, `l10n`, `locale(s)`, `translations` or `lang(s)` folder (`src/assets/i18n/de.json`, `public/i18n/modules/orders/en.json`), merged deeply per language, since apps that load a core bundle and one per feature declare the same namespace in several files. Transloco bundles in a subfolder are scopes and answer under the folder's name (`i18n/admin/en.json` answers `admin.title`). Against them it judges every literal key: `'a.b' | translate` / `| transloco` with either quote, `translate="a.b"`, `[translate]="'a.b'"`, `t('a.b')` in a `*transloco="let t"` block without `read:`, and `instant` / `get` / `stream` / `translate` / `selectTranslate` calls on a receiver named like a translation service, plus `marker('a.b')`. A key built from data (`item.state | translate`, `'status.' + x | translate`) is not judged, and neither is a key in a spec. Lookups follow ngx-translate's rule that a property may hold a dot in its own name (`"cannot_delete.header"`).
+
+A key is **missing** when some language has no string under it while that language knows the key's first segment, or another language has the key: a typo, a key under the wrong namespace, or a string added to one language only. A key whose first segment no bundle of any language has is listed apart and not graded, because a library's own bundle or a loader that reads the backend may supply it.
+
+**Why it matters:** both libraries render the key itself when a lookup fails, so the user reads `orders.cannot_delete` where a sentence should be, and neither the compiler nor a test that renders the template notices.
+
+**Grading**
+
+| Grade | When |
+| --- | --- |
+| info | no translation library, or no bundle to judge against (strings from the backend or from TypeScript files) |
+| good | every literal key resolves in every language |
+| fair | 1 to 10 missing keys |
+| poor | more than 10 |
+
+The measure `translations.missing-keys` lets a baseline hold the number at what it is; on the corpus, airgap-wallet has 5 (`walletconnect.error` where the bundle has `walletconnect.connection_error`, and three keys only English has).
+
+**Fixing it:** add the string to every language's bundle, or point the template at the key that exists. A key under the wrong namespace looks identical to a missing one, so check the namespace first.
+
+---
+
 ## Circular dependencies (`circular-deps`) <a id="circular-deps"></a>
 
 **What it reads:** every static, value-level import between application files, resolved like the Angular CLI does (relative paths, `index.ts` barrels and tsconfig `paths` aliases). `import()` and test code are ignored, and so is every import TypeScript erases: `import type`, and also a plain import whose names the file uses only as types (`store: Store`), or that names only types (`export type ID = string`), directly or through a barrel. None of those exists at runtime, so none can cause an initialization-order crash. One Angular rule keeps a real cycle visible: the constructor parameter types of a decorated class are DI tokens, so they count as runtime references.
@@ -330,6 +355,7 @@ The largest packages in the initial bundle are listed with their size, from the 
 | `components.legacy-control-flow` | `*ngIf` / `*ngFor` / `[ngSwitch]` uses |
 | `components.manual-subscriptions` | Manual `.subscribe()` in components and directives |
 | `components.module-components` | Components declared in NgModules |
+| `components.unended-subscriptions` | `.subscribe()` in components and directives that nothing ends |
 | `dependencies.deprecated-packages` | Packages deprecated on npm |
 | `dependencies.peer-mismatches` | Packages that do not accept the installed Angular |
 | `deprecated-apis.deprecated-usages` | Deprecated API uses (symbol × file) |
@@ -343,6 +369,7 @@ The largest packages in the initial bundle are listed with their size, from the 
 | `state.classic-ngrx-files` | Files on classic NgRx |
 | `state.effect-decorators` | Removed `@Effect()` decorators |
 | `testing.untested-files` | Components and services without a spec |
+| `translations.missing-keys` | Translation keys that resolve to no string |
 | `type-safety.explicit-any` | Explicit `any` in application code |
 | `type-safety.non-null-assertions` | Non-null assertions (`x!`) |
 | `type-safety.strict-flags-off` | `strictNullChecks` / `strictTemplates` / `noImplicitAny` off |

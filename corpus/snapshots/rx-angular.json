@@ -211,7 +211,8 @@
         "module-components": 0,
         "decorator-inputs-outputs": 266,
         "legacy-control-flow": 1,
-        "manual-subscriptions": 75
+        "manual-subscriptions": 75,
+        "unended-subscriptions": 11
       },
       "findings": [
         {
@@ -228,6 +229,16 @@
             "apps/demos/src/app/features/state/rx-actions/rx-actions.component.ts:181"
           ],
           "count": 42
+        },
+        {
+          "severity": "low",
+          "message": "11 `.subscribe()` calls in components and directives that nothing ever ends",
+          "files": [
+            "apps/demos/src/app/features/concepts/scheduling/scheduling/scheduling.component.ts:146",
+            "apps/demos/src/app/features/template/rx-for/route-change/routed-ng-for.component.ts:135",
+            "apps/demos/src/app/shared/debug-helper/work/work.component.ts:84"
+          ],
+          "count": 3
         }
       ]
     },
@@ -454,6 +465,13 @@
       ]
     },
     {
+      "id": "translations",
+      "grade": "info",
+      "summary": "No ngx-translate or Transloco bundle found to check translation keys against.",
+      "measures": {},
+      "findings": []
+    },
+    {
       "id": "circular-deps",
       "grade": "fair",
       "summary": "1 group of files importing each other in a loop, 2 files in total.",
@@ -499,6 +517,7 @@
         "testing": "poor",
         "type-safety": "poor",
         "security": "poor",
+        "translations": "info",
         "circular-deps": "good",
         "bundle": "info"
       }
@@ -516,6 +535,7 @@
         "testing": "poor",
         "type-safety": "poor",
         "security": "good",
+        "translations": "info",
         "circular-deps": "good",
         "bundle": "info"
       }
@@ -533,6 +553,7 @@
         "testing": "poor",
         "type-safety": "fair",
         "security": "good",
+        "translations": "info",
         "circular-deps": "good",
         "bundle": "info"
       }
@@ -550,6 +571,7 @@
         "testing": "good",
         "type-safety": "poor",
         "security": "good",
+        "translations": "info",
         "circular-deps": "fair",
         "bundle": "info"
       }
@@ -567,6 +589,7 @@
         "testing": "good",
         "type-safety": "poor",
         "security": "good",
+        "translations": "info",
         "circular-deps": "good",
         "bundle": "info"
       }
@@ -584,6 +607,7 @@
         "testing": "poor",
         "type-safety": "good",
         "security": "good",
+        "translations": "info",
         "circular-deps": "good",
         "bundle": "info"
       }
@@ -601,6 +625,7 @@
         "testing": "poor",
         "type-safety": "good",
         "security": "good",
+        "translations": "info",
         "circular-deps": "good",
         "bundle": "info"
       }
@@ -618,6 +643,7 @@
         "testing": "good",
         "type-safety": "fair",
         "security": "good",
+        "translations": "info",
         "circular-deps": "good",
         "bundle": "info"
       }
@@ -635,6 +661,7 @@
         "testing": "fair",
         "type-safety": "good",
         "security": "good",
+        "translations": "info",
         "circular-deps": "good",
         "bundle": "info"
       }

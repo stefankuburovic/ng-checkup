@@ -100,7 +100,8 @@
         "module-components": 18,
         "decorator-inputs-outputs": 12,
         "legacy-control-flow": 13,
-        "manual-subscriptions": 22
+        "manual-subscriptions": 22,
+        "unended-subscriptions": 9
       },
       "findings": [
         {
@@ -132,6 +133,16 @@
             "src/app/editor/editor.component.ts:40"
           ],
           "count": 14
+        },
+        {
+          "severity": "low",
+          "message": "9 `.subscribe()` calls in components and directives that nothing ever ends",
+          "files": [
+            "src/app/auth/auth.component.ts:52",
+            "src/app/editor/editor.component.ts:73",
+            "src/app/home/home.component.ts:37"
+          ],
+          "count": 9
         }
       ]
     },
@@ -283,6 +294,13 @@
           "count": 1
         }
       ]
+    },
+    {
+      "id": "translations",
+      "grade": "info",
+      "summary": "No ngx-translate or Transloco bundle found to check translation keys against.",
+      "measures": {},
+      "findings": []
     },
     {
       "id": "circular-deps",

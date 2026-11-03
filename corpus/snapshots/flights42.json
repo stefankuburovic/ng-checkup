@@ -75,7 +75,8 @@
         "module-components": 1,
         "decorator-inputs-outputs": 0,
         "legacy-control-flow": 0,
-        "manual-subscriptions": 10
+        "manual-subscriptions": 10,
+        "unended-subscriptions": 3
       },
       "findings": [
         {
@@ -95,6 +96,16 @@
             "src/app/domains/shared/ui-assistant/assistant-chat/assistant-chat.ts:38"
           ],
           "count": 8
+        },
+        {
+          "severity": "low",
+          "message": "3 `.subscribe()` calls in components and directives that nothing ever ends",
+          "files": [
+            "src/app/app.ts:34",
+            "src/app/domains/shared/ui-assistant/assistant-chat/assistant-chat.ts:38",
+            "src/app/domains/shared/ui-common/click-with-warning.ts:29"
+          ],
+          "count": 3
         }
       ]
     },
@@ -186,6 +197,13 @@
       "findings": []
     },
     {
+      "id": "translations",
+      "grade": "info",
+      "summary": "No ngx-translate or Transloco bundle found to check translation keys against.",
+      "measures": {},
+      "findings": []
+    },
+    {
       "id": "circular-deps",
       "grade": "fair",
       "summary": "1 group of files importing each other in a loop, 3 files in total.",
@@ -232,6 +250,7 @@
         "testing": "poor",
         "type-safety": "good",
         "security": "good",
+        "translations": "info",
         "circular-deps": "good",
         "bundle": "info"
       }
@@ -249,6 +268,7 @@
         "testing": "fair",
         "type-safety": "good",
         "security": "good",
+        "translations": "info",
         "circular-deps": "fair",
         "bundle": "info"
       }
@@ -266,6 +286,7 @@
         "testing": "poor",
         "type-safety": "good",
         "security": "good",
+        "translations": "info",
         "circular-deps": "good",
         "bundle": "info"
       }

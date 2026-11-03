@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased (2.0.0)
+
+- **Translations**, a new area (`translations`): literal ngx-translate and Transloco keys judged against the JSON bundles of every language, merged deeply per language, Transloco scopes under their folder name. A key some language lacks while it knows the namespace, or another language has, is a medium finding and the measure `missing-keys`; a key under a namespace no bundle has is listed apart and not graded. Both libraries render a missing key as the key itself, which nothing else catches. On the corpus: 5 in airgap-wallet, all real (`walletconnect.error` against `walletconnect.connection_error`, `transaction-qr.qr-data-too-big_warning` in no language, three keys only English has); 0 of 2 858 in a 1 669-file production app whose own guard already holds it at 0.
+- **Subscriptions nothing ends** (`components.unended-subscriptions`): a `.subscribe()` in a component or directive with no lifetime operator in its chain, no cleanup anywhere in the class, and a source that outlives the component, a low finding of its own. `HttpClient`, `ActivatedRoute`, `valueChanges`, a dialog's close event, `translate.get()` and the class's own subjects are left out. `takeWhile(() => this.alive)` counts as an ending too. On the corpus: 0 to 25 per repository.
+
 ## 1.6.1 (2026-11-03)
 
 - **The npm package is now `ng-checkup-cli`.** The name `ng-checkup` is no longer available to me on npm, so from 1.6.1 on it is published as `ng-checkup-cli`: run `npx ng-checkup-cli`, install `npm i -D ng-checkup-cli`, add it with `ng add ng-checkup-cli`, import from `ng-checkup-cli`. The installed binary is still `ng-checkup`, so an existing `"checkup": "ng-checkup"` script keeps working once the dependency is swapped. Versions up to 1.5.0 stay on npm as `ng-checkup`.

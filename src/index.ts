@@ -17,6 +17,7 @@ import { readCompatibility } from './compatibility.js';
 import { securityCheck } from './checks/security.js';
 import { stateCheck } from './checks/state.js';
 import { testingCheck } from './checks/testing.js';
+import { translationsCheck } from './checks/translations.js';
 import { typeSafetyCheck } from './checks/type-safety.js';
 import { versionCheck } from './checks/version.js';
 import { cachedFacts, dependencyStamp } from './cache.js';
@@ -30,10 +31,11 @@ import { buildImportGraph, filesImportedBySpecs, findTanglesIn, readCompilerOpti
 import { buildMigrationPlan, buildPrimoPlan } from './migration.js';
 import { unimportedFiles, unusedBindings, unusedDeclarables } from './unused.js';
 import { buildPlan } from './plan.js';
-import { scanSourceFile, scanTemplateFile } from './scan.js';
+import { scanSourceFile, scanTemplateFile, type SourceFileFacts, type TemplateFact } from './scan.js';
+import { judgeTranslations, type TranslationFacts, type TranslationLibrary } from './translations.js';
 import { overallScore } from './report/summary.js';
 import type { CheckupOptions, ProjectSummary, Report } from './types.js';
-import { applicationEntries, asRecord, majorOf, owningProject, readJson, resolveWorkspace, restrictToProject, type ProjectInfo } from './workspace.js';
+import { applicationEntries, asRecord, majorOf, owningProject, readJson, resolveWorkspace, restrictToProject, type ProjectInfo, type WorkspaceInfo } from './workspace.js';
 
 export type * from './types.js';
 // The renderers and the score are public so a script can turn a report from
@@ -96,16 +98,17 @@ export const CHECKS: Check[] = [
   testingCheck,
   typeSafetyCheck,
   securityCheck,
+  translationsCheck,
   circularDepsCheck,
   bundleCheck,
 ];
 
 /**
- * Every check id a report can hold, for `--only` and `--skip`: the twelve
+ * Every check id a report can hold, for `--only` and `--skip`: the thirteen
  * that always run, and the two legacy areas that replace each other when
  * there is legacy code.
  */
-export const CHECK_IDS = ['angularjs', 'primo-nde', 'version', 'deprecated-apis', 'dependencies', 'change-detection', 'components', 'state', 'architecture', 'testing', 'type-safety', 'security', 'circular-deps', 'bundle'] as const;
+export const CHECK_IDS = ['angularjs', 'primo-nde', 'version', 'deprecated-apis', 'dependencies', 'change-detection', 'components', 'state', 'architecture', 'testing', 'type-safety', 'security', 'translations', 'circular-deps', 'bundle'] as const;
 
 /**
  * A predicate over check ids from `only` and `skip`. Every check still runs
@@ -260,6 +263,10 @@ function narrowContext(context: AnalysisContext, project: ProjectInfo, ownerOf: 
     ...(context.unimportedFiles ? { unimportedFiles: context.unimportedFiles.filter((path) => ownerOf(path) === project) } : {}),
     ...(context.unusedDeclarables ? { unusedDeclarables: context.unusedDeclarables.filter((entry) => ownerOf(entry.path) === project) } : {}),
     ...(context.unusedBindings ? { unusedBindings: context.unusedBindings.filter((entry) => ownerOf(entry.path) === project) } : {}),
+    // Bundles are shared, so only the keys this project looks up are its own; `keys` stays the workspace's count.
+    ...(context.translations
+      ? { translations: { ...context.translations, missing: context.translations.missing.filter((entry) => ownerOf(entry.file.path) === project), unknownNamespace: context.translations.unknownNamespace.filter((entry) => ownerOf(entry.file.path) === project) } }
+      : {}),
     bundles: context.bundles.filter((bundle) => bundle.project === project.name),
     appCompilerOptions: readCompilerOptions(workspace.appTsconfig),
     angularCompilerOptions: workspace.appTsconfig ? readAngularCompilerOptions(workspace.appTsconfig) : {},
@@ -303,6 +310,7 @@ export async function buildContext(root: string, options: CheckupOptions): Promi
   const unimported = unimportedFiles(sources, readCompilerOptions(workspace.rootTsconfig), workspace);
   const declarables = unusedDeclarables(sources, templates, workspace, unimported, options.attributeSelectors ?? false);
   const bindings = options.attributeSelectors ? unusedBindings(sources, templates, workspace, declarables, unimported) : undefined;
+  const translations = readTranslations(root, workspace, files.translationBundles, sources, templates);
 
   const context: AnalysisContext = {
     workspace,
@@ -319,6 +327,7 @@ export async function buildContext(root: string, options: CheckupOptions): Promi
     ...(declarables ? { unusedDeclarables: declarables } : {}),
     ...(options.attributeSelectors ? { attributeSelectors: true } : {}),
     ...(bindings ? { unusedBindings: bindings } : {}),
+    ...(translations ? { translations } : {}),
     latestAngular,
     ...(nextMajor ? { nextMajor } : {}),
     compatibility: dependencies.compatibility,
@@ -375,6 +384,28 @@ export function readAngularCompilerOptions(tsconfigPath: string, depth = 0): Rec
     return { ...merged, ...readAngularCompilerOptions(path, depth + 1) };
   }, {});
   return { ...inherited, ...asRecord(config['angularCompilerOptions']) };
+}
+
+/**
+ * Translation keys against the bundles, for the translations check. Spec
+ * files are left out: a spec that looks up a made-up key to test the
+ * fallback is not a key the user ever sees.
+ *
+ * @returns Undefined without ngx-translate or Transloco among the
+ *   dependencies, or without a bundle file to read.
+ */
+function readTranslations(root: string, workspace: WorkspaceInfo, bundlePaths: string[], sources: SourceFileFacts[], templates: TemplateFact[]): TranslationFacts | undefined {
+  const library: TranslationLibrary | undefined = workspace.dependencies['@ngx-translate/core']
+    ? 'ngx-translate'
+    : workspace.dependencies['@jsverse/transloco'] || workspace.dependencies['@ngneat/transloco']
+      ? 'transloco'
+      : undefined;
+  if (!library || bundlePaths.length === 0) return undefined;
+  const uses = [
+    ...sources.filter((file) => !file.isSpec).map((file) => ({ path: file.path, keys: file.translationKeys })),
+    ...templates.map((template) => ({ path: template.path, keys: template.translationKeys })),
+  ];
+  return judgeTranslations(root, library, bundlePaths, uses);
 }
 
 /**

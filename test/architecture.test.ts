@@ -57,10 +57,32 @@ describe('scanning for security and architecture facts', () => {
       ].join('\n'),
     });
     expect(scanSourceFile(root, `${root}/c.ts`).manualSubscribes).toEqual([
-      { line: 6, bound: true },
-      { line: 8, bound: true },
-      { line: 10, bound: false },
+      { line: 6, bound: true, unended: false },
+      { line: 8, bound: true, unended: false },
+      { line: 10, bound: false, unended: true },
     ]);
+  });
+
+  it('marks a subscription unended only when nothing in the chain, the class or the source ends it', () => {
+    const component = (body: string[]) => ["import { Component } from '@angular/core';", "@Component({ selector: 'x', template: '' })", 'export class X {', ...body, '}'].join('\n');
+    root = writeTemp({
+      'open.ts': component([
+        '  private readonly state$ = new BehaviorSubject(0);',
+        '  ngOnInit() {',
+        '    this.store.list$.subscribe();',
+        '    this.http.get("/api").subscribe();',
+        '    this.route.params.subscribe();',
+        '    this.form.valueChanges.subscribe();',
+        '    this.state$.subscribe();',
+        '    this.translate\n      .get("a.b").subscribe();',
+        '    this.dialog.open(X).afterClosed().subscribe();',
+        '    this.ticks$.pipe(takeWhile(() => this.alive)).subscribe();',
+        '  }',
+      ]),
+      'cleans.ts': component(['  ngOnInit() { this.store.list$.subscribe(); }', '  ngOnDestroy() {}']),
+    });
+    expect(scanSourceFile(root, `${root}/open.ts`).manualSubscribes.map((entry) => entry.unended)).toEqual([true, false, false, false, false, false, false, false]);
+    expect(scanSourceFile(root, `${root}/cleans.ts`).manualSubscribes[0]?.unended).toBe(false);
   });
 
   it('finds sanitizer bypasses, direct DOM writes, eval, routes, constructor injection and class guards', () => {

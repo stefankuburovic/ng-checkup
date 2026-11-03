@@ -116,7 +116,8 @@
         "module-components": 144,
         "decorator-inputs-outputs": 62,
         "legacy-control-flow": 47,
-        "manual-subscriptions": 90
+        "manual-subscriptions": 90,
+        "unended-subscriptions": 1
       },
       "findings": [
         {
@@ -148,6 +149,14 @@
             "src/app/pages/e-commerce/country-orders/country-orders.component.ts:42"
           ],
           "count": 61
+        },
+        {
+          "severity": "low",
+          "message": "1 `.subscribe()` call in components and directives that nothing ever ends",
+          "files": [
+            "src/app/pages/layout/infinite-list/infinite-list.component.ts:33"
+          ],
+          "count": 1
         }
       ]
     },
@@ -291,6 +300,13 @@
         "sanitizer-bypasses": 0,
         "inner-html-bindings": 0
       },
+      "findings": []
+    },
+    {
+      "id": "translations",
+      "grade": "info",
+      "summary": "No ngx-translate or Transloco bundle found to check translation keys against.",
+      "measures": {},
       "findings": []
     },
     {

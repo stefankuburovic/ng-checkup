@@ -108,7 +108,8 @@
         "module-components": 1,
         "decorator-inputs-outputs": 0,
         "legacy-control-flow": 0,
-        "manual-subscriptions": 103
+        "manual-subscriptions": 103,
+        "unended-subscriptions": 4
       },
       "findings": [
         {
@@ -128,6 +129,14 @@
             "apps/workbench-client-testing-app/src/app/view-page/view-page.component.ts:87"
           ],
           "count": 50
+        },
+        {
+          "severity": "low",
+          "message": "4 `.subscribe()` calls in components and directives that nothing ever ends",
+          "files": [
+            "apps/workbench-client-testing-app/src/app/view-page/view-page.component.ts:175"
+          ],
+          "count": 1
         }
       ]
     },
@@ -266,6 +275,13 @@
       ]
     },
     {
+      "id": "translations",
+      "grade": "info",
+      "summary": "No ngx-translate or Transloco bundle found to check translation keys against.",
+      "measures": {},
+      "findings": []
+    },
+    {
       "id": "circular-deps",
       "grade": "poor",
       "summary": "6 groups of files importing each other in a loop, 68 files in total.",
@@ -353,6 +369,7 @@
         "testing": "poor",
         "type-safety": "good",
         "security": "good",
+        "translations": "info",
         "circular-deps": "poor",
         "bundle": "info"
       }
@@ -370,6 +387,7 @@
         "testing": "poor",
         "type-safety": "good",
         "security": "good",
+        "translations": "info",
         "circular-deps": "good",
         "bundle": "info"
       }
@@ -387,6 +405,7 @@
         "testing": "poor",
         "type-safety": "good",
         "security": "good",
+        "translations": "info",
         "circular-deps": "fair",
         "bundle": "info"
       }
@@ -404,6 +423,7 @@
         "testing": "poor",
         "type-safety": "good",
         "security": "good",
+        "translations": "info",
         "circular-deps": "good",
         "bundle": "info"
       }
@@ -421,6 +441,7 @@
         "testing": "poor",
         "type-safety": "fair",
         "security": "good",
+        "translations": "info",
         "circular-deps": "good",
         "bundle": "info"
       }
@@ -438,6 +459,7 @@
         "testing": "poor",
         "type-safety": "good",
         "security": "good",
+        "translations": "info",
         "circular-deps": "good",
         "bundle": "info"
       }
@@ -455,6 +477,7 @@
         "testing": "info",
         "type-safety": "fair",
         "security": "good",
+        "translations": "info",
         "circular-deps": "good",
         "bundle": "info"
       }

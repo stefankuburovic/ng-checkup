@@ -154,6 +154,13 @@
       "findings": []
     },
     {
+      "id": "translations",
+      "grade": "info",
+      "summary": "No ngx-translate or Transloco bundle found to check translation keys against.",
+      "measures": {},
+      "findings": []
+    },
+    {
       "id": "circular-deps",
       "grade": "info",
       "summary": "No TypeScript application code to check.",

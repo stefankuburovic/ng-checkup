@@ -102,7 +102,8 @@
         "module-components": 3,
         "decorator-inputs-outputs": 0,
         "legacy-control-flow": 0,
-        "manual-subscriptions": 0
+        "manual-subscriptions": 0,
+        "unended-subscriptions": 0
       },
       "findings": [
         {
@@ -212,6 +213,13 @@
       "findings": []
     },
     {
+      "id": "translations",
+      "grade": "info",
+      "summary": "No ngx-translate or Transloco bundle found to check translation keys against.",
+      "measures": {},
+      "findings": []
+    },
+    {
       "id": "circular-deps",
       "grade": "good",
       "summary": "No import cycles between application files.",
@@ -247,6 +255,7 @@
         "testing": "good",
         "type-safety": "poor",
         "security": "good",
+        "translations": "info",
         "circular-deps": "good",
         "bundle": "info"
       }
@@ -264,6 +273,7 @@
         "testing": "good",
         "type-safety": "poor",
         "security": "good",
+        "translations": "info",
         "circular-deps": "good",
         "bundle": "info"
       }
@@ -281,6 +291,7 @@
         "testing": "good",
         "type-safety": "poor",
         "security": "good",
+        "translations": "info",
         "circular-deps": "good",
         "bundle": "info"
       }
@@ -298,6 +309,7 @@
         "testing": "info",
         "type-safety": "poor",
         "security": "good",
+        "translations": "info",
         "circular-deps": "good",
         "bundle": "info"
       }
@@ -315,6 +327,7 @@
         "testing": "info",
         "type-safety": "poor",
         "security": "good",
+        "translations": "info",
         "circular-deps": "good",
         "bundle": "info"
       }

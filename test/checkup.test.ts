@@ -32,6 +32,7 @@ describe('runCheckup on a legacy Angular 15 app', () => {
       'circular-deps': 'fair',
       architecture: 'good',
       security: 'good',
+      translations: 'info',
       bundle: 'info',
     });
   });
@@ -86,6 +87,7 @@ describe('runCheckup on a current Angular 22 app', () => {
       'circular-deps': 'good',
       architecture: 'good',
       security: 'good',
+      translations: 'info',
       bundle: 'info',
     });
     const components = report.checks.find((check) => check.id === 'components');

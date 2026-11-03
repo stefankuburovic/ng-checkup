@@ -81,7 +81,8 @@
         "module-components": 0,
         "decorator-inputs-outputs": 0,
         "legacy-control-flow": 0,
-        "manual-subscriptions": 8
+        "manual-subscriptions": 8,
+        "unended-subscriptions": 6
       },
       "findings": [
         {
@@ -93,6 +94,16 @@
             "src/app/pages/schedule-filter/schedule-filter.ts:90"
           ],
           "count": 7
+        },
+        {
+          "severity": "low",
+          "message": "6 `.subscribe()` calls in components and directives that nothing ever ends",
+          "files": [
+            "src/app/app.component.ts:124",
+            "src/app/pages/schedule-filter/schedule-filter.ts:90",
+            "src/app/pages/schedule/schedule.ts:138"
+          ],
+          "count": 6
         }
       ]
     },
@@ -194,6 +205,13 @@
         "sanitizer-bypasses": 0,
         "inner-html-bindings": 0
       },
+      "findings": []
+    },
+    {
+      "id": "translations",
+      "grade": "info",
+      "summary": "No ngx-translate or Transloco bundle found to check translation keys against.",
+      "measures": {},
       "findings": []
     },
     {
