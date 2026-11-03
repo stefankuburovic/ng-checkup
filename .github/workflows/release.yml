@@ -1,0 +1,37 @@
+# Publishes ng-checkup-cli to npm when a GitHub release is published, with tag v<version>.
+#
+# No npm token: npm trusts this workflow (trusted publishing, set up once on npmjs.com under the
+# package's settings), and the package gets a provenance statement linking it to this build.
+# `npm publish` runs prepublishOnly (typecheck and the test suite) before anything is uploaded.
+#
+# The moving v1 tag is not touched here: move it only after the tarball answers 200
+# (docs/new-angular-major.md), since a v1 that names an unpublished version breaks every @v1 run.
+name: Release
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+          cache: npm
+      - run: npm ci
+      - name: The tag names the version being published
+        run: |
+          version=$(node -p "require('./package.json').version")
+          if [ "$GITHUB_REF_NAME" != "v$version" ]; then
+            echo "::error::Release tag $GITHUB_REF_NAME does not match package version v$version"
+            exit 1
+          fi
+      - run: npm publish --access public --provenance

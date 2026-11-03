@@ -18,7 +18,7 @@ Nothing has to be released for this phase. As soon as npm's `next` tag of `@angu
    - deprecation rules need nothing: they come from the new major's typings, and "deprecated two majors ago" moves along by itself.
 3. **Tests and corpus.** `npm test`, then `npm run corpus`. Projects on the previous major now read "1 major behind", and their snapshots change accordingly; read the diff, then `node scripts/corpus.mjs --update`.
 4. **Release** as a minor version: CHANGELOG entry, `npm version <x.y.0> --no-git-tag-version`, `NG_CHECKUP_VERSION` in `gitlab/ng-checkup.yml`, commit, push.
-   - `npm whoami` first; an expired web login fails the publish with a 404. `npm publish --auth-type=web` needs the security key.
+   - Publish by creating the GitHub release for the tag (`gh release create v<x.y.0>`): `.github/workflows/release.yml` publishes through npm trusted publishing, no token and no security key. By hand it is `npm whoami` first (an expired web login fails with a 404), then `npm publish --auth-type=web`.
    - Move the `v1` tag only after the tarball answers 200, in the same command: `[ "$(curl -s -o /dev/null -w '%{http_code}' https://registry.npmjs.org/ng-checkup-cli/-/ng-checkup-cli-<x.y.0>.tgz)" = 200 ] && git tag -f v1 && git push -f origin v1`. A `v1` that names an unpublished version breaks every `@v1` workflow.
    - GitLab CI/CD component: bump the `version` input default, commit, tag the same number.
 5. **Show it.** Regenerate the example reports on the offer page, and write the post: what the new major removes and deprecates, with numbers from step 1 of the prerelease phase.
