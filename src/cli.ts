@@ -33,6 +33,8 @@ const HELP = `Usage: ng-checkup [path | repository] [options]
        ng-checkup baseline [path] [--force]
        ng-checkup url <address> [--json] [--offline]
        ng-checkup history [path] [--points <n>] [--report <file>] [--json]
+       ng-checkup fleet <list> [--report <file>] [--online] [--json]
+       ng-checkup mcp
 
 A one-minute modernization report for an Angular codebase. Reads the code,
 never changes it, and sends nothing anywhere except package names and

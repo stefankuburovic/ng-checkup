@@ -146,7 +146,7 @@ Baseline  2 worse
   worse  Type safety: Non-null assertions (x!) 0 → 1
 ```
 
-- **It records counts, not grades:** explicit `any`, `x!`, files in import cycles, components without OnPush or a spec, NgModule-declared components, deprecated API uses, sanitizer bypasses, eager routes, manual subscriptions and [35 more](https://github.com/stefankuburovic/ng-checkup/blob/main/docs/checks.md#measures). Lower is better for every one.
+- **It records counts, not grades:** explicit `any`, `x!`, files in import cycles, components without OnPush or a spec, NgModule-declared components, deprecated API uses, sanitizer bypasses, eager routes, manual subscriptions and [51 more](https://github.com/stefankuburovic/ng-checkup/blob/main/docs/checks.md#measures), 61 in all. Lower is better for every one.
 - **It only goes down.** When numbers drop, the run says so; `npx ng-checkup-cli baseline` locks the new numbers in. If a number went up, `baseline` refuses and lists it, so a regression cannot be waved through by re-running the command. `--force` accepts it, which is the moment someone has to explain why in review.
 - **It is a plain, sorted JSON file**, so lowering a number is a one-line diff in a merge request.
 - **In a monorepo it holds each project too**, so `--project` runs gate on their own numbers ([monorepos](#monorepos)).
@@ -399,6 +399,13 @@ Usage: ng-checkup [path | repository] [options]
        ng-checkup baseline [path] [--force]
        ng-checkup url <address> [--json] [--offline]
        ng-checkup history [path] [--points <n>] [--report <file>] [--json]
+       ng-checkup fleet <list> [--report <file>] [--online] [--json]
+       ng-checkup mcp
+
+A one-minute modernization report for an Angular codebase. Reads the code,
+never changes it, and sends nothing anywhere except package names and
+versions: to the npm registry, to look up the latest Angular and compatible
+releases, and to osv.dev, for known vulnerabilities (skip both with --offline).
 
 Arguments:
   path                   Repository root (default: current directory)
@@ -444,6 +451,9 @@ Options:
                          (security,testing); the rest stay out of the score
       --skip <ids>       Leave these areas out of the report and the score
       --max-examples <n> Example files listed per finding (default 5)
+      --since <ref>      Keep only the findings in files changed since the merge
+                         base of <ref> and HEAD (origin/main); grades, score
+                         and baseline stay the whole repository's
       --attribute-selectors
                          Also list directives, and components with an attribute
                          selector ([appTooltip], button[mat-button]), that no
@@ -461,6 +471,9 @@ Init options (ng-checkup init):
       --force            Replace an existing "checkup" script
 
 Baseline options (ng-checkup baseline):
+                         Records the whole workspace and, in a workspace with
+                         several projects, each project: --project runs then
+                         compare with their own numbers
       --force            Accept measures that went up since the last baseline
 
 Url (ng-checkup url <address>):
@@ -479,6 +492,20 @@ History (ng-checkup history [path]):
       --points <n>       Months back (default 12)
   -r, --report <file>    Write it as .html (with charts), .md or .json
       --json             Print it as JSON
+
+Fleet (ng-checkup fleet <list>):
+                         One page across many repositories, worst first: the
+                         list file names one local path (relative to it) or
+                         github:owner/repo per line, # for comments
+  -r, --report <file>    Write it as .html, .md or .json
+      --online           Ask the npm registry and osv.dev for each (slower)
+      --json             Print it as JSON
+
+MCP server (ng-checkup mcp):
+                         Serves the checkup to an editor agent over the Model
+                         Context Protocol (stdio): tools checkup, findings
+                         and upgrade_plan. Register it as the command
+                         npx -y ng-checkup-cli mcp
 ```
 
 Exit codes: `0` done, `1` `--fail-on` tripped, `2` usage error (including `--fail-on regression` without a baseline). Areas graded `info` never fail a run.
@@ -659,7 +686,7 @@ node dist/cli.js path/to/some/angular/app
 
 Each check is one file in `src/checks/` and a pure function of the analysis context, so a new check is a new file plus a fixture that shows it.
 
-**The corpus.** `npm run corpus` runs ng-checkup on 13 public Angular repositories pinned to one commit each (`corpus/repos.json`: Angular 12 to 22, CLI and Nx workspaces, Ionic, a 180 000-line app) and compares the result with `corpus/snapshots/`. CI runs it on every push. A rule change that moves any number shows up as a diff; read it, and run `npm run corpus -- --update` only when every changed line is an improvement. The repositories are fetched shallow into `.corpus/` and their dependencies are never installed.
+**The corpus.** `npm run corpus` runs ng-checkup on 19 public repositories pinned to one commit each (`corpus/repos.json`: Angular 12 to 22, AngularJS and hybrid apps, two Primo VE packages, CLI and Nx workspaces, Ionic, a 180 000-line app) and compares the result with `corpus/snapshots/`. CI runs it on every push. A rule change that moves any number shows up as a diff; read it, and run `npm run corpus -- --update` only when every changed line is an improvement. The repositories are fetched shallow into `.corpus/` and their dependencies are never installed.
 
 ## Need help acting on the report?
 

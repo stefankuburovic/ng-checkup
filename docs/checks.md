@@ -18,6 +18,8 @@ The score is the average of the graded areas: good counts 100, fair 60, poor 20.
 - [Testing](#testing)
 - [Type safety](#type-safety)
 - [Security](#security)
+- [Translations](#translations) (listed, never graded)
+- [Accessibility](#accessibility) (listed, never graded)
 - [Circular dependencies](#circular-deps)
 - [Bundle size](#bundle)
 
@@ -356,10 +358,6 @@ The largest packages in the initial bundle are listed with their size, from the 
 
 | Key | Counts |
 | --- | --- |
-| `primo-nde.parentctrl-reads` | Reads of `parentCtrl` in a Primo VE package |
-| `primo-nde.primo-helper-components` | Helper components of a Primo VE package |
-| `primo-nde.primo-hooks` | Primo hooks filled, per view |
-| `primo-nde.primo-integrations` | Third-party integrations in a Primo VE package |
 | `accessibility.click-without-keyboard` | Click handlers on non-interactive elements without a key handler |
 | `accessibility.images-without-alt` | Images without alt |
 | `accessibility.positive-tabindex` | `tabindex` above 0 |
@@ -374,6 +372,12 @@ The largest packages in the initial bundle are listed with their size, from the 
 | `architecture.class-guards` | Class-based guards and interceptors |
 | `architecture.constructor-injection` | Classes with constructor injection |
 | `architecture.eager-routes` | Eagerly loaded routes (in files loaded at startup) |
+| `architecture.unused-attribute-selectors` | Directives and attribute selectors no template matches (only with `--attribute-selectors`) |
+| `architecture.unused-components` | Components no template uses |
+| `architecture.unused-files` | Files nothing imports |
+| `architecture.unused-inputs` | Inputs no template binds (only with `--attribute-selectors`) |
+| `architecture.unused-outputs` | Outputs no template binds (only with `--attribute-selectors`) |
+| `architecture.unused-pipes` | Pipes no template uses |
 | `architecture.very-large-files` | Files over 1000 lines |
 | `change-detection.eager-components` | Components with eager change detection |
 | `change-detection.ngzone-files` | Files injecting NgZone |
@@ -390,6 +394,10 @@ The largest packages in the initial bundle are listed with their size, from the 
 | `deprecated-apis.deprecated-usages` | Deprecated API uses (symbol × file) |
 | `deprecated-apis.legacy-template-directives` | `*ngIf` / `*ngFor` / `[ngSwitch]` uses |
 | `deprecated-apis.to-promise-calls` | `.toPromise()` calls |
+| `primo-nde.parentctrl-reads` | Reads of `parentCtrl` in a Primo VE package |
+| `primo-nde.primo-helper-components` | Helper components of a Primo VE package |
+| `primo-nde.primo-hooks` | Primo hooks filled, per view |
+| `primo-nde.primo-integrations` | Third-party integrations in a Primo VE package |
 | `security.dynamic-code` | `eval` and `new Function` calls |
 | `security.inner-html-bindings` | `[innerHTML]` bindings |
 | `security.sanitizer-bypasses` | `bypassSecurityTrust*` calls |
