@@ -261,7 +261,10 @@
         "eager-routes": 6,
         "very-large-files": 8,
         "constructor-injection": 109,
-        "class-guards": 1
+        "class-guards": 1,
+        "unused-files": 26,
+        "unused-components": 11,
+        "unused-pipes": 0
       },
       "findings": [
         {
@@ -273,6 +276,26 @@
             "apps/rebundle-demo/src/shared/chunkers-3MB-500constants-100components/root-chunker.component.ts"
           ],
           "count": 18
+        },
+        {
+          "severity": "low",
+          "message": "26 files nothing imports",
+          "files": [
+            "apps/demos/src/app/features/experiments/state/composition/solution.component.ts",
+            "apps/demos/src/app/features/experiments/state/composition/subscription.service.ts",
+            "apps/demos/src/app/features/experiments/state/selections/source.service.ts"
+          ],
+          "count": 26
+        },
+        {
+          "severity": "low",
+          "message": "11 components no template uses",
+          "files": [
+            "apps/demos/src/app/features/concepts/global-order/native-v/v1-c.component.ts:7",
+            "apps/demos/src/app/features/concepts/global-order/native-v/v1-d.component.ts:3",
+            "apps/demos/src/app/features/concepts/global-order/push-v/v2-c.component.ts:9"
+          ],
+          "count": 11
         },
         {
           "severity": "low",

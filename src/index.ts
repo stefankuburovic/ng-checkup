@@ -28,6 +28,7 @@ import { ignoreMatcher } from './config.js';
 import { collectFiles } from './files.js';
 import { buildImportGraph, filesImportedBySpecs, findTanglesIn, readCompilerOptions, staticallyReachable } from './graph.js';
 import { buildMigrationPlan, buildPrimoPlan } from './migration.js';
+import { unimportedFiles, unusedDeclarables } from './unused.js';
 import { buildPlan } from './plan.js';
 import { scanSourceFile, scanTemplateFile } from './scan.js';
 import { overallScore } from './report/summary.js';
@@ -256,6 +257,8 @@ function narrowContext(context: AnalysisContext, project: ProjectInfo, ownerOf: 
       templates: context.angularJs.templates.filter((template) => ownerOf(template.path) === project),
     },
     tangles: context.tangles.filter((tangle) => tangle.files.every((path) => ownerOf(path) === project)),
+    ...(context.unimportedFiles ? { unimportedFiles: context.unimportedFiles.filter((path) => ownerOf(path) === project) } : {}),
+    ...(context.unusedDeclarables ? { unusedDeclarables: context.unusedDeclarables.filter((entry) => ownerOf(entry.path) === project) } : {}),
     bundles: context.bundles.filter((bundle) => bundle.project === project.name),
     appCompilerOptions: readCompilerOptions(workspace.appTsconfig),
     angularCompilerOptions: workspace.appTsconfig ? readAngularCompilerOptions(workspace.appTsconfig) : {},
@@ -296,6 +299,8 @@ export async function buildContext(root: string, options: CheckupOptions): Promi
   const nextMajor = options.compareNextMajor === false ? undefined : await nextMajorChanges(workspace, sources, latestAngular.major, options.offline ?? false);
   const graph = buildImportGraph(sources, readCompilerOptions(workspace.rootTsconfig));
   const eagerFiles = staticallyReachable(graph, applicationEntries(workspace));
+  const unimported = unimportedFiles(sources, readCompilerOptions(workspace.rootTsconfig), workspace);
+  const declarables = unusedDeclarables(sources, templates, workspace, unimported, options.attributeSelectors ?? false);
 
   const context: AnalysisContext = {
     workspace,
@@ -308,6 +313,9 @@ export async function buildContext(root: string, options: CheckupOptions): Promi
     tangles: findTanglesIn(graph),
     specImports: filesImportedBySpecs(sources, readCompilerOptions(workspace.rootTsconfig)),
     ...(eagerFiles.size > 0 ? { eagerFiles } : {}),
+    ...(unimported ? { unimportedFiles: unimported } : {}),
+    ...(declarables ? { unusedDeclarables: declarables } : {}),
+    ...(options.attributeSelectors ? { attributeSelectors: true } : {}),
     latestAngular,
     ...(nextMajor ? { nextMajor } : {}),
     compatibility: dependencies.compatibility,

@@ -25,6 +25,15 @@ export interface ProjectInfo {
   root: string;
   type: 'application' | 'library' | 'unknown';
   /**
+   * The folder holding the project's code, relative to the analysed root:
+   * `sourceRoot` as declared, else `<root>/src` when it exists, else the root.
+   * The unused-files measure looks only here, so scripts and tool configs
+   * next to `angular.json` (a `server.ts`, `sheriff.config.ts`) are not taken
+   * for application code nothing imports. Absent only on a project built by
+   * hand (tests), which then reads as its root.
+   */
+  sourceRoot?: string;
+  /**
    * The tsconfig the project is compiled with: its build target's `tsConfig`,
    * else `tsconfig.app.json`, `tsconfig.lib.json` or `tsconfig.json` in its
    * root. Undefined when none exists.
@@ -137,7 +146,11 @@ export function resolveWorkspace(root: string, projectJsons: string[], nestedAng
     ...inner,
     dependencies: { ...atRoot.dependencies, ...inner.dependencies },
     versions: { ...atRoot.versions, ...inner.versions },
-    projects: inner.projects.map((project) => ({ ...project, root: project.root ? `${prefix}/${project.root}` : prefix })),
+    projects: inner.projects.map((project) => ({
+      ...project,
+      root: project.root ? `${prefix}/${project.root}` : prefix,
+      ...(project.sourceRoot !== undefined ? { sourceRoot: project.sourceRoot ? `${prefix}/${project.sourceRoot}` : prefix } : {}),
+    })),
     subfolder: prefix,
   };
 }
@@ -345,7 +358,13 @@ function readAngularJsonProjects(root: string, angularJson: Record<string, unkno
   return Object.entries(asRecord(angularJson['projects'])).map(([name, value]) => {
     const project = asRecord(value);
     const projectRoot = typeof project['root'] === 'string' ? project['root'].replace(/\\/g, '/').replace(/\/+$/, '') : '';
-    return { name, root: projectRoot, type: projectTypeOf(project['projectType']), tsconfig: projectTsconfig(root, projectRoot, name, targets, project['projectType']) };
+    return {
+      name,
+      root: projectRoot,
+      type: projectTypeOf(project['projectType']),
+      sourceRoot: sourceRootOf(root, projectRoot, project['sourceRoot']),
+      tsconfig: projectTsconfig(root, projectRoot, name, targets, project['projectType']),
+    };
   });
 }
 
@@ -357,9 +376,26 @@ function readProjectJsonProjects(root: string, projectJsons: string[], targets: 
     if (!project) continue;
     const name = typeof project['name'] === 'string' ? project['name'] : basename(dirname(path));
     const projectRoot = relative(root, dirname(path)).split('\\').join('/');
-    projects.push({ name, root: projectRoot, type: projectTypeOf(project['projectType']), tsconfig: projectTsconfig(root, projectRoot, name, targets, project['projectType']) });
+    projects.push({
+      name,
+      root: projectRoot,
+      type: projectTypeOf(project['projectType']),
+      sourceRoot: sourceRootOf(root, projectRoot, project['sourceRoot']),
+      tsconfig: projectTsconfig(root, projectRoot, name, targets, project['projectType']),
+    });
   }
   return projects;
+}
+
+/**
+ * See `ProjectInfo.sourceRoot`. Both `angular.json` and `project.json` write
+ * it relative to the workspace root, which is where `projectRoot` is relative
+ * to as well.
+ */
+function sourceRootOf(root: string, projectRoot: string, declared: unknown): string {
+  if (typeof declared === 'string' && declared.trim() !== '') return declared.replace(/\\/g, '/').replace(/^\.\//, '').replace(/\/+$/, '');
+  const src = projectRoot ? `${projectRoot}/src` : 'src';
+  return existsSync(join(root, src)) ? src : projectRoot;
 }
 
 /** `projectType` as declared; Nx infers it when absent, which this does not try to. */

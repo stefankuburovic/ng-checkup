@@ -14,8 +14,16 @@ const HOTSPOT_LINES = 300;
 /** …and was changed in at least this many commits of the last year. */
 const HOTSPOT_COMMITS = 10;
 
+/** "2 components, 1 directive and 3 pipes" from the parts that are there. */
+function listOf(parts: Array<string | undefined>): string {
+  const present = parts.filter((part): part is string => part !== undefined);
+  return present.length > 1 ? `${present.slice(0, -1).join(', ')} and ${present[present.length - 1]}` : (present[0] ?? '');
+}
+
 /**
- * How the code is put together: lazy loading, oversized files, and the
+ * How the code is put together: lazy loading, oversized files, dead code
+ * (files nothing imports, components and pipes no template uses, and with
+ * `--attribute-selectors` directives no template matches), and the
  * dependency-injection and guard style.
  *
  * Graded only on what makes an app slower to load or harder to change:
@@ -24,7 +32,9 @@ const HOTSPOT_COMMITS = 10;
  * injection and class-based guards are reported but never grade, because
  * they are a matter of style that works fine; `inject()` and functional
  * guards are the current default and what the Angular migrations produce,
- * which is all the findings say.
+ * which is all the findings say. Dead code does not grade either:
+ * dead code costs reading time, not load time, and the count is a measure so
+ * a baseline can hold it from growing.
  *
  * Routes are recognised syntactically (object literals with `path` and
  * `component` or `loadComponent`/`loadChildren`), so routes built by a
@@ -89,6 +99,44 @@ export function architectureCheck(context: AnalysisContext): CheckResult {
       count: hotspots.length,
     });
   }
+  const unimported = context.unimportedFiles;
+  if (unimported && unimported.length > 0) {
+    findings.push({
+      severity: 'low',
+      message: `${plural(unimported.length, 'file')} nothing imports`,
+      detail:
+        'No other file imports these, eagerly, lazily or from a spec, and no build target or tsconfig names them, so the build never includes them and deleting them changes nothing at runtime. Deleting one can leave the files only it imported unused in turn; the next run lists those. A file loaded in a way the analysis cannot see (a path built at runtime, a script run by hand) appears here too: leave it out with `ignore` in `ng-checkup.config.json`.',
+      files: unimported.slice(0, max).map((path) => ({ path })),
+      count: unimported.length,
+    });
+  }
+  const declarables = context.unusedDeclarables;
+  const byTag = declarables?.filter((entry) => !entry.attributeSelector) ?? [];
+  const byAttribute = declarables?.filter((entry) => entry.attributeSelector) ?? [];
+  const unusedComponents = byTag.filter((entry) => entry.kind === 'component');
+  const unusedPipes = byTag.filter((entry) => entry.kind === 'pipe');
+  if (byTag.length > 0) {
+    findings.push({
+      severity: 'low',
+      message: `${listOf([unusedComponents.length > 0 ? plural(unusedComponents.length, 'component') : undefined, unusedPipes.length > 0 ? plural(unusedPipes.length, 'pipe') : undefined])} no template uses`,
+      detail:
+        'No template has the component\'s tag or calls the pipe by name, and no file names the class (a route, a dialog, `inject()`, `providers`). Being declared in an NgModule or listed in a standalone `imports` array keeps nothing alive. Delete the class and its declaration; the files it alone imported then show up as files nothing imports. Directives and attribute selectors are left to `--attribute-selectors`; selectors with a class or `:not()`, default exports and library projects are not checked.',
+      files: byTag.slice(0, max).map((entry) => ({ path: entry.path, line: entry.line })),
+      count: byTag.length,
+    });
+  }
+  if (byAttribute.length > 0) {
+    const directives = byAttribute.filter((entry) => entry.kind === 'directive').length;
+    const components = byAttribute.length - directives;
+    findings.push({
+      severity: 'low',
+      message: `${listOf([directives > 0 ? plural(directives, 'directive') : undefined, components > 0 ? plural(components, 'attribute-selector component') : undefined])} no template matches`,
+      detail:
+        'No template has the attributes their selector asks for (`[appTooltip]` is matched by `appTooltip`, a binding, `*appTooltip` or an output), and no file names the class (`hostDirectives`, a query, `inject()`). The tag and the attribute are not checked to sit on the same element, so a selector can only be called used wrongly, never unused; still, check a hit before deleting it.',
+      files: byAttribute.slice(0, max).map((entry) => ({ path: entry.path, line: entry.line })),
+      count: byAttribute.length,
+    });
+  }
   if (classGuards.length > 0) {
     findings.push({
       severity: 'low',
@@ -132,6 +180,7 @@ export function architectureCheck(context: AnalysisContext): CheckResult {
       { label: 'Large files', value: formatCount(large.length), hint: `over ${formatCount(LARGE_FILE)} lines` },
       { label: 'Constructor injection', value: formatCount(constructorInjections.length), hint: `classes; ${formatCount(injectCalls)} inject() calls` },
       { label: 'Class guards', value: formatCount(classGuards.length), hint: 'and interceptors' },
+      ...(unimported ? [{ label: 'Unused files', value: formatCount(unimported.length), hint: declarables ? `and ${plural(declarables.length, 'unused component or pipe', 'unused components and pipes')}` : 'nothing imports them' }] : []),
       churn
         ? { label: 'Hotspots', value: formatCount(hotspots.length), hint: `from ${plural(churn.commits, 'commit')} in the last year` }
         : { label: 'Hotspots', value: '-', hint: context.churn === 'shallow clone' ? 'shallow clone: no history (fetch-depth: 0)' : `${context.churn}` },
@@ -142,6 +191,10 @@ export function architectureCheck(context: AnalysisContext): CheckResult {
       { id: 'very-large-files', label: `Files over ${VERY_LARGE_FILE} lines`, value: veryLarge.length },
       { id: 'constructor-injection', label: 'Classes with constructor injection', value: constructorInjections.length },
       { id: 'class-guards', label: 'Class-based guards and interceptors', value: classGuards.length },
+      ...(unimported ? [{ id: 'unused-files', label: 'Files nothing imports', value: unimported.length }] : []),
+      ...(declarables ? [{ id: 'unused-components', label: 'Components no template uses', value: unusedComponents.length }, { id: 'unused-pipes', label: 'Pipes no template uses', value: unusedPipes.length }] : []),
+      // Only with --attribute-selectors, so a baseline taken without it never sees the measure appear or vanish.
+      ...(declarables && context.attributeSelectors ? [{ id: 'unused-attribute-selectors', label: 'Directives and attribute selectors no template matches', value: byAttribute.length }] : []),
     ],
   };
 }

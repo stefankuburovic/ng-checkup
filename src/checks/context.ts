@@ -10,6 +10,7 @@ import type { TypingsSource } from '../typings.js';
 import type { VulnerabilityScan } from '../vulnerabilities.js';
 import type { SourceFileFacts, TemplateFact } from '../scan.js';
 import type { CheckResult, FileRef } from '../types.js';
+import type { UnusedDeclarable } from '../unused.js';
 import type { WorkspaceInfo } from '../workspace.js';
 
 /**
@@ -39,6 +40,16 @@ export interface AnalysisContext {
    * loads lazily.
    */
   eagerFiles?: Set<string>;
+  /**
+   * Report paths of the application files nothing imports (see
+   * `unimportedFiles`). Undefined for a repository without projects, where
+   * the architecture check leaves the measure out.
+   */
+  unimportedFiles?: string[];
+  /** Components, directives and pipes nothing uses (see `unusedDeclarables`). Undefined exactly when `unimportedFiles` is. */
+  unusedDeclarables?: UnusedDeclarable[];
+  /** True when `--attribute-selectors` asked for directives and attribute-selector components to be judged too. */
+  attributeSelectors?: boolean;
   /** Stats of the last `ng build --stats-json` per application. Empty when there is none. */
   bundles: BundleStats[];
   /** Installed third-party packages that depend on Angular. Empty without node_modules. */

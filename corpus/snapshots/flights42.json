@@ -117,9 +117,23 @@
         "eager-routes": 4,
         "very-large-files": 0,
         "constructor-injection": 0,
-        "class-guards": 0
+        "class-guards": 0,
+        "unused-files": 24,
+        "unused-components": 0,
+        "unused-pipes": 0
       },
-      "findings": []
+      "findings": [
+        {
+          "severity": "low",
+          "message": "24 files nothing imports",
+          "files": [
+            "src/app/domains/checkin/data/checkin-info.ts",
+            "src/app/domains/checkin/data/internal/confirmations.ts",
+            "src/app/domains/checkin/data/internal/validation.ts"
+          ],
+          "count": 24
+        }
+      ]
     },
     {
       "id": "testing",

@@ -56,6 +56,28 @@ export interface ComponentFact {
    * interpreted by the check that knows the version.
    */
   changeDetection?: string;
+  /** The `selector` string as written, undefined when absent (a routed-only component). */
+  selector?: string;
+  /** True for `export default class`, which a route loads by file (`loadComponent: () => import('./x')`) rather than by name. */
+  defaultExport?: boolean;
+}
+
+/** One `@Directive` class and the selector templates match it by. */
+export interface DirectiveFact {
+  name: string;
+  line: number;
+  /** The `selector` string as written, undefined when absent (a host directive or an abstract base). */
+  selector?: string;
+  defaultExport?: boolean;
+}
+
+/** One `@Pipe` class and the name templates call it by. */
+export interface PipeFact {
+  className: string;
+  /** The `name` in the decorator, undefined when it is not a string literal. */
+  name?: string;
+  line: number;
+  defaultExport?: boolean;
 }
 
 /** Control-flow and escape-hatch counts for one template, inline or external. */
@@ -83,6 +105,30 @@ export interface TemplateFact {
   firstLegacyLine?: number;
   /** AngularJS syntax in an external template; absent when there is none, which is every template of an Angular-only app. */
   angularJs?: AngularJsTemplateStats;
+  /** See `TemplateUsage`. */
+  usage: TemplateUsage;
+}
+
+/**
+ * What a template uses by name: element tags, the attributes on them, and
+ * pipes. Read from the text, so an element in a comment does not count and
+ * one built at runtime is not seen.
+ */
+export interface TemplateUsage {
+  /** Every tag name, lower-cased, unique, sorted: `app-hero`, and `button` for a `button[mat-button]` selector. */
+  elements: string[];
+  /**
+   * Attribute names a directive selector can match, lower-cased, unique,
+   * sorted, with Angular's binding syntax removed: `appTooltip`,
+   * `[appTooltip]="x"`, `[(ngModel)]`, `*appIf` and an event binding
+   * `(appClickWithWarning)="go()"` all give the bare name, since Angular
+   * matches selectors against inputs and outputs alike. References
+   * (`#ref`), `let-` variables and `[attr.x]`, `[class.x]`, `[style.x]`
+   * bindings are left out, since no selector matches them.
+   */
+  attributes: string[];
+  /** Unique, sorted. */
+  pipes: string[];
 }
 
 /** Everything the checks need from one TypeScript file, gathered in a single AST pass. */
@@ -190,6 +236,18 @@ export interface SourceFileFacts {
   typeExports: string[];
   /** `templateUrl`/`template` is resolved by the template scan; inline templates are collected here. */
   inlineTemplates: TemplateFact[];
+  pipes: PipeFact[];
+  directives: DirectiveFact[];
+  /**
+   * Capitalised names the file mentions outside its imports, its own class
+   * names, and the `declarations`/`imports`/`exports` arrays of Angular
+   * metadata: a route's `component: X`, `dialog.open(X)`, `inject(XPipe)`,
+   * `providers: [XPipe]`, a constructor parameter typed `XPipe`, a
+   * `bootstrap: [AppComponent]`. A component or pipe no template uses and no
+   * other file mentions this way is unused; being listed in an NgModule or a
+   * standalone `imports` array alone keeps nothing alive.
+   */
+  classReferences: string[];
 }
 
 /**
@@ -235,6 +293,9 @@ export function scanSourceFile(root: string, absolutePath: string): SourceFileFa
     constructorInjections: [],
     classGuards: [],
     inlineTemplates: [],
+    pipes: [],
+    directives: [],
+    classReferences: classReferencesOf(source),
   };  const anyExempt = lintExemptLines(text, '@typescript-eslint/no-explicit-any');
 
 
@@ -307,10 +368,21 @@ export function scanSourceFile(root: string, absolutePath: string): SourceFileFa
       const key = keyOf(node.expression);
       if (key) record(facts.constructions, key, lineOf(node));
       else if (ts.isIdentifier(node.expression) && node.expression.text === 'Function') facts.dynamicCodeLines.push(lineOf(node));
+      // `new Worker(new URL('./app.worker', import.meta.url))`: the bundler loads the file, so it is used though nothing imports it.
+      const [target, base] = node.arguments ?? [];
+      if (ts.isIdentifier(node.expression) && node.expression.text === 'URL' && target && ts.isStringLiteralLike(target) && target.text.startsWith('.') && base && isImportMetaUrl(base)) {
+        facts.imports.push({ specifier: target.text, line: lineOf(node), typeOnly: false, dynamic: true, bindings: [] });
+      }
     } else if (ts.isBinaryExpression(node) && (node.operatorToken.kind === ts.SyntaxKind.EqualsToken || node.operatorToken.kind === ts.SyntaxKind.PlusEqualsToken)) {
       if (ts.isPropertyAccessExpression(node.left) && /^(innerHTML|outerHTML)$/.test(node.left.name.text) && !isConstantString(node.right)) facts.unsafeDomLines.push(lineOf(node));
     } else if (ts.isObjectLiteralExpression(node)) {
       const names = new Set(node.properties.map((property) => (property.name && (ts.isIdentifier(property.name) || ts.isStringLiteral(property.name)) ? property.name.text : '')));
+      // Angular 7 and older: `loadChildren: './admin/admin.module#AdminModule'`, a module loaded by a string the bundler resolves.
+      for (const property of node.properties) {
+        if (!ts.isPropertyAssignment(property) || !property.name || !ts.isIdentifier(property.name) || property.name.text !== 'loadChildren') continue;
+        if (!ts.isStringLiteralLike(property.initializer) || !property.initializer.text.includes('#')) continue;
+        facts.imports.push({ specifier: property.initializer.text.split('#')[0]!, line: lineOf(property), typeOnly: false, dynamic: true, bindings: [] });
+      }
       if (names.has('path') && !names.has('redirectTo')) {
         if (names.has('loadComponent') || names.has('loadChildren')) facts.routes.lazy.push(lineOf(node));
         else if (names.has('component')) facts.routes.eager.push(lineOf(node));
@@ -387,9 +459,20 @@ export function scanSourceFile(root: string, absolutePath: string): SourceFileFa
       const key = decoratorKey(decorator);
       if (key === '@angular/core#NgModule') facts.ngModules++;
       else if (key === '@angular/core#Injectable') facts.injectables++;
+      else if (key === '@angular/core#Directive') {
+        const metadata = ts.isCallExpression(decorator.expression) ? decorator.expression.arguments[0] : undefined;
+        const selector = metadata && ts.isObjectLiteralExpression(metadata) ? metadata.properties.find((property) => ts.isPropertyAssignment(property) && ts.isIdentifier(property.name) && property.name.text === 'selector') : undefined;
+        const value = selector && ts.isPropertyAssignment(selector) ? selector.initializer : undefined;
+        facts.directives.push({ name, line: lineOf(node), ...(value && ts.isStringLiteralLike(value) ? { selector: value.text } : {}), ...(isDefaultExport(node) ? { defaultExport: true } : {}) });
+      } else if (key === '@angular/core#Pipe') {
+        const metadata = ts.isCallExpression(decorator.expression) ? decorator.expression.arguments[0] : undefined;
+        const nameProperty = metadata && ts.isObjectLiteralExpression(metadata) ? metadata.properties.find((property) => ts.isPropertyAssignment(property) && ts.isIdentifier(property.name) && property.name.text === 'name') : undefined;
+        const value = nameProperty && ts.isPropertyAssignment(nameProperty) ? nameProperty.initializer : undefined;
+        facts.pipes.push({ className: name, line: lineOf(node), ...(value && ts.isStringLiteralLike(value) ? { name: value.text } : {}), ...(isDefaultExport(node) ? { defaultExport: true } : {}) });
+      }
       else if (key === '@angular/core#Component') {
         const metadata = ts.isCallExpression(decorator.expression) ? decorator.expression.arguments[0] : undefined;
-        const component: ComponentFact = { name: node.name?.text ?? '(anonymous)', line: lineOf(node) };
+        const component: ComponentFact = { name: node.name?.text ?? '(anonymous)', line: lineOf(node), ...(isDefaultExport(node) ? { defaultExport: true } : {}) };
         if (metadata && ts.isObjectLiteralExpression(metadata)) {
           for (const property of metadata.properties) {
             if (!ts.isPropertyAssignment(property) || !ts.isIdentifier(property.name)) continue;
@@ -399,6 +482,8 @@ export function scanSourceFile(root: string, absolutePath: string): SourceFileFa
               else if (value.kind === ts.SyntaxKind.FalseKeyword) component.standalone = false;
             } else if (property.name.text === 'changeDetection' && ts.isPropertyAccessExpression(value)) {
               component.changeDetection = value.name.text;
+            } else if (property.name.text === 'selector' && ts.isStringLiteralLike(value)) {
+              component.selector = value.text;
             } else if (property.name.text === 'template') {
               const template = templateTextOf(value);
               if (template !== undefined) {
@@ -408,6 +493,7 @@ export function scanSourceFile(root: string, absolutePath: string): SourceFileFa
                   path,
                   inline: true,
                   stats,
+                  usage: templateUsage(template.text),
                   firstLegacyLine: legacyOffset === undefined ? undefined : source.getLineAndCharacterOfPosition(template.start + legacyOffset).line + 1,
                 });
               }
@@ -504,6 +590,86 @@ export function isGeneratedFile(path: string, text: string): boolean {
   if (/^generated([.\-_]|$)|[.\-_](generated|gen)$/i.test(base)) return true;
   const comments = (ts.getLeadingCommentRanges(text, 0) ?? []).map((range) => text.slice(range.pos, range.end)).join('\n');
   return GENERATED_HEADER.test(comments);
+}
+
+/**
+ * See `TemplateUsage`. A pipe is a `|` that is not part of `||`, followed by
+ * a name, which is how a pipe reads in an interpolation, a binding, an
+ * `@if (x | async; as y)` and a `@for`'s expression alike.
+ */
+export function templateUsage(template: string): TemplateUsage {
+  const text = withoutHtmlComments(template);
+  const elements = new Set<string>();
+  const attributes = new Set<string>();
+  // A start tag up to its `>`, where a quoted value may hold a `>` of its own (`*ngIf="a > b"`).
+  for (const match of text.matchAll(/<([a-zA-Z][\w.-]*)((?:[^>"']|"[^"]*"|'[^']*')*)>/g)) {
+    elements.add(match[1]!.toLowerCase());
+    for (const token of match[2]!.replace(/"[^"]*"|'[^']*'/g, ' ').split(/[\s=/]+/)) {
+      const name = attributeName(token);
+      if (name) attributes.add(name);
+    }
+  }
+  const pipes = new Set<string>();
+  for (const match of text.matchAll(/(?<![|])\|(?![|])\s*([A-Za-z_$][\w$]*)/g)) pipes.add(match[1]!);
+  return { elements: [...elements].sort(), attributes: [...attributes].sort(), pipes: [...pipes].sort() };
+}
+
+/**
+ * The attribute a directive selector would match for one token of a start
+ * tag, lower-cased, or undefined for a token no selector matches (see
+ * `TemplateUsage.attributes`). Lower-cased on both sides of the comparison,
+ * since browsers lower-case attribute names and a template may be written
+ * either way.
+ */
+function attributeName(token: string): string | undefined {
+  if (token === '' || /^[#@]|^let-|^ref-/.test(token)) return undefined;
+  const name = token.replace(/^\[\(|\)\]$/g, '').replace(/^[[(]|[\])]$/g, '').replace(/^\*/, '').replace(/^(bind|bindon|on)-/, '');
+  if (name === '' || name.includes('.') || !/^[A-Za-z_][\w:-]*$/.test(name)) return undefined;
+  return name.toLowerCase();
+}
+
+/** Metadata arrays that list declarables without using them (see `SourceFileFacts.classReferences`). */
+const LISTING_ARRAYS = new Set(['declarations', 'imports', 'exports', 'entryComponents']);
+
+/** See `SourceFileFacts.classReferences`. */
+function classReferencesOf(source: ts.SourceFile): string[] {
+  const names = new Set<string>();
+  const visit = (node: ts.Node): void => {
+    if (ts.isImportDeclaration(node) || ts.isExportDeclaration(node) || ts.isImportEqualsDeclaration(node)) return;
+    // Only the classes listed directly: `imports: [RouterModule.forChild([{ path: '', component: AboutPage }])]` still uses `AboutPage`.
+    if (ts.isPropertyAssignment(node) && ts.isIdentifier(node.name) && LISTING_ARRAYS.has(node.name.text) && isInsideDecorator(node)) {
+      if (ts.isArrayLiteralExpression(node.initializer)) for (const element of node.initializer.elements) if (!ts.isIdentifier(element)) visit(element);
+      return;
+    }
+    if (ts.isIdentifier(node) && /^[A-Z]/.test(node.text)) {
+      const parent = node.parent;
+      const declares = (ts.isClassDeclaration(parent) || ts.isInterfaceDeclaration(parent) || ts.isTypeAliasDeclaration(parent) || ts.isEnumDeclaration(parent)) && parent.name === node;
+      if (!declares) names.add(node.text);
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(source);
+  return [...names].sort();
+}
+
+/** True for a node inside a decorator's arguments, such as a property of `@NgModule({ ... })`. */
+function isInsideDecorator(node: ts.Node): boolean {
+  for (let current: ts.Node | undefined = node.parent; current; current = current.parent) {
+    if (ts.isDecorator(current)) return true;
+    if (ts.isSourceFile(current) || ts.isClassDeclaration(current)) return false;
+  }
+  return false;
+}
+
+/** True for `export default class`. */
+function isDefaultExport(node: ts.ClassDeclaration): boolean {
+  const modifiers = ts.getModifiers(node) ?? [];
+  return modifiers.some((modifier) => modifier.kind === ts.SyntaxKind.ExportKeyword) && modifiers.some((modifier) => modifier.kind === ts.SyntaxKind.DefaultKeyword);
+}
+
+/** True for `import.meta.url`, the base a bundler-resolved `new URL(...)` is given. */
+function isImportMetaUrl(node: ts.Expression): boolean {
+  return ts.isPropertyAccessExpression(node) && node.name.text === 'url' && ts.isMetaProperty(node.expression) && node.expression.keywordToken === ts.SyntaxKind.ImportKeyword;
 }
 
 /** See `SourceFileFacts.typeExports`. Top-level statements only, which is where exports live. */
@@ -656,6 +822,7 @@ export function scanTemplateFile(root: string, absolutePath: string): TemplateFa
     path: toReportPath(root, absolutePath),
     inline: false,
     stats: scanTemplate(text),
+    usage: templateUsage(text),
     firstLegacyLine: offset === undefined ? undefined : text.slice(0, offset).split('\n').length,
     ...(angularJs.attributes > 0 || angularJs.apps > 0 || angularJs.cdnVersion ? { angularJs } : {}),
   };

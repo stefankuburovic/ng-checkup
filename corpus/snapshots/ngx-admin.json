@@ -179,7 +179,10 @@
         "eager-routes": 7,
         "very-large-files": 0,
         "constructor-injection": 92,
-        "class-guards": 0
+        "class-guards": 0,
+        "unused-files": 0,
+        "unused-components": 0,
+        "unused-pipes": 0
       },
       "findings": [
         {

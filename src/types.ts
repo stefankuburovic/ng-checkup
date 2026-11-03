@@ -169,6 +169,14 @@ export interface CheckupOptions {
   /** Add an upgrade plan from the installed Angular to the latest major. */
   plan?: boolean;
   /**
+   * Also look for directives, and components with an attribute selector
+   * (`[appTooltip]`, `button[mat-button]`), that no template matches
+   * (`--attribute-selectors`). Off by default: matching attributes is looser
+   * than matching tags, so it reports under a measure of its own and a
+   * baseline taken without it is not disturbed.
+   */
+  attributeSelectors?: boolean;
+  /**
    * Check ids to keep (`--only security,testing`); all others are left out of
    * the report and the score. Validated against `CHECK_IDS`.
    */

@@ -159,7 +159,10 @@
         "eager-routes": 11,
         "very-large-files": 1,
         "constructor-injection": 0,
-        "class-guards": 0
+        "class-guards": 0,
+        "unused-files": 5,
+        "unused-components": 0,
+        "unused-pipes": 0
       },
       "findings": [
         {
@@ -170,6 +173,16 @@
             "projects/scion/e2e-testing/src/matcher/to-equal-workbench-layout.matcher.ts"
           ],
           "count": 2
+        },
+        {
+          "severity": "low",
+          "message": "5 files nothing imports",
+          "files": [
+            "apps/workbench-testing-app/src/app/common/stringify.pipe.ts",
+            "projects/scion/workbench/src/lib/common/array-coerce.pipe.ts",
+            "projects/scion/workbench/src/lib/common/array-concat.pipe.ts"
+          ],
+          "count": 5
         }
       ]
     },

@@ -1,7 +1,7 @@
 import { execFileSync, spawnSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
-import { analysisIgnores, parseCliArguments, shouldFail } from '../src/cli.js';
+import { analysisIgnores, parseCliArguments, resolveSettings, shouldFail } from '../src/cli.js';
 import type { Report } from '../src/types.js';
 import { fixture, removeTemp, writeTemp } from './helpers.js';
 
@@ -17,6 +17,14 @@ describe('parseCliArguments', () => {
 
   it('defaults to the current directory with colour on a TTY', () => {
     expect(parse()).toMatchObject({ root: process.cwd(), reports: [], json: false, verbose: false, maxExamples: undefined, offline: false, color: true });
+  });
+
+  it('leaves attribute selectors off unless --attribute-selectors or the config turns them on', () => {
+    expect(parse()).toMatchObject({ attributeSelectors: false });
+    expect(parse('--attribute-selectors')).toMatchObject({ attributeSelectors: true });
+    const parsed = parse();
+    if (typeof parsed === 'string') throw new Error('expected arguments');
+    expect(resolveSettings(parsed, { attributeSelectors: true }, process.cwd())).toMatchObject({ attributeSelectors: true });
   });
 
   it('turns colour off for NO_COLOR, --no-color and a non-TTY', () => {

@@ -156,7 +156,10 @@
         "eager-routes": 2,
         "very-large-files": 34,
         "constructor-injection": 350,
-        "class-guards": 22
+        "class-guards": 22,
+        "unused-files": 2,
+        "unused-components": 0,
+        "unused-pipes": 0
       },
       "findings": [
         {
@@ -168,6 +171,15 @@
             "src/app/features/import-export-data/components/import-data/import-data.component.ts"
           ],
           "count": 83
+        },
+        {
+          "severity": "low",
+          "message": "2 files nothing imports",
+          "files": [
+            "src/app/core/models/address-column-index.interface.ts",
+            "src/app/core/models/exposure-type-group.ts"
+          ],
+          "count": 2
         },
         {
           "severity": "low",

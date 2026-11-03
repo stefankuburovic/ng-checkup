@@ -118,6 +118,7 @@ npx ng-checkup init --ci gitlab    # pick the CI instead of detecting it (github
 | `ignore` | paths left out of the analysis; a path matches everything below it, `*` stays within a folder, `**` crosses folders | |
 | `baseline` | the baseline file, relative to the config file (default `ng-checkup.baseline.json` in the root) | |
 | `plan` | add the upgrade plan to every run | `--plan` |
+| `attributeSelectors` | also list directives, and components with an attribute selector, that no template matches | `--attribute-selectors` |
 | `only` | report only these areas, by [check id](https://github.com/stefankuburovic/ng-checkup/blob/main/docs/checks.md) (`["security", "dependencies"]`) | `--only` |
 | `skip` | leave these areas out of the report, the score and the baseline | `--skip` |
 
@@ -335,7 +336,7 @@ The codebase is named by its repository and commit, never by a path on your disk
 | [**Change detection**](https://github.com/stefankuburovic/ng-checkup/blob/main/docs/checks.md#change-detection) | zoneless or zone.js, OnPush coverage, `NgZone`, zone-only test helpers | zone.js with less than half the components on OnPush |
 | [**Components & templates**](https://github.com/stefankuburovic/ng-checkup/blob/main/docs/checks.md#components) | standalone, signal inputs and outputs, built-in control flow, `@defer`, manual `.subscribe()` calls | average adoption below 40% |
 | [**State management**](https://github.com/stefankuburovic/ng-checkup/blob/main/docs/checks.md#state) | classic NgRx, NgRx signal store, signals, `BehaviorSubject` services | the removed `@Effect()` decorator |
-| [**Architecture**](https://github.com/stefankuburovic/ng-checkup/blob/main/docs/checks.md#architecture) | eager vs. lazy routes (following `loadChildren` into lazy modules), files over 500 and 1 000 lines, hotspots (large files changed most often, from git), constructor injection, class-based guards and interceptors | ten eager routes and none lazy |
+| [**Architecture**](https://github.com/stefankuburovic/ng-checkup/blob/main/docs/checks.md#architecture) | eager vs. lazy routes (following `loadChildren` into lazy modules), files over 500 and 1 000 lines, hotspots (large files changed most often, from git), dead code (files nothing imports, components and pipes no template uses; directives with `--attribute-selectors`), constructor injection, class-based guards and interceptors | ten eager routes and none lazy |
 | [**Testing**](https://github.com/stefankuburovic/ng-checkup/blob/main/docs/checks.md#testing) | Karma / Jest / Vitest, which components, services, stores and utilities have a spec (beside them or importing them), Protractor / Playwright / Cypress | Karma, Protractor or no specs |
 | [**Type safety**](https://github.com/stefankuburovic/ng-checkup/blob/main/docs/checks.md#type-safety) | `strictNullChecks`, `strictTemplates`, `noImplicitAny`, `any`, `x!`, `@ts-ignore`, `$any()` | both `strictNullChecks` and `strictTemplates` off |
 | [**Security**](https://github.com/stefankuburovic/ng-checkup/blob/main/docs/checks.md#security) | known vulnerabilities of the dependencies (from [osv.dev](https://osv.dev), AngularJS included), `bypassSecurityTrust*`, HTML written straight into the DOM (`innerHTML =`, `insertAdjacentHTML`, `Renderer2.setProperty`), `eval`, `[innerHTML]` bindings | a high or critical advisory in a runtime dependency, HTML written into the DOM past the sanitizer, or `eval` |
@@ -418,6 +419,10 @@ Options:
                          (security,testing); the rest stay out of the score
       --skip <ids>       Leave these areas out of the report and the score
       --max-examples <n> Example files listed per finding (default 5)
+      --attribute-selectors
+                         Also list directives, and components with an attribute
+                         selector ([appTooltip], button[mat-button]), that no
+                         template matches
       --offline          Nothing online: no npm registry, no osv.dev lookup
       --config <file>    Config file (default: ng-checkup.config.json in the root)
       --no-color         Plain output (also off when NO_COLOR is set or not a TTY)
@@ -565,7 +570,7 @@ for (const check of report.checks) {
 await writeFile('checkup.md', renderMarkdown(report));
 ```
 
-`runCheckup` never writes anything. Its options mirror the flags (`offline`, `plan`, `project`, `ignore`, `only`, `skip`, `maxExamples`), plus `cache` from `createAnalysisCache()` to make repeated runs incremental. `renderHtml`, `renderMarkdown`, `renderSarif`, `overallScore`, `topPriorities`, `loadConfig`, `planInit` (what `init` would change, without writing it), `collectHistory` with `renderHistoryHtml` and `renderHistoryMarkdown`, and the baseline functions (`createBaseline`, `compareWithBaseline`, `baselineMeasures`, `readBaseline`, `serializeBaseline`) are exported too, along with the `Report`, `CheckResult`, `Finding` and `Grade` types. `Report` is also the schema of the JSON output.
+`runCheckup` never writes anything. Its options mirror the flags (`offline`, `plan`, `attributeSelectors`, `project`, `ignore`, `only`, `skip`, `maxExamples`), plus `cache` from `createAnalysisCache()` to make repeated runs incremental. `renderHtml`, `renderMarkdown`, `renderSarif`, `overallScore`, `topPriorities`, `loadConfig`, `planInit` (what `init` would change, without writing it), `collectHistory` with `renderHistoryHtml` and `renderHistoryMarkdown`, and the baseline functions (`createBaseline`, `compareWithBaseline`, `baselineMeasures`, `readBaseline`, `serializeBaseline`) are exported too, along with the `Report`, `CheckResult`, `Finding` and `Grade` types. `Report` is also the schema of the JSON output.
 
 ## What leaves your machine
 

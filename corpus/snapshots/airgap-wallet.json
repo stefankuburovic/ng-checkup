@@ -198,7 +198,10 @@
         "eager-routes": 4,
         "very-large-files": 0,
         "constructor-injection": 112,
-        "class-guards": 0
+        "class-guards": 0,
+        "unused-files": 4,
+        "unused-components": 5,
+        "unused-pipes": 0
       },
       "findings": [
         {
@@ -210,6 +213,26 @@
             "src/app/extensions/delegation/ICPDelegationExtensions.ts"
           ],
           "count": 7
+        },
+        {
+          "severity": "low",
+          "message": "4 files nothing imports",
+          "files": [
+            "src/app/app.selectors.ts",
+            "src/app/models/actions/GetKtAccountsAction.ts",
+            "src/app/pages/qr-settings/qr-settings-routing.module.ts"
+          ],
+          "count": 4
+        },
+        {
+          "severity": "low",
+          "message": "5 components no template uses",
+          "files": [
+            "src/app/components/amount/amount.component.ts:8",
+            "src/app/components/flip-card/flip-card-back.ts:3",
+            "src/app/components/flip-card/flip-card-front.ts:3"
+          ],
+          "count": 5
         },
         {
           "severity": "low",

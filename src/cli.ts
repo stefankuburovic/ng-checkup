@@ -80,6 +80,10 @@ Options:
                          (security,testing); the rest stay out of the score
       --skip <ids>       Leave these areas out of the report and the score
       --max-examples <n> Example files listed per finding (default 5)
+      --attribute-selectors
+                         Also list directives, and components with an attribute
+                         selector ([appTooltip], button[mat-button]), that no
+                         template matches
       --offline          Nothing online: no npm registry, no osv.dev lookup
       --config <file>    Config file (default: ng-checkup.config.json in the root)
       --no-color         Plain output (also off when NO_COLOR is set or not a TTY)
@@ -146,6 +150,8 @@ export interface CliArguments {
   maxExamples?: number;
   offline: boolean;
   plan: boolean;
+  /** `--attribute-selectors`; false when not given, so the config can turn it on. */
+  attributeSelectors: boolean;
   /** `--project`: one project of the workspace, by name. */
   project?: string;
   /** `--only` and `--skip`, comma-separated check ids; undefined when not given, so the config can supply them. */
@@ -189,6 +195,7 @@ export interface RunSettings {
   maxExamples: number;
   offline: boolean;
   plan: boolean;
+  attributeSelectors: boolean;
   ignore?: string[];
   only?: string[];
   skip?: string[];
@@ -213,6 +220,7 @@ export function parseCliArguments(argv: string[], environment: NodeJS.ProcessEnv
       'max-examples': { type: 'string' },
       offline: { type: 'boolean' },
       plan: { type: 'boolean' },
+      'attribute-selectors': { type: 'boolean' },
       watch: { type: 'boolean', short: 'w' },
       project: { type: 'string', short: 'p' },
       only: { type: 'string' },
@@ -269,6 +277,7 @@ export function parseCliArguments(argv: string[], environment: NodeJS.ProcessEnv
     offline: values.offline ?? false,
     // The roadmap is the core of a client report.
     plan: (values.plan ?? false) || values.client !== undefined,
+    attributeSelectors: values['attribute-selectors'] ?? false,
     project: values.project,
     ...(values.only !== undefined ? { only: idList(values.only) } : {}),
     ...(values.skip !== undefined ? { skip: idList(values.skip) } : {}),
@@ -313,6 +322,7 @@ export function resolveSettings(args: CliArguments, config: CheckupConfig, confi
     maxExamples: args.maxExamples ?? config.maxExamples ?? 5,
     offline: args.offline || (config.offline ?? false),
     plan: args.plan || (config.plan ?? false),
+    attributeSelectors: args.attributeSelectors || (config.attributeSelectors ?? false),
     ignore: config.ignore,
     only: args.only ?? config.only,
     skip: args.skip ?? config.skip,
@@ -492,7 +502,7 @@ async function mainCheckup(parsed: CliArguments, rootLabel?: string): Promise<nu
 
   let report: Report;
   try {
-    report = await runCheckup(parsed.root, { offline: settings.offline, maxExamples: settings.maxExamples, ignore: analysisIgnores(parsed.root, settings), plan: settings.plan, project: parsed.project, only: settings.only, skip: settings.skip });
+    report = await runCheckup(parsed.root, { offline: settings.offline, maxExamples: settings.maxExamples, ignore: analysisIgnores(parsed.root, settings), plan: settings.plan, attributeSelectors: settings.attributeSelectors, project: parsed.project, only: settings.only, skip: settings.skip });
   } catch (error) {
     if (error instanceof ProjectNotFoundError || error instanceof UnknownCheckError) return usageError(error);
     throw error;
@@ -596,7 +606,7 @@ async function mainWatch(parsed: CliArguments, initial: RunSettings): Promise<nu
     run: async () => {
       const { config, directory } = loadConfig(parsed.root, parsed.config);
       const settings = resolveSettings(parsed, config, directory);
-      const report = await runCheckup(parsed.root, { offline: settings.offline, maxExamples: settings.maxExamples, ignore: analysisIgnores(parsed.root, settings), plan: settings.plan, project: parsed.project, only: settings.only, skip: settings.skip, cache });
+      const report = await runCheckup(parsed.root, { offline: settings.offline, maxExamples: settings.maxExamples, ignore: analysisIgnores(parsed.root, settings), plan: settings.plan, attributeSelectors: settings.attributeSelectors, project: parsed.project, only: settings.only, skip: settings.skip, cache });
       const baseline = applicableBaseline(readBaseline(settings.baselinePath), parsed.project);
       if (baseline) report.baseline = compareWithBaseline(report, baseline, settings.baselinePath, parsed.project);
       writeReports(report, settings.reports);
@@ -659,7 +669,7 @@ export async function writeBaseline(args: BaselineArguments): Promise<string> {
   const { config, directory } = loadConfig(args.root, args.config);
   const path = config.baseline ? resolve(directory, config.baseline) : join(args.root, BASELINE_FILE);
   const previous = readBaseline(path);
-  const report = await runCheckup(args.root, { offline: true, ignore: config.ignore, only: config.only, skip: config.skip });
+  const report = await runCheckup(args.root, { offline: true, ignore: config.ignore, only: config.only, skip: config.skip, attributeSelectors: config.attributeSelectors ?? false });
   const next = createBaseline(report);
   const increases = baselineIncreases(previous, next);
   if (increases.length > 0 && !args.force) {

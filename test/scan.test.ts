@@ -60,9 +60,9 @@ describe('scanSourceFile', () => {
       export class M {}
     `);
     expect(facts.components).toStrictEqual([
-      { name: 'A', line: 3, standalone: false, changeDetection: 'OnPush' },
+      { name: 'A', line: 3, standalone: false, changeDetection: 'OnPush', selector: 'a' },
       // Nothing written, so nothing recorded: what absent means depends on the Angular version.
-      { name: 'B', line: 9 },
+      { name: 'B', line: 9, selector: 'b' },
     ]);
     expect(facts.decoratorInputs).toBe(2);
     expect(facts.decoratorOutputs).toBe(1);
