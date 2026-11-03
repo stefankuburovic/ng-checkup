@@ -24,6 +24,7 @@ import { collectHistory, HistoryUnavailableError, type HistoryReport } from './h
 import { readTrend, recordTrend, summarizeTrend, trendPoint } from './trend.js';
 import { renderHistoryHtml, renderHistoryMarkdown, renderHistoryTerminal } from './report/history.js';
 import { assessSite, probeSite } from './site.js';
+import { serveMcp } from './mcp.js';
 
 const HELP = `Usage: ng-checkup [path | repository] [options]
        ng-checkup init [path] [init options]
@@ -121,6 +122,12 @@ History (ng-checkup history [path]):
       --points <n>       Months back (default 12)
   -r, --report <file>    Write it as .html (with charts), .md or .json
       --json             Print it as JSON
+
+MCP server (ng-checkup mcp):
+                         Serves the checkup to an editor agent over the Model
+                         Context Protocol (stdio): tools checkup, findings
+                         and upgrade_plan. Register it as the command
+                         npx -y ng-checkup-cli mcp
 
 Examples:
   npx ng-checkup-cli
@@ -443,6 +450,11 @@ async function main(argv: string[]): Promise<number> {
   if (argv[0] === 'baseline') return mainBaseline(argv.slice(1));
   if (argv[0] === 'url') return mainUrl(argv.slice(1));
   if (argv[0] === 'history') return mainHistory(argv.slice(1));
+  if (argv[0] === 'mcp') {
+    // A Model Context Protocol server on stdin/stdout until the client closes it (see `serveMcp`).
+    await serveMcp(process.stdin, process.stdout);
+    return 0;
+  }
 
   let parsed: ReturnType<typeof parseCliArguments>;
   try {

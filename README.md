@@ -41,6 +41,7 @@ npx ng-checkup-cli
 - [How it works](#how-it-works)
 - [FAQ](#faq)
 - [VS Code extension](#vs-code-extension)
+- [MCP server for editor agents](#mcp-server-for-editor-agents)
 - [Contributing](#contributing)
 
 ## Quick start
@@ -620,6 +621,18 @@ Package names and versions, to two public services. To the npm registry: the lat
 [ng-checkup for VS Code](https://marketplace.visualstudio.com/items?itemName=stefankuburovic.ng-checkup-vscode) shows the findings inline: every finding at its file and line in the Problems panel, why it matters on hover, and the score in the status bar, with the HTML report one click away. It runs on open and after each save, re-parsing only the files that changed, and reads `ng-checkup.config.json`. Cursor and VSCodium install it from [Open VSX](https://open-vsx.org/extension/stefankuburovic/ng-checkup-vscode); the source is in [ng-checkup-vscode](https://github.com/stefankuburovic/ng-checkup-vscode).
 
 Ideas and bug reports are welcome in [issues](https://github.com/stefankuburovic/ng-checkup/issues).
+
+## MCP server for editor agents
+
+```bash
+npx -y ng-checkup-cli mcp
+```
+
+Serves the checkup over the [Model Context Protocol](https://modelcontextprotocol.io) on stdio, so Claude Code, Cursor, Copilot or any MCP client can ask about the workspace directly. Three tools: `checkup` (the Markdown report, narrowed by `only`, `project` or `since`), `findings` (JSON, filtered by area, minimum severity or one file: "what is wrong with this component") and `upgrade_plan`. Runs are offline unless a call asks for `online`, and the server keeps one analysis cache per folder, so a second question re-parses only what changed. Register it with your client as the command `npx -y ng-checkup-cli mcp`; in Claude Code:
+
+```bash
+claude mcp add ng-checkup -- npx -y ng-checkup-cli mcp
+```
 
 ## Contributing
 
