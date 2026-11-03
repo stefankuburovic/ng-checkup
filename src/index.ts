@@ -26,7 +26,7 @@ import { lookUpVulnerabilities } from './vulnerabilities.js';
 import { loadDeprecationIndex } from './typings.js';
 import { nextMajorChanges } from './next-major.js';
 import { ignoreMatcher } from './config.js';
-import { collectFiles } from './files.js';
+import { collectFiles, isTestCode } from './files.js';
 import { buildImportGraph, filesImportedBySpecs, findTanglesIn, readCompilerOptions, staticallyReachable } from './graph.js';
 import { buildMigrationPlan, buildPrimoPlan } from './migration.js';
 import { unimportedFiles, unusedBindings, unusedDeclarables } from './unused.js';
@@ -387,9 +387,10 @@ export function readAngularCompilerOptions(tsconfigPath: string, depth = 0): Rec
 }
 
 /**
- * Translation keys against the bundles, for the translations check. Spec
- * files are left out: a spec that looks up a made-up key to test the
- * fallback is not a key the user ever sees.
+ * Translation keys against the bundles, for the translations check. Test
+ * code is left out, its inline test-host templates included: a spec that
+ * looks up a made-up key to test the fallback is not a key the user ever
+ * sees.
  *
  * @returns Undefined without ngx-translate or Transloco among the
  *   dependencies, or without a bundle file to read.
@@ -402,8 +403,9 @@ function readTranslations(root: string, workspace: WorkspaceInfo, bundlePaths: s
       : undefined;
   if (!library || bundlePaths.length === 0) return undefined;
   const uses = [
-    ...sources.filter((file) => !file.isSpec).map((file) => ({ path: file.path, keys: file.translationKeys })),
-    ...templates.map((template) => ({ path: template.path, keys: template.translationKeys })),
+    ...sources.filter((file) => !isTestCode(file.path)).map((file) => ({ path: file.path, keys: file.translationKeys })),
+    // Inline templates of test hosts declared inside a spec count as test code too.
+    ...templates.filter((template) => !isTestCode(template.path)).map((template) => ({ path: template.path, keys: template.translationKeys })),
   ];
   return judgeTranslations(root, library, bundlePaths, uses);
 }

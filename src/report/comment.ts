@@ -51,7 +51,7 @@ export function renderComment(report: Report): string {
 
   lines.push('| Area | Grade | |', '| --- | --- | --- |');
   // An area that was not measured gets two words, not the full explanation: it is noise in a review.
-  for (const check of report.checks) lines.push(`| ${cell(check.title)} | ${DOTS[check.grade]} ${gradeLabel(check.grade)} | ${check.grade === 'info' ? '_not measured_' : cell(check.summary)} |`);
+  for (const check of report.checks) lines.push(`| ${cell(check.title)} | ${DOTS[check.grade]} ${gradeLabel(check.grade)} | ${check.grade === 'info' && !check.measures ? '_not measured_' : cell(check.summary)} |`);
   lines.push('');
 
   const priorities = topPriorities(report);

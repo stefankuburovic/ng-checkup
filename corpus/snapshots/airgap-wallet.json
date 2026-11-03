@@ -9,7 +9,7 @@
     "templateFiles": 88,
     "linesOfCode": 24719
   },
-  "score": 53,
+  "score": 52,
   "checks": [
     {
       "id": "version",
@@ -370,7 +370,7 @@
     },
     {
       "id": "translations",
-      "grade": "fair",
+      "grade": "info",
       "summary": "5 of 367 literal translation keys resolve to no string in some language.",
       "measures": {
         "missing-keys": 5

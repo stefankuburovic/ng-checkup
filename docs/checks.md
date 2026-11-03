@@ -1,6 +1,6 @@
 # The checks
 
-Thirteen checks run on every repository. A fourteenth runs first when there is legacy code: [AngularJS migration](#angularjs) for AngularJS code or packages, or, for an Ex Libris Primo VE customization package, [Primo NDE migration](#primo-nde) in its place.
+Thirteen checks run on every repository, twelve of them graded; [Translations](#translations) only reports. A fourteenth runs first when there is legacy code: [AngularJS migration](#angularjs) for AngularJS code or packages, or, for an Ex Libris Primo VE customization package, [Primo NDE migration](#primo-nde) in its place.
 
 Every check grades one area **good**, **fair**, **poor** or **info**. `info` means there was nothing to grade (no components, no tests) or an input was missing (no `node_modules`), and it never counts against the score.
 
@@ -273,16 +273,9 @@ A key is **missing** when some language has no string under it while that langua
 
 **Why it matters:** both libraries render the key itself when a lookup fails, so the user reads `orders.cannot_delete` where a sentence should be, and neither the compiler nor a test that renders the template notices.
 
-**Grading**
+**Grading:** none. The area is always `info` and never counts towards the score, so adding it changed no score: the other areas grade how current and safe the code is, and as a graded area every app with complete bundles would gain a free 100. The finding is medium, and the measure `translations.missing-keys` sits in the baseline, so `--fail-on regression` fails on every key that goes missing. Without a translation library or a bundle to judge against (strings from the backend or from TypeScript files) there is no measure. Keys in test code, inline templates of test hosts included, are not judged.
 
-| Grade | When |
-| --- | --- |
-| info | no translation library, or no bundle to judge against (strings from the backend or from TypeScript files) |
-| good | every literal key resolves in every language |
-| fair | 1 to 10 missing keys |
-| poor | more than 10 |
-
-The measure `translations.missing-keys` lets a baseline hold the number at what it is; on the corpus, airgap-wallet has 5 (`walletconnect.error` where the bundle has `walletconnect.connection_error`, and three keys only English has).
+On the corpus, airgap-wallet has 5 (`walletconnect.error` where the bundle has `walletconnect.connection_error`, and three keys only English has).
 
 **Fixing it:** add the string to every language's bundle, or point the template at the key that exists. A key under the wrong namespace looks identical to a missing one, so check the namespace first.
 

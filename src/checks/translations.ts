@@ -1,16 +1,23 @@
-import type { CheckResult, Finding, Grade } from '../types.js';
+import type { CheckResult, Finding } from '../types.js';
 import { formatCount, plural, verb, type AnalysisContext } from './context.js';
 
 /**
  * Translation keys that resolve to no string, the defect a user sees as a
  * raw key (`orders.cannot_delete`) on screen and every gate misses.
  *
- * Graded on the keys the bundles should know: a key some language lacks
- * while that language has the key's namespace, or another language has the
- * key. Those are typos, keys under the wrong namespace and strings added to
- * one language only. Keys whose namespace no bundle has are reported but not
- * graded, since a library's own bundle or a loader that reads the backend
- * may well supply them.
+ * Never graded: always `info`, so it adds nothing to the score and a run
+ * on 2.0 scores the same as on 1.x. The other areas grade how current and
+ * safe the code is; this one only finds defects, and as a graded area every
+ * app on ngx-translate with complete bundles would gain a free 100. It still
+ * has teeth: the measure `missing-keys` sits in the baseline, so
+ * `--fail-on regression` fails on every key that goes missing.
+ *
+ * A key is missing when some language lacks it while that language has the
+ * key's namespace, or another language has the key: typos, keys under the
+ * wrong namespace and strings added to one language only. Keys whose
+ * namespace no bundle has are listed apart at low severity and stay out of
+ * the measure, since a library's own bundle or a loader that reads the
+ * backend may well supply them.
  */
 export function translationsCheck(context: AnalysisContext): CheckResult {
   const facts = context.translations;
@@ -52,11 +59,10 @@ export function translationsCheck(context: AnalysisContext): CheckResult {
   }
 
   const missing = facts.missing.length;
-  const grade: Grade = missing === 0 ? 'good' : missing <= 10 ? 'fair' : 'poor';
   return {
     id: 'translations',
     title: 'Translations',
-    grade,
+    grade: 'info',
     summary:
       missing === 0
         ? `All ${plural(facts.keys, 'literal translation key')} resolve in ${facts.languages.join(', ')}.`

@@ -84,14 +84,15 @@ describe('the translations check', () => {
           `{{ 'orders.titel' | translate }}`,
           `{{ 'library.close' | translate }}`,
         ].join('\n'),
-        'src/app/orders.component.spec.ts': `translate.instant('orders.made_up_for_the_test');`,
+        'src/app/orders.component.spec.ts': "translate.instant('orders.made_up_for_the_test');\n@Component({ template: `{{ 'orders.test_host_only' | translate }}` })\nclass Host {}",
       }),
     );
-    expect(check.grade).toBe('fair');
+    // Never graded, so it adds nothing to the score; the measure is what a baseline holds.
+    expect(check.grade).toBe('info');
     expect(check.measures).toEqual([{ id: 'missing-keys', label: 'Translation keys that resolve to no string', value: 2 }]);
     const [missing, unknown] = check.findings;
     expect(missing?.message).toBe('2 translation keys resolve to no string in at least one language');
-    // `orders.export` is in en only, `orders.titel` in neither; the spec's key is not counted.
+    // `orders.export` is in en only, `orders.titel` in neither; neither key in the spec, its test host's template included, is counted.
     expect(missing?.detail).toContain('`orders.export` (de), `orders.titel`.');
     expect(missing?.files).toEqual([
       { path: 'src/app/orders.component.html', line: 3 },
@@ -100,15 +101,16 @@ describe('the translations check', () => {
     expect(unknown?.message).toBe('1 translation key under a namespace no bundle has');
   });
 
-  it('is good when every key resolves, and info without a translation library or a bundle', async () => {
+  it('says so when every key resolves, and measures nothing without a translation library or a bundle', async () => {
     const good = await translations(ngxApp({ 'src/app/a.component.html': `{{ 'general.save' | translate }} {{ 'general.cancel' | translate }}` }));
-    expect(good.grade).toBe('good');
+    expect(good.grade).toBe('info');
+    expect(good.measures?.[0]?.value).toBe(0);
     expect(good.summary).toBe('All 2 literal translation keys resolve in de, en.');
 
     const noLibrary = await translations({ 'package.json': JSON.stringify({ dependencies: { '@angular/core': '^20.0.0' } }), 'src/assets/i18n/en.json': '{}', 'src/a.html': `{{ 'x.y' | translate }}` });
-    expect(noLibrary.grade).toBe('info');
+    expect(noLibrary.measures).toBeUndefined();
     const noBundle = await translations({ 'package.json': JSON.stringify({ dependencies: { '@ngx-translate/core': '^17.0.0' } }), 'src/a.html': `{{ 'x.y' | translate }}` });
-    expect(noBundle.grade).toBe('info');
+    expect(noBundle.measures).toBeUndefined();
   });
 
   it('looks up Transloco scopes under the folder name', async () => {
