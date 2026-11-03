@@ -184,6 +184,39 @@
       "findings": []
     },
     {
+      "id": "accessibility",
+      "grade": "info",
+      "summary": "7 accessibility defects in 7 templates.",
+      "measures": {
+        "unlabelled-controls": 0,
+        "unnamed-buttons": 2,
+        "click-without-keyboard": 0,
+        "images-without-alt": 5,
+        "positive-tabindex": 0
+      },
+      "findings": [
+        {
+          "severity": "medium",
+          "message": "2 buttons without a name",
+          "files": [
+            "src/js/auth/auth.html:44",
+            "src/js/components/buttons/favorite-btn.html:1"
+          ],
+          "count": 2
+        },
+        {
+          "severity": "medium",
+          "message": "5 images without `alt`",
+          "files": [
+            "src/js/article/article.html:63",
+            "src/js/article/comment.html:7",
+            "src/js/components/article-helpers/article-meta.html:3"
+          ],
+          "count": 5
+        }
+      ]
+    },
+    {
       "id": "circular-deps",
       "grade": "info",
       "summary": "No TypeScript application code to check.",

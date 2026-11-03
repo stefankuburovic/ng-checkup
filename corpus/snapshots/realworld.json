@@ -307,6 +307,39 @@
       "findings": []
     },
     {
+      "id": "accessibility",
+      "grade": "info",
+      "summary": "7 accessibility defects in 6 templates.",
+      "measures": {
+        "unlabelled-controls": 0,
+        "unnamed-buttons": 0,
+        "click-without-keyboard": 2,
+        "images-without-alt": 5,
+        "positive-tabindex": 0
+      },
+      "findings": [
+        {
+          "severity": "medium",
+          "message": "2 `(click)` handlers on a `div`, `span` or similar with no key handler",
+          "files": [
+            "src/app/article/article-comment.component.html:19",
+            "src/app/editor/editor.component.html:28"
+          ],
+          "count": 2
+        },
+        {
+          "severity": "medium",
+          "message": "5 images without `alt`",
+          "files": [
+            "src/app/article/article-comment.component.html:9",
+            "src/app/article/article.component.html:88",
+            "src/app/profile/profile.component.html:8"
+          ],
+          "count": 5
+        }
+      ]
+    },
+    {
       "id": "circular-deps",
       "grade": "good",
       "summary": "No import cycles between application files.",

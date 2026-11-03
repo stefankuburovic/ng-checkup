@@ -397,6 +397,70 @@
       "findings": []
     },
     {
+      "id": "accessibility",
+      "grade": "info",
+      "summary": "587 accessibility defects in 141 templates.",
+      "measures": {
+        "unlabelled-controls": 351,
+        "unnamed-buttons": 116,
+        "click-without-keyboard": 35,
+        "images-without-alt": 6,
+        "positive-tabindex": 79
+      },
+      "findings": [
+        {
+          "severity": "medium",
+          "message": "351 form controls without a label",
+          "files": [
+            "src/app/administration/etl/etl.component.html:80",
+            "src/app/administration/neo4jimporter/neo4jimporter.component.html:107",
+            "src/app/administration/profiler/query/queryprofiler.component.html:15"
+          ],
+          "count": 109
+        },
+        {
+          "severity": "medium",
+          "message": "116 buttons without a name",
+          "files": [
+            "src/app/administration/etl/etl.component.html:137",
+            "src/app/administration/profiler/query/querystats.component.html:10",
+            "src/app/administration/profiler/query/runningqueryprofiler.component.html:10"
+          ],
+          "count": 44
+        },
+        {
+          "severity": "medium",
+          "message": "35 `(click)` handlers on a `div`, `span` or similar with no key handler",
+          "files": [
+            "src/app/administration/importmanager/importmanager.component.html:34",
+            "src/app/administration/profiler/profiler.component.html:5",
+            "src/app/administration/profiler/query/queryprofiler.component.html:3"
+          ],
+          "count": 14
+        },
+        {
+          "severity": "medium",
+          "message": "6 images without `alt`",
+          "files": [
+            "src/app/administration/etl/etl.component.html:14",
+            "src/app/administration/importmanager/importmanager.component.html:34",
+            "src/views/database/config/uml.html:12"
+          ],
+          "count": 4
+        },
+        {
+          "severity": "low",
+          "message": "79 `tabindex` above 0s",
+          "files": [
+            "src/app/administration/servercommands/servercommands.component.html:18",
+            "src/app/administration/stats/cluster/overview/clusterdatabase.component.html:50",
+            "src/components/schema/classesList.html:28"
+          ],
+          "count": 25
+        }
+      ]
+    },
+    {
       "id": "circular-deps",
       "grade": "good",
       "summary": "No import cycles between application files.",

@@ -357,6 +357,40 @@
       "findings": []
     },
     {
+      "id": "accessibility",
+      "grade": "info",
+      "summary": "60 accessibility defects in 28 templates.",
+      "measures": {
+        "unlabelled-controls": 0,
+        "unnamed-buttons": 0,
+        "click-without-keyboard": 51,
+        "images-without-alt": 9,
+        "positive-tabindex": 0
+      },
+      "findings": [
+        {
+          "severity": "medium",
+          "message": "51 `(click)` handlers on a `div`, `span` or similar with no key handler",
+          "files": [
+            "src/app/common-modules/world-map-movement/components/world-map-movement/world-map-movement.component.html:11",
+            "src/app/core/components/sidenav/sidenav.component.html:149",
+            "src/app/core/components/topnav/topnav.component.html:152"
+          ],
+          "count": 28
+        },
+        {
+          "severity": "medium",
+          "message": "9 images without `alt`",
+          "files": [
+            "src/app/shared/forms-v2/components/app-form-select-multiple-v2/app-form-select-multiple-v2.component.html:71",
+            "src/app/shared/forms-v2/components/app-form-select-single-v2/app-form-select-single-v2.component.html:58",
+            "src/app/shared/forms-v2/components/app-form-tree-editor-v2/app-form-tree-editor-v2.component.html:209"
+          ],
+          "count": 3
+        }
+      ]
+    },
+    {
       "id": "circular-deps",
       "grade": "fair",
       "summary": "2 groups of files importing each other in a loop, 6 files in total.",

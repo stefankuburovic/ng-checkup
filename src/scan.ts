@@ -4,6 +4,7 @@ import { scanAngularJsTemplate, type AngularJsTemplateStats } from './angularjs.
 import { isSpecFile, isTestCode, toReportPath } from './files.js';
 import { testQualityOf, type TestQuality } from './test-quality.js';
 import { colorLinesInTemplate } from './stylesheets.js';
+import { accessibilityOf, type AccessibilityFacts } from './accessibility.js';
 import { translationKeysInCode, translationKeysInTemplate, type TranslationKeyUse } from './translations.js';
 import { withoutHtmlComments } from './template-text.js';
 
@@ -134,6 +135,8 @@ export interface TemplateFact {
   translationKeys: TranslationKeyUse[];
   /** Lines of colour literals in inline `style` attributes and `[style.x]` string bindings (see `colorLinesInTemplate`). */
   colorLines: number[];
+  /** What it shows a screen reader or keyboard user (see `accessibilityOf`), lines of the file that holds the template. */
+  accessibility: AccessibilityFacts;
 }
 
 /**
@@ -612,6 +615,7 @@ export function scanSourceFile(root: string, absolutePath: string): SourceFileFa
                   // Lines counted inside the template string, moved to the line the string starts on.
                   translationKeys: translationKeysInTemplate(template.text).map((use) => ({ ...use, line: use.line + source.getLineAndCharacterOfPosition(template.start).line })),
                   colorLines: colorLinesInTemplate(template.text).map((line) => line + source.getLineAndCharacterOfPosition(template.start).line),
+                  accessibility: shiftLines(accessibilityOf(template.text), source.getLineAndCharacterOfPosition(template.start).line),
                   firstLegacyLine: legacyOffset === undefined ? undefined : source.getLineAndCharacterOfPosition(template.start + legacyOffset).line + 1,
                 });
               }
@@ -932,6 +936,11 @@ export function firstLegacyOffset(text: string): number | undefined {
   return match?.index;
 }
 
+/** Moves every line of an inline template's facts by `offset`, the 0-based line its string starts on. */
+function shiftLines(facts: AccessibilityFacts, offset: number): AccessibilityFacts {
+  return Object.fromEntries(Object.entries(facts).map(([key, lines]: [string, number[]]) => [key, lines.map((line) => line + offset)])) as unknown as AccessibilityFacts;
+}
+
 /** Scans an external template file. */
 export function scanTemplateFile(root: string, absolutePath: string): TemplateFact {
   const text = readFileSync(absolutePath, 'utf8');
@@ -944,6 +953,7 @@ export function scanTemplateFile(root: string, absolutePath: string): TemplateFa
     usage: templateUsage(text),
     translationKeys: translationKeysInTemplate(text),
     colorLines: colorLinesInTemplate(text),
+    accessibility: accessibilityOf(text),
     firstLegacyLine: offset === undefined ? undefined : text.slice(0, offset).split('\n').length,
     ...(angularJs.attributes > 0 || angularJs.apps > 0 || angularJs.cdnVersion ? { angularJs } : {}),
   };

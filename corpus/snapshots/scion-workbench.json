@@ -286,6 +286,39 @@
       "findings": []
     },
     {
+      "id": "accessibility",
+      "grade": "info",
+      "summary": "246 accessibility defects in 65 templates.",
+      "measures": {
+        "unlabelled-controls": 244,
+        "unnamed-buttons": 2,
+        "click-without-keyboard": 0,
+        "images-without-alt": 0,
+        "positive-tabindex": 0
+      },
+      "findings": [
+        {
+          "severity": "medium",
+          "message": "244 form controls without a label",
+          "files": [
+            "apps/workbench-client-testing-app-common/src/lib/dialog-opener-page/dialog-opener-page.component.html:14",
+            "apps/workbench-client-testing-app-common/src/lib/message-box-opener-page/message-box-opener-page.component.html:9",
+            "apps/workbench-client-testing-app-common/src/lib/messaging-page/publish-intent-page/publish-intent-page.component.html:4"
+          ],
+          "count": 63
+        },
+        {
+          "severity": "medium",
+          "message": "2 buttons without a name",
+          "files": [
+            "apps/workbench-testing-app/src/app/skeletons/tabbar-sekeleton/tabbar-skeleton.component.html:2",
+            "projects/scion/workbench/src/lib/activity/activity-bar/activity-item/activity-item.component.html:1"
+          ],
+          "count": 2
+        }
+      ]
+    },
+    {
       "id": "circular-deps",
       "grade": "poor",
       "summary": "6 groups of files importing each other in a loop, 68 files in total.",
@@ -374,6 +407,7 @@
         "type-safety": "good",
         "security": "good",
         "translations": "info",
+        "accessibility": "info",
         "circular-deps": "poor",
         "bundle": "info"
       }
@@ -392,6 +426,7 @@
         "type-safety": "good",
         "security": "good",
         "translations": "info",
+        "accessibility": "info",
         "circular-deps": "good",
         "bundle": "info"
       }
@@ -410,6 +445,7 @@
         "type-safety": "good",
         "security": "good",
         "translations": "info",
+        "accessibility": "info",
         "circular-deps": "fair",
         "bundle": "info"
       }
@@ -428,6 +464,7 @@
         "type-safety": "good",
         "security": "good",
         "translations": "info",
+        "accessibility": "info",
         "circular-deps": "good",
         "bundle": "info"
       }
@@ -446,6 +483,7 @@
         "type-safety": "fair",
         "security": "good",
         "translations": "info",
+        "accessibility": "info",
         "circular-deps": "good",
         "bundle": "info"
       }
@@ -464,6 +502,7 @@
         "type-safety": "good",
         "security": "good",
         "translations": "info",
+        "accessibility": "info",
         "circular-deps": "good",
         "bundle": "info"
       }
@@ -482,6 +521,7 @@
         "type-safety": "fair",
         "security": "good",
         "translations": "info",
+        "accessibility": "info",
         "circular-deps": "good",
         "bundle": "info"
       }

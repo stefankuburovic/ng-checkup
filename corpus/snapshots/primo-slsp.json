@@ -164,6 +164,29 @@
       "findings": []
     },
     {
+      "id": "accessibility",
+      "grade": "info",
+      "summary": "2 accessibility defects in 2 templates.",
+      "measures": {
+        "unlabelled-controls": 0,
+        "unnamed-buttons": 2,
+        "click-without-keyboard": 0,
+        "images-without-alt": 0,
+        "positive-tabindex": 0
+      },
+      "findings": [
+        {
+          "severity": "medium",
+          "message": "2 buttons without a name",
+          "files": [
+            "41SLSP_NETWORK-VU1_UNION/js/prm-get-it-request-after/slsp-refine-journal-request/slsp-refine-journal-request.html:1",
+            "41SLSP_NETWORK-VU1_UNION/js/prm-union-catalog-login-after/slsp-union-login-box/slsp-union-login-box.html:15"
+          ],
+          "count": 2
+        }
+      ]
+    },
+    {
       "id": "circular-deps",
       "grade": "info",
       "summary": "No TypeScript application code to check.",

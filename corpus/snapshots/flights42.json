@@ -218,6 +218,44 @@
       "findings": []
     },
     {
+      "id": "accessibility",
+      "grade": "info",
+      "summary": "4 accessibility defects in 3 templates.",
+      "measures": {
+        "unlabelled-controls": 2,
+        "unnamed-buttons": 1,
+        "click-without-keyboard": 1,
+        "images-without-alt": 0,
+        "positive-tabindex": 0
+      },
+      "findings": [
+        {
+          "severity": "medium",
+          "message": "2 form controls without a label",
+          "files": [
+            "src/app/domains/ticketing/feature-booking/advanced-flight-edit/prices-form/prices-form.html:15"
+          ],
+          "count": 1
+        },
+        {
+          "severity": "medium",
+          "message": "1 button without a name",
+          "files": [
+            "src/app/shell/navbar/navbar.html:3"
+          ],
+          "count": 1
+        },
+        {
+          "severity": "medium",
+          "message": "1 `(click)` handler on a `div`, `span` or similar with no key handler",
+          "files": [
+            "src/app/domains/shared/ui-common/advanced-data-table/advanced-data-table.html:4"
+          ],
+          "count": 1
+        }
+      ]
+    },
+    {
       "id": "circular-deps",
       "grade": "fair",
       "summary": "1 group of files importing each other in a loop, 3 files in total.",
@@ -265,6 +303,7 @@
         "type-safety": "good",
         "security": "good",
         "translations": "info",
+        "accessibility": "info",
         "circular-deps": "good",
         "bundle": "info"
       }
@@ -283,6 +322,7 @@
         "type-safety": "good",
         "security": "good",
         "translations": "info",
+        "accessibility": "info",
         "circular-deps": "fair",
         "bundle": "info"
       }
@@ -301,6 +341,7 @@
         "type-safety": "good",
         "security": "good",
         "translations": "info",
+        "accessibility": "info",
         "circular-deps": "good",
         "bundle": "info"
       }

@@ -33,6 +33,7 @@ describe('runCheckup on a legacy Angular 15 app', () => {
       architecture: 'good',
       security: 'good',
       translations: 'info',
+      accessibility: 'info',
       bundle: 'info',
     });
   });
@@ -88,6 +89,7 @@ describe('runCheckup on a current Angular 22 app', () => {
       architecture: 'good',
       security: 'good',
       translations: 'info',
+      accessibility: 'info',
       bundle: 'info',
     });
     const components = report.checks.find((check) => check.id === 'components');

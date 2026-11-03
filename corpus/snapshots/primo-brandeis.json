@@ -166,6 +166,19 @@
       "findings": []
     },
     {
+      "id": "accessibility",
+      "grade": "info",
+      "summary": "No unlabelled control, unnamed button, mouse-only control or image without alt in 6 templates.",
+      "measures": {
+        "unlabelled-controls": 0,
+        "unnamed-buttons": 0,
+        "click-without-keyboard": 0,
+        "images-without-alt": 0,
+        "positive-tabindex": 0
+      },
+      "findings": []
+    },
+    {
       "id": "circular-deps",
       "grade": "info",
       "summary": "No TypeScript application code to check.",

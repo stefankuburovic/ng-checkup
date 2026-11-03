@@ -6,7 +6,7 @@
 
 **A one-minute modernization report for any Angular codebase.**
 
-Point it at a repository and it tells you how far the code is from current Angular, what will break on the next upgrade, and where the work is. Twelve areas get a grade, from the Angular version and third-party packages to security and bundle size, translation keys that resolve to nothing are listed beside them (and a thirteenth graded area for AngularJS code still waiting to be migrated), every finding names the files, and the HTML report is one self-contained page you can hand to your team lead.
+Point it at a repository and it tells you how far the code is from current Angular, what will break on the next upgrade, and where the work is. Twelve areas get a grade, from the Angular version and third-party packages to security and bundle size, translation keys that resolve to nothing and accessibility defects are listed beside them (and a thirteenth graded area for AngularJS code still waiting to be migrated), every finding names the files, and the HTML report is one self-contained page you can hand to your team lead.
 
 ```bash
 npx ng-checkup-cli
@@ -355,6 +355,7 @@ The codebase is named by its repository and commit, never by a path on your disk
 | [**Type safety**](https://github.com/stefankuburovic/ng-checkup/blob/main/docs/checks.md#type-safety) | `strictNullChecks`, `strictTemplates`, `noImplicitAny`, `any`, `x!`, `@ts-ignore`, `$any()` | both `strictNullChecks` and `strictTemplates` off |
 | [**Security**](https://github.com/stefankuburovic/ng-checkup/blob/main/docs/checks.md#security) | known vulnerabilities of the dependencies (from [osv.dev](https://osv.dev), AngularJS included), `bypassSecurityTrust*`, HTML written straight into the DOM (`innerHTML =`, `insertAdjacentHTML`, `Renderer2.setProperty`), `eval`, `[innerHTML]` bindings | a high or critical advisory in a runtime dependency, HTML written into the DOM past the sanitizer, or `eval` |
 | [**Translations**](https://github.com/stefankuburovic/ng-checkup/blob/main/docs/checks.md#translations) | literal ngx-translate and Transloco keys against the JSON bundles of every language, merged per language, Transloco scopes included | never graded: the missing keys are a finding and a baseline measure, so `--fail-on regression` catches a new one |
+| [**Accessibility**](https://github.com/stefankuburovic/ng-checkup/blob/main/docs/checks.md#accessibility) | form controls without a label, buttons without a name, `(click)` on a `div` with no key handler, images without `alt`, `tabindex` above 0 (WCAG level A) | never graded: findings and baseline measures, so `--fail-on regression` catches a new one |
 | [**Circular dependencies**](https://github.com/stefankuburovic/ng-checkup/blob/main/docs/checks.md#circular-deps) | import cycles through relative paths, barrels and tsconfig `paths` | more than three groups or ten files in loops |
 | [**Bundle size**](https://github.com/stefankuburovic/ng-checkup/blob/main/docs/checks.md#bundle) | the initial bundle from the last `ng build --stats-json` (esbuild or webpack) against the build's budget, its largest packages, lazy chunks | over the `initial` error budget (1 MB by default) |
 

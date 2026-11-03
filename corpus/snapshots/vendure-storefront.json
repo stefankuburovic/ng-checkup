@@ -333,6 +333,59 @@
       "findings": []
     },
     {
+      "id": "accessibility",
+      "grade": "info",
+      "summary": "29 accessibility defects in 11 templates.",
+      "measures": {
+        "unlabelled-controls": 18,
+        "unnamed-buttons": 3,
+        "click-without-keyboard": 6,
+        "images-without-alt": 2,
+        "positive-tabindex": 0
+      },
+      "findings": [
+        {
+          "severity": "medium",
+          "message": "18 form controls without a label",
+          "files": [
+            "src/app/account/components/account-change-credentials/account-change-credentials.component.html:6",
+            "src/app/checkout/components/checkout-payment/checkout-payment.component.html:32",
+            "src/app/checkout/components/checkout-shipping/checkout-shipping.component.html:33"
+          ],
+          "count": 5
+        },
+        {
+          "severity": "medium",
+          "message": "3 buttons without a name",
+          "files": [
+            "src/app/core/components/cart-drawer/cart-drawer.component.html:18",
+            "src/app/core/components/collections-menu-mobile/collections-menu-mobile.component.html:20",
+            "src/app/core/components/mobile-menu-toggle/mobile-menu-toggle.component.html:1"
+          ],
+          "count": 3
+        },
+        {
+          "severity": "medium",
+          "message": "6 `(click)` handlers on a `div`, `span` or similar with no key handler",
+          "files": [
+            "src/app/checkout/components/checkout-shipping/checkout-shipping.component.html:7",
+            "src/app/core/components/asset-gallery/asset-gallery.component.html:1",
+            "src/app/core/components/cart-drawer/cart-drawer.component.html:6"
+          ],
+          "count": 4
+        },
+        {
+          "severity": "medium",
+          "message": "2 images without `alt`",
+          "files": [
+            "src/app/core/components/asset-gallery/asset-gallery.component.html:12",
+            "src/app/shared/components/collection-card/collection-card.component.html:7"
+          ],
+          "count": 2
+        }
+      ]
+    },
+    {
       "id": "circular-deps",
       "grade": "good",
       "summary": "No import cycles between application files.",

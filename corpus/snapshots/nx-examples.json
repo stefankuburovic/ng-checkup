@@ -243,6 +243,29 @@
       "findings": []
     },
     {
+      "id": "accessibility",
+      "grade": "info",
+      "summary": "2 accessibility defects in 2 templates.",
+      "measures": {
+        "unlabelled-controls": 0,
+        "unnamed-buttons": 0,
+        "click-without-keyboard": 0,
+        "images-without-alt": 2,
+        "positive-tabindex": 0
+      },
+      "findings": [
+        {
+          "severity": "medium",
+          "message": "2 images without `alt`",
+          "files": [
+            "libs/products/home-page/src/lib/home-page/home-page.component.html:6",
+            "libs/products/product-detail-page/src/lib/product-detail-page/product-detail-page.component.html:4"
+          ],
+          "count": 2
+        }
+      ]
+    },
+    {
       "id": "circular-deps",
       "grade": "good",
       "summary": "No import cycles between application files.",
@@ -279,6 +302,7 @@
         "type-safety": "poor",
         "security": "good",
         "translations": "info",
+        "accessibility": "info",
         "circular-deps": "good",
         "bundle": "info"
       }
@@ -297,6 +321,7 @@
         "type-safety": "poor",
         "security": "good",
         "translations": "info",
+        "accessibility": "info",
         "circular-deps": "good",
         "bundle": "info"
       }
@@ -315,6 +340,7 @@
         "type-safety": "poor",
         "security": "good",
         "translations": "info",
+        "accessibility": "info",
         "circular-deps": "good",
         "bundle": "info"
       }
@@ -333,6 +359,7 @@
         "type-safety": "poor",
         "security": "good",
         "translations": "info",
+        "accessibility": "info",
         "circular-deps": "good",
         "bundle": "info"
       }
@@ -351,6 +378,7 @@
         "type-safety": "poor",
         "security": "good",
         "translations": "info",
+        "accessibility": "info",
         "circular-deps": "good",
         "bundle": "info"
       }

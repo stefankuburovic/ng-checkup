@@ -1,6 +1,6 @@
 # The checks
 
-Thirteen checks run on every repository, twelve of them graded; [Translations](#translations) only reports. A fourteenth runs first when there is legacy code: [AngularJS migration](#angularjs) for AngularJS code or packages, or, for an Ex Libris Primo VE customization package, [Primo NDE migration](#primo-nde) in its place.
+Fourteen checks run on every repository, twelve of them graded; [Translations](#translations) and [Accessibility](#accessibility) only report. A fourteenth runs first when there is legacy code: [AngularJS migration](#angularjs) for AngularJS code or packages, or, for an Ex Libris Primo VE customization package, [Primo NDE migration](#primo-nde) in its place.
 
 Every check grades one area **good**, **fair**, **poor** or **info**. `info` means there was nothing to grade (no components, no tests) or an input was missing (no `node_modules`), and it never counts against the score.
 
@@ -291,6 +291,26 @@ On the corpus, airgap-wallet has 5 (`walletconnect.error` where the bundle has `
 
 ---
 
+## Accessibility (`accessibility`) <a id="accessibility"></a>
+
+**What it reads:** every template, external or inline (test code left out), with a small tag scanner, for five defects WCAG level A names and the European Accessibility Act asks to fix:
+
+| Measure | What | WCAG |
+| --- | --- | --- |
+| `unlabelled-controls` (medium) | `<input>`, `<select>`, `<textarea>` with no `<label for>` matching its `id`, no wrapping `<label>`, `<mat-form-field>` or other `*-form-field`, no `aria-label`, `aria-labelledby`, `title` or `placeholder` | 1.3.1, 4.1.2 |
+| `unnamed-buttons` (medium) | `<button>` with no text, interpolation, image with `alt`, projected content or `aria-label` / `aria-labelledby` / `title` | 4.1.2 |
+| `click-without-keyboard` (medium) | `(click)` on a `div`, `span`, `li`, `td`, `img`, `mat-icon` and other non-interactive elements with no `(keydown)` / `(keyup)` / `(keypress)` handler | 2.1.1 |
+| `images-without-alt` (medium) | `<img>` with no `alt`, static or bound, unless `aria-hidden="true"` or `role="presentation"` | 1.1.1 |
+| `positive-tabindex` (low) | `tabindex` above 0 | 2.4.3 |
+
+Every attribute counts in Angular's spellings (`alt`, `[alt]`, `[attr.alt]`), commented-out markup is not judged, and a bound `[id]` beside a bound `[for]` counts as labelled. What a directive or a component supplies at runtime is not seen, so the rules err towards silence: an icon ligature (`<mat-icon>delete</mat-icon>`) counts as a button's text.
+
+**Grading:** none, as for translations: always `info`, so it changes no score, and the measures sit in the baseline, so `--fail-on regression` fails on a new defect. On the corpus every repository but one has some; the commonest are `(click)` on a `div` and images without `alt`, and one storefront's password fields have a `<label for>` that points at an input without the `id`.
+
+**Fixing it:** a `<button>` for anything clickable, `<label for>` or `<mat-form-field>` around every control, `alt` on every image (`alt=""` for decoration), `aria-label` on icon-only buttons, and `tabindex` of `0` or `-1` only.
+
+---
+
 ## Circular dependencies (`circular-deps`) <a id="circular-deps"></a>
 
 **What it reads:** every static, value-level import between application files, resolved like the Angular CLI does (relative paths, `index.ts` barrels and tsconfig `paths` aliases). `import()` and test code are ignored, and so is every import TypeScript erases: `import type`, and also a plain import whose names the file uses only as types (`store: Store`), or that names only types (`export type ID = string`), directly or through a barrel. None of those exists at runtime, so none can cause an initialization-order crash. One Angular rule keeps a real cycle visible: the constructor parameter types of a decorated class are DI tokens, so they count as runtime references.
@@ -346,6 +366,11 @@ The largest packages in the initial bundle are listed with their size, from the 
 | `angularjs.angularjs-services` | AngularJS services, factories and providers |
 | `angularjs.angularjs-templates` | Templates with AngularJS syntax |
 | `angularjs.scope-files` | Files using `$scope` |
+| `accessibility.click-without-keyboard` | Click handlers on non-interactive elements without a key handler |
+| `accessibility.images-without-alt` | Images without alt |
+| `accessibility.positive-tabindex` | `tabindex` above 0 |
+| `accessibility.unlabelled-controls` | Form controls without a label |
+| `accessibility.unnamed-buttons` | Buttons without a name |
 | `architecture.class-guards` | Class-based guards and interceptors |
 | `architecture.constructor-injection` | Classes with constructor injection |
 | `architecture.eager-routes` | Eagerly loaded routes (in files loaded at startup) |

@@ -239,6 +239,28 @@
       "findings": []
     },
     {
+      "id": "accessibility",
+      "grade": "info",
+      "summary": "4 accessibility defects in 1 template.",
+      "measures": {
+        "unlabelled-controls": 0,
+        "unnamed-buttons": 0,
+        "click-without-keyboard": 0,
+        "images-without-alt": 4,
+        "positive-tabindex": 0
+      },
+      "findings": [
+        {
+          "severity": "medium",
+          "message": "4 images without `alt`",
+          "files": [
+            "src/app/pages/tutorial/tutorial.html:14"
+          ],
+          "count": 1
+        }
+      ]
+    },
+    {
       "id": "circular-deps",
       "grade": "good",
       "summary": "No import cycles between application files.",

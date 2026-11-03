@@ -323,6 +323,56 @@
       "findings": []
     },
     {
+      "id": "accessibility",
+      "grade": "info",
+      "summary": "20 accessibility defects in 6 templates.",
+      "measures": {
+        "unlabelled-controls": 5,
+        "unnamed-buttons": 12,
+        "click-without-keyboard": 2,
+        "images-without-alt": 1,
+        "positive-tabindex": 0
+      },
+      "findings": [
+        {
+          "severity": "medium",
+          "message": "5 form controls without a label",
+          "files": [
+            "src/app/pages/dashboard/rooms/player/player.component.html:14",
+            "src/app/pages/modal-overlays/toastr/toastr.component.html:18"
+          ],
+          "count": 2
+        },
+        {
+          "severity": "medium",
+          "message": "12 buttons without a name",
+          "files": [
+            "src/app/pages/dashboard/rooms/player/player.component.html:25",
+            "src/app/pages/dashboard/security-cameras/security-cameras.component.html:6",
+            "src/app/pages/dashboard/temperature/temperature-dragger/temperature-dragger.component.html:45"
+          ],
+          "count": 4
+        },
+        {
+          "severity": "medium",
+          "message": "2 `(click)` handlers on a `div`, `span` or similar with no key handler",
+          "files": [
+            "src/app/pages/dashboard/security-cameras/security-cameras.component.html:31",
+            "src/app/@theme/components/search-input/search-input.component.ts:7"
+          ],
+          "count": 2
+        },
+        {
+          "severity": "medium",
+          "message": "1 image without `alt`",
+          "files": [
+            "src/app/pages/dashboard/temperature/temperature-dragger/temperature-dragger.component.html:1"
+          ],
+          "count": 1
+        }
+      ]
+    },
+    {
       "id": "circular-deps",
       "grade": "good",
       "summary": "No import cycles between application files.",

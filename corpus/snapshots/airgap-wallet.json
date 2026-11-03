@@ -412,6 +412,40 @@
       ]
     },
     {
+      "id": "accessibility",
+      "grade": "info",
+      "summary": "51 accessibility defects in 26 templates.",
+      "measures": {
+        "unlabelled-controls": 0,
+        "unnamed-buttons": 0,
+        "click-without-keyboard": 8,
+        "images-without-alt": 43,
+        "positive-tabindex": 0
+      },
+      "findings": [
+        {
+          "severity": "medium",
+          "message": "8 `(click)` handlers on a `div`, `span` or similar with no key handler",
+          "files": [
+            "src/app/components/flip-card/flip-card.component.html:5",
+            "src/app/components/permission-request/permission-request.component.html:51",
+            "src/app/components/tezos-sapling-contract-form/tezos-sapling-contract-form.component.html:52"
+          ],
+          "count": 5
+        },
+        {
+          "severity": "medium",
+          "message": "43 images without `alt`",
+          "files": [
+            "src/app/components/card-actionable/card-actionable.html:4",
+            "src/app/components/empty-state/empty-state.html:5",
+            "src/app/components/mt-pelerin/mt-pelerin.component.html:15"
+          ],
+          "count": 22
+        }
+      ]
+    },
+    {
       "id": "circular-deps",
       "grade": "good",
       "summary": "No import cycles between application files.",

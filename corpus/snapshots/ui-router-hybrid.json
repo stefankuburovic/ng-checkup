@@ -299,6 +299,37 @@
       "findings": []
     },
     {
+      "id": "accessibility",
+      "grade": "info",
+      "summary": "13 accessibility defects in 3 templates.",
+      "measures": {
+        "unlabelled-controls": 12,
+        "unnamed-buttons": 0,
+        "click-without-keyboard": 0,
+        "images-without-alt": 1,
+        "positive-tabindex": 0
+      },
+      "findings": [
+        {
+          "severity": "medium",
+          "message": "12 form controls without a label",
+          "files": [
+            "src/app/contacts/editContact.component.ts:35",
+            "src/app/prefs/prefs.component.ts:12"
+          ],
+          "count": 2
+        },
+        {
+          "severity": "medium",
+          "message": "1 image without `alt`",
+          "files": [
+            "src/app/contacts/contactDetail.component.ts:26"
+          ],
+          "count": 1
+        }
+      ]
+    },
+    {
       "id": "circular-deps",
       "grade": "good",
       "summary": "No import cycles between application files.",
