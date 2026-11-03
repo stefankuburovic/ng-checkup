@@ -360,17 +360,17 @@ The largest packages in the initial bundle are listed with their size, from the 
 | `primo-nde.primo-helper-components` | Helper components of a Primo VE package |
 | `primo-nde.primo-hooks` | Primo hooks filled, per view |
 | `primo-nde.primo-integrations` | Third-party integrations in a Primo VE package |
+| `accessibility.click-without-keyboard` | Click handlers on non-interactive elements without a key handler |
+| `accessibility.images-without-alt` | Images without alt |
+| `accessibility.positive-tabindex` | `tabindex` above 0 |
+| `accessibility.unlabelled-controls` | Form controls without a label |
+| `accessibility.unnamed-buttons` | Buttons without a name |
 | `angularjs.angularjs-components` | AngularJS components, directives and controllers |
 | `angularjs.angularjs-controllers` | AngularJS controllers |
 | `angularjs.angularjs-filters` | AngularJS filters |
 | `angularjs.angularjs-services` | AngularJS services, factories and providers |
 | `angularjs.angularjs-templates` | Templates with AngularJS syntax |
 | `angularjs.scope-files` | Files using `$scope` |
-| `accessibility.click-without-keyboard` | Click handlers on non-interactive elements without a key handler |
-| `accessibility.images-without-alt` | Images without alt |
-| `accessibility.positive-tabindex` | `tabindex` above 0 |
-| `accessibility.unlabelled-controls` | Form controls without a label |
-| `accessibility.unnamed-buttons` | Buttons without a name |
 | `architecture.class-guards` | Class-based guards and interceptors |
 | `architecture.constructor-injection` | Classes with constructor injection |
 | `architecture.eager-routes` | Eagerly loaded routes (in files loaded at startup) |

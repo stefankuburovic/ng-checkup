@@ -288,9 +288,9 @@
     {
       "id": "accessibility",
       "grade": "info",
-      "summary": "246 accessibility defects in 65 templates.",
+      "summary": "37 accessibility defects in 13 templates.",
       "measures": {
-        "unlabelled-controls": 244,
+        "unlabelled-controls": 35,
         "unnamed-buttons": 2,
         "click-without-keyboard": 0,
         "images-without-alt": 0,
@@ -299,13 +299,13 @@
       "findings": [
         {
           "severity": "medium",
-          "message": "244 form controls without a label",
+          "message": "35 form controls without a label",
           "files": [
-            "apps/workbench-client-testing-app-common/src/lib/dialog-opener-page/dialog-opener-page.component.html:14",
-            "apps/workbench-client-testing-app-common/src/lib/message-box-opener-page/message-box-opener-page.component.html:9",
-            "apps/workbench-client-testing-app-common/src/lib/messaging-page/publish-intent-page/publish-intent-page.component.html:4"
+            "apps/workbench-client-testing-app-common/src/lib/register-workbench-capability-page/capability-params/capability-params.component.html:11",
+            "apps/workbench-client-testing-app-common/src/lib/register-workbench-capability-page/perspective-capability-properties/perspective-capability-properties.component.html:24",
+            "apps/workbench-testing-app-common/src/lib/key-value-field/key-value-field.component.html:10"
           ],
-          "count": 63
+          "count": 11
         },
         {
           "severity": "medium",
