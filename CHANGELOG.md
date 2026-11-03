@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.0.1 (2026-11-03)
+
+- Documentation only, so the npm page matches 2.0: the README lists every option of `--help` again (`--since`, `fleet`, `mcp`), counts the 19 corpus repositories and the 61 baseline measures, and `docs/checks.md` lists the six dead-code measures it was missing. The usage lines of `--help` name `fleet` and `mcp`. No check, grade or measure changed.
+
 ## 2.0.0 (2026-11-03)
 
 A major release because the report grows: two new areas (`translations`, `accessibility`, both never graded, so no score changes) and new measures in three others, which a consumer counting areas or reading the JSON by position notices. Nothing is removed and no flag changes meaning; a baseline from 1.x keeps working, the new measures count as "not known yet", never as a failure. The GitHub Action moves to `@v2` and the GitLab component to `@2`; `@v1` and `@1` stay on 1.6.1.
