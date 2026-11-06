@@ -1,6 +1,8 @@
 # Changelog
 
-## Unreleased
+## 2.2.0 (2026-11-06)
+
+No score or grade changes: a new area that is never graded and new findings in another, and a baseline from 2.1 keeps working, with the seven new measures counted as "not known yet", never as a failure. A consumer counting areas or reading the JSON by position notices the new `ssr` area.
 
 - **Angular's built-in i18n** in the translations area, never graded: each locale of `i18n.locales` against the source file of `ng extract-i18n`, in XLIFF 1.2 and 2.0, JSON and ARB. Messages without a translation (`i18n-missing`, medium), translations still marked as not done whose text is still the source (`i18n-not-done`, low) and translations no longer in the source file (`i18n-obsolete`, low). The source file may be out of date, and the findings say so. No new dependency. On public repositories the counts of missing and obsolete translations matched an independent count across 70 locales.
 - **SSR & hydration**, a new area (`ssr`) that reports but is never graded, so no score changes, and that says nothing in an app that does not render on the server: `window`, `document`, `localStorage`, `sessionStorage` and `navigator` in code known to run there (a module's top level, fields and constructors, lifecycle hooks and the methods they call, with local names and every usual guard understood), native DOM changes that break hydration, `ngSkipHydration`, and `provideClientHydration()` missing, each a measure. Callbacks stay silent, since nothing here can tell when they run. On the corpus: 0 in vendure-storefront and rx-angular, which guard theirs; on other public SSR apps it found a `document.addEventListener` a constructor reaches and hydration commented out.
