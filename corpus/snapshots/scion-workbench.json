@@ -407,7 +407,9 @@
       "id": "bundle",
       "grade": "info",
       "summary": "No build stats found, so the bundle size is not part of this report.",
-      "measures": {},
+      "measures": {
+        "heavy-packages": 0
+      },
       "findings": [
         {
           "severity": "info",

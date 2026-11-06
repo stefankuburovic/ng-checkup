@@ -146,7 +146,7 @@ Baseline  2 worse
   worse  Type safety: Non-null assertions (x!) 0 → 1
 ```
 
-- **It records counts, not grades:** explicit `any`, `x!`, files in import cycles, components without OnPush or a spec, NgModule-declared components, deprecated API uses, sanitizer bypasses, eager routes, manual subscriptions and [55 more](https://github.com/stefankuburovic/ng-checkup/blob/main/docs/checks.md#measures), 61 in all. Lower is better for every one.
+- **It records counts, not grades:** explicit `any`, `x!`, files in import cycles, components without OnPush or a spec, NgModule-declared components, deprecated API uses, sanitizer bypasses, eager routes, manual subscriptions and [56 more](https://github.com/stefankuburovic/ng-checkup/blob/main/docs/checks.md#measures), 61 in all. Lower is better for every one.
 - **It only goes down.** When numbers drop, the run says so; `npx ng-checkup-cli baseline` locks the new numbers in. If a number went up, `baseline` refuses and lists it, so a regression cannot be waved through by re-running the command. `--force` accepts it, which is the moment someone has to explain why in review.
 - **It is a plain, sorted JSON file**, so lowering a number is a one-line diff in a merge request.
 - **In a monorepo it holds each project too**, so `--project` runs gate on their own numbers ([monorepos](#monorepos)).
@@ -366,7 +366,7 @@ The codebase is named by its repository and commit, never by a path on your disk
 | [**Translations**](https://github.com/stefankuburovic/ng-checkup/blob/main/docs/checks.md#translations) | literal ngx-translate and Transloco keys against the JSON bundles of every language, merged per language, Transloco scopes included | never graded: the missing keys are a finding and a baseline measure, so `--fail-on regression` catches a new one |
 | [**Accessibility**](https://github.com/stefankuburovic/ng-checkup/blob/main/docs/checks.md#accessibility) | form controls without a label, buttons without a name, `(click)` on a `div` with no key handler, images without `alt`, `tabindex` above 0 (WCAG level A) | never graded: findings and baseline measures, so `--fail-on regression` catches a new one |
 | [**Circular dependencies**](https://github.com/stefankuburovic/ng-checkup/blob/main/docs/checks.md#circular-deps) | import cycles through relative paths, barrels and tsconfig `paths` | more than three groups or ten files in loops |
-| [**Bundle size**](https://github.com/stefankuburovic/ng-checkup/blob/main/docs/checks.md#bundle) | the initial bundle from the last `ng build --stats-json` (esbuild or webpack) against the build's budget, its largest packages, lazy chunks | over the `initial` error budget (1 MB by default) |
+| [**Bundle size**](https://github.com/stefankuburovic/ng-checkup/blob/main/docs/checks.md#bundle) | the initial bundle from the last `ng build --stats-json` (esbuild or webpack) against the build's budget, its largest packages, lazy chunks, and outside the grade: `moment`, whole `lodash`, `rxjs-compat` and `jquery` at startup | over the `initial` error budget (1 MB by default) |
 
 `--only security,dependencies` reports just those areas, and `--skip bundle` leaves one out; the score is then the average of what is left. Each finding says why it matters and which `ng generate` migration fixes it. **[Every check, its grading and its fix →](https://github.com/stefankuburovic/ng-checkup/blob/main/docs/checks.md)**
 

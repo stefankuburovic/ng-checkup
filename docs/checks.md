@@ -357,6 +357,8 @@ The initial bundle is counted the way the Angular CLI's "Initial total" is: the 
 
 The largest packages in the initial bundle are listed with their size, from the metafile's per-input byte counts. The stats file's date is in the summary: a file from an old build describes an old bundle. Bundle size is not a baseline measure, since it grows with every feature; the budget is the limit.
 
+**Heavy packages** are read with or without a stats file and never touch the grade: a short list kept by hand, `moment`, whole `lodash`, `rxjs-compat` and `jquery`, each with its lighter way out. Without a stats file a package counts when a file that loads at startup imports it for its code, or when the build target loads it through `scripts`, and the low finding gives no size. A dynamic `import()`, a file only lazy routes reach, a type-only import, `lodash/debounce`, `inject: false` and a package `package.json` lists but nothing imports all stay out. With a stats file the finding is medium and gives the real size in the initial bundle, and also names a listed package only another package pulls in (`lodash` from 50 kB, since a few of its functions are the fix). No saving is given, because it depends on what replaces the package. The measure `heavy-packages` counts only what the code and the build configuration state, so it reads the same with a stats file and without one, and it is left out when the workspace names no entry. On the corpus: `moment` and `lodash` in airgap-wallet, `lodash` in go-data, none elsewhere.
+
 **Fixing it:** lazy routes and `@defer` for screens and heavy widgets; replace or lazy-load the largest packages the report lists.
 
 ---
@@ -391,6 +393,7 @@ The largest packages in the initial bundle are listed with their size, from the 
 | `change-detection.eager-components` | Components with eager change detection |
 | `change-detection.ngzone-files` | Files injecting NgZone |
 | `change-detection.zone-test-helpers` | Zone-based test helper calls |
+| `bundle.heavy-packages` | Heavy packages loaded at startup |
 | `circular-deps.files-in-cycles` | Files in import cycles |
 | `components.decorator-inputs-outputs` | `@Input()` / `@Output()` decorators |
 | `components.hardcoded-colors` | Colour literals outside the design tokens |

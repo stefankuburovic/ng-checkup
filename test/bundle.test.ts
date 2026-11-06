@@ -136,3 +136,82 @@ describe('the bundle check', () => {
     expect(check.findings[0]!.message).toContain('ng build --stats-json');
   });
 });
+
+describe('heavy packages', () => {
+  let root = '';
+  afterEach(() => removeTemp(root));
+
+  const app = (files: Record<string, string>, options: Record<string, unknown> = {}): string =>
+    writeTemp({
+      'package.json': JSON.stringify({ dependencies: { '@angular/core': '~22.0.0' } }),
+      'angular.json': JSON.stringify({ projects: { shop: { root: '', projectType: 'application', architect: { build: { builder: '@angular/build:application', options: { browser: 'src/main.ts', ...options } } } } } }),
+      ...files,
+    });
+  const check = async () => (await runCheckup(root, { offline: true })).checks.find((entry) => entry.id === 'bundle')!;
+  const measure = (result: Awaited<ReturnType<typeof check>>) => result.measures?.find((entry) => entry.id === 'heavy-packages')?.value;
+  const heavy = (result: Awaited<ReturnType<typeof check>>, name: string) => result.findings.find((finding) => finding.message.startsWith(`\`${name}\``));
+
+  it('finds a package startup code imports, with no size and no change of grade', async () => {
+    root = app({ 'src/main.ts': "import { format } from './format';\nformat();\n", 'src/format.ts': "import moment from 'moment';\nexport const format = () => moment();\n" });
+    const result = await check();
+    expect(result.grade).toBe('info');
+    expect(measure(result)).toBe(1);
+    expect(heavy(result, 'moment')).toMatchObject({ severity: 'low', message: '`moment` is imported by code that loads at startup', files: [{ path: 'src/format.ts', line: 1 }], count: 1 });
+    expect(heavy(result, 'moment')!.detail).toContain('date-fns');
+    expect(heavy(result, 'moment')!.detail).toContain('--stats-json');
+  });
+
+  it('leaves out lazy imports, type-only imports, lazily reached files and a package nothing imports', async () => {
+    root = app({
+      'package.json': JSON.stringify({ dependencies: { '@angular/core': '~22.0.0', jquery: '^3.0.0' } }),
+      'src/main.ts': "import type { Moment } from 'moment';\nimport { Dictionary } from 'lodash';\nexport const a = (x: Moment, y: Dictionary<string>) => [x, y];\nexport const load = () => import('./lazy');\nexport const rx = () => import('rxjs-compat');\n",
+      'src/lazy.ts': "import moment from 'moment';\nexport const b = moment();\n",
+    });
+    const result = await check();
+    expect(measure(result)).toBe(0);
+    expect(result.findings.filter((finding) => finding.severity !== 'info')).toEqual([]);
+  });
+
+  it('counts whole lodash and not one function of it', async () => {
+    root = app({ 'src/main.ts': "import debounce from 'lodash/debounce';\ndebounce(() => 1);\n" });
+    expect(measure(await check())).toBe(0);
+    removeTemp(root);
+    root = app({ 'src/main.ts': "import { debounce } from 'lodash';\ndebounce(() => 1);\n" });
+    expect(measure(await check())).toBe(1);
+  });
+
+  it('counts a global script, unless it is injected on demand', async () => {
+    root = app({ 'src/main.ts': 'export {};' }, { scripts: ['node_modules/jquery/dist/jquery.min.js', { input: 'node_modules/moment/moment.js', inject: false }] });
+    const result = await check();
+    expect(measure(result)).toBe(1);
+    expect(heavy(result, 'jquery')).toMatchObject({ severity: 'low', message: '`jquery` is a global script of the build' });
+    expect(heavy(result, 'moment')).toBeUndefined();
+  });
+
+  const stats = (inputs: Record<string, number>): string =>
+    JSON.stringify({ outputs: { 'main.js': { bytes: 400000, entryPoint: 'src/main.ts', imports: [], inputs: Object.fromEntries(Object.entries(inputs).map(([path, bytes]) => [path, { bytesInOutput: bytes }])) } } });
+
+  it('gives the real size from a stats file, and the measure stays what the code states', async () => {
+    root = app({ 'src/main.ts': "import moment from 'moment';\nmoment();\n", 'dist/shop/browser-stats.json': stats({ 'node_modules/moment/moment.js': 290000 }) });
+    const result = await check();
+    expect(heavy(result, 'moment')).toMatchObject({ severity: 'medium', message: '`moment` is in the initial bundle: 290.0 kB', files: [{ path: 'src/main.ts', line: 1 }] });
+    expect(heavy(result, 'moment')!.detail).not.toContain('--stats-json');
+    expect(measure(result)).toBe(1);
+  });
+
+  it('names a package only a dependency pulls in, outside the measure, and ignores a few lodash functions', async () => {
+    root = app({ 'src/main.ts': 'export {};', 'dist/shop/browser-stats.json': stats({ 'node_modules/moment/moment.js': 290000, 'node_modules/lodash/debounce.js': 4000 }) });
+    const result = await check();
+    expect(heavy(result, 'moment')).toMatchObject({ severity: 'medium', files: [{ path: 'dist/shop/browser-stats.json' }] });
+    expect(heavy(result, 'moment')!.detail).toContain('another package pulls it in');
+    expect(heavy(result, 'lodash')).toBeUndefined();
+    expect(measure(result)).toBe(0);
+  });
+
+  it('has no measure when no entry says what loads at startup', async () => {
+    root = writeTemp({ 'package.json': '{}', 'src/a.ts': "import moment from 'moment';\nmoment();\n" });
+    const result = await check();
+    expect(result.measures).toBeUndefined();
+    expect(heavy(result, 'moment')).toBeUndefined();
+  });
+});

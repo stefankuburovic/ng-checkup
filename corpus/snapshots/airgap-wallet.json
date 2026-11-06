@@ -489,11 +489,32 @@
       "id": "bundle",
       "grade": "info",
       "summary": "No build stats found, so the bundle size is not part of this report.",
-      "measures": {},
+      "measures": {
+        "heavy-packages": 2
+      },
       "findings": [
         {
           "severity": "info",
           "message": "Run `ng build --stats-json` (or `nx build <app> --stats-json`) and re-run to include the bundle size"
+        },
+        {
+          "severity": "low",
+          "message": "`moment` is imported by code that loads at startup",
+          "files": [
+            "src/app/extensions/delegation/CoreumDelegationExtensions.ts:9",
+            "src/app/extensions/delegation/CosmosDelegationExtensions.ts:9",
+            "src/app/extensions/delegation/PolkadotDelegationExtensions.ts:18"
+          ],
+          "count": 4
+        },
+        {
+          "severity": "low",
+          "message": "`lodash` is imported by code that loads at startup",
+          "files": [
+            "src/app/services/walletconnect/helpers.ts:1",
+            "src/app/services/walletconnect/walletconnect.service.ts:10"
+          ],
+          "count": 2
         }
       ]
     }

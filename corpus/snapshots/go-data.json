@@ -447,11 +447,23 @@
       "id": "bundle",
       "grade": "info",
       "summary": "No build stats found, so the bundle size is not part of this report.",
-      "measures": {},
+      "measures": {
+        "heavy-packages": 1
+      },
       "findings": [
         {
           "severity": "info",
           "message": "Run `ng build --stats-json` (or `nx build <app> --stats-json`) and re-run to include the bundle size"
+        },
+        {
+          "severity": "low",
+          "message": "`lodash` is imported by code that loads at startup",
+          "files": [
+            "src/app/core/components/redirect/redirect.component.ts:3",
+            "src/app/core/helperClasses/list-applied-filters-component.ts:3",
+            "src/app/core/helperClasses/list-component.ts:2"
+          ],
+          "count": 150
         }
       ]
     }

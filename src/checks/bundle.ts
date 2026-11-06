@@ -1,6 +1,102 @@
 import type { BundleStats } from '../bundle.js';
-import type { CheckResult, Finding, Grade } from '../types.js';
-import { formatCount, plural, type AnalysisContext } from './context.js';
+import type { CheckResult, FileRef, Finding, Grade, Measure } from '../types.js';
+import { applicationFiles, formatCount, plural, type AnalysisContext } from './context.js';
+
+/**
+ * Packages with a well-known lighter way out, kept short and by hand. Only a
+ * package whose cost is not in doubt belongs here: the point is a finding a
+ * team can act on, not a verdict on every dependency.
+ */
+const HEAVY_PACKAGES: Array<{ name: string; imports: RegExp; minBytes?: number; advice: string }> = [
+  {
+    name: 'moment',
+    imports: /^moment(\/|$)/,
+    advice: 'Moment cannot be tree-shaken and is in maintenance mode. `date-fns`, imported function by function, or `dayjs` cover most uses, and `Intl.DateTimeFormat` covers formatting.',
+  },
+  {
+    name: 'lodash',
+    // `lodash/debounce` brings one function, which is the fix and not the problem.
+    imports: /^lodash(\/lodash(\.min)?(\.js)?)?$/,
+    // In a stats file both spellings are the package `lodash`, so size tells the whole library from a few functions.
+    minBytes: 50 * 1000,
+    advice: '`lodash` is CommonJS, so even a named import brings the whole library. `lodash-es` with named imports, or `lodash/debounce` per function, keeps only what is used, and many of its functions now have a native equivalent.',
+  },
+  {
+    name: 'rxjs-compat',
+    imports: /^rxjs-compat(\/|$)/,
+    advice: 'The compatibility layer for RxJS 5 code, meant for the move to RxJS 6. Move what still needs it to pipeable operators and remove the package.',
+  },
+  {
+    name: 'jquery',
+    imports: /^jquery(\/|$)/,
+    advice: 'Angular bindings and the native DOM cover what most code uses it for (`querySelector`, `classList`, `fetch`). A plugin that needs jQuery has to go first.',
+  },
+];
+
+/** The startup files that import a package for its code: not `import type`, not `import()`, not a binding only used as a type. */
+function startupImports(context: AnalysisContext, imports: RegExp): FileRef[] {
+  const refs: FileRef[] = [];
+  for (const file of applicationFiles(context)) {
+    if (!context.eagerFiles?.has(file.path)) continue;
+    const fact = file.imports.find((entry) => imports.test(entry.specifier) && !entry.typeOnly && !entry.dynamic && !(entry.bindings.length > 0 && entry.bindings.every((binding) => binding.typeOnly || !binding.valueUsed)));
+    if (fact) refs.push({ path: file.path, line: fact.line });
+  }
+  return refs;
+}
+
+/** True when a build target loads the package as a global script. `inject: false` loads it on demand, so that does not count. */
+function isGlobalScript(context: AnalysisContext, name: string): boolean {
+  return context.workspace.targets
+    .filter((target) => target.target === 'build')
+    .flatMap((target) => (Array.isArray(target.options['scripts']) ? (target.options['scripts'] as unknown[]) : []))
+    .some((entry) => {
+      const record = typeof entry === 'object' && entry !== null ? (entry as Record<string, unknown>) : undefined;
+      const input = record ? record['input'] : entry;
+      return typeof input === 'string' && record?.['inject'] !== false && input.includes(`node_modules/${name}/`);
+    });
+}
+
+/**
+ * The listed packages that load at startup. The findings add what a stats
+ * file knows: the real size, and a package only another package pulls in.
+ * No saving is ever given, because it depends on what replaces the package.
+ *
+ * The measure counts only what the code and the build configuration state,
+ * so that it reads the same with a stats file and without one. It is left out
+ * when the workspace names no entry to start from.
+ */
+function heavyPackages(context: AnalysisContext): { findings: Finding[]; measures: Measure[] } {
+  const findings: Finding[] = [];
+  let loaded = 0;
+  let known = context.eagerFiles !== undefined;
+  for (const entry of HEAVY_PACKAGES) {
+    const files = startupImports(context, entry.imports);
+    const script = isGlobalScript(context, entry.name);
+    if (script) known = true;
+    if (files.length > 0 || script) loaded++;
+    const measured = context.bundles
+      .flatMap((bundle) => bundle.initialByPackage.filter((part) => part.name === entry.name).map((part) => ({ bundle, bytes: part.bytes })))
+      .sort((left, right) => right.bytes - left.bytes)[0];
+    const direct = files.length > 0 || script;
+    if (!direct && (!measured || measured.bytes < (entry.minBytes ?? 0))) continue;
+    const name = context.bundles.length > 1 && measured ? ` of ${measured.bundle.project}` : '';
+    const message = measured
+      ? `\`${entry.name}\` is in the initial bundle${name}: ${formatBytes(measured.bytes)}`
+      : files.length > 0
+        ? `\`${entry.name}\` is imported by code that loads at startup`
+        : `\`${entry.name}\` is a global script of the build`;
+    const pulled = direct ? '' : ' No file here imports it, so another package pulls it in.';
+    const size = measured ? '' : ' `ng build --stats-json` gives its real size.';
+    const refs = files.length > 0 ? files : measured ? [{ path: measured.bundle.file }] : undefined;
+    findings.push({
+      severity: measured ? 'medium' : 'low',
+      message,
+      detail: `${entry.advice}${pulled}${size}`,
+      ...(refs ? { files: refs.slice(0, context.maxExamples), count: refs.length } : {}),
+    });
+  }
+  return { findings, measures: known ? [{ id: 'heavy-packages', label: 'Heavy packages loaded at startup', value: loaded }] : [] };
+}
 
 /**
  * The size of what the browser loads before the app starts, from the stats
@@ -13,15 +109,18 @@ import { formatCount, plural, type AnalysisContext } from './context.js';
  * how to get one. The file's date is in the summary, because a stats file
  * from last month describes last month's bundle.
  *
- * There is no baseline measure here, on purpose: a bundle grows with every
+ * The size is no baseline measure, on purpose: a bundle grows with every
  * feature, so "may only go down" would fail CI on ordinary work. The budget
  * is the limit, and the build already enforces it; this check explains what
- * fills it.
+ * fills it. The count of heavy packages is a measure, since a new one is a
+ * choice and not ordinary growth, and it never touches the grade.
  */
 export function bundleCheck(context: AnalysisContext): CheckResult {
   const id = 'bundle';
   const title = 'Bundle size';
   const { bundles } = context;
+  const heavy = heavyPackages(context);
+  const measures = heavy.measures.length > 0 ? { measures: heavy.measures } : {};
   if (bundles.length === 0) {
     return {
       id,
@@ -29,7 +128,8 @@ export function bundleCheck(context: AnalysisContext): CheckResult {
       grade: 'info',
       summary: 'No build stats found, so the bundle size is not part of this report.',
       metrics: [],
-      findings: [{ severity: 'info', message: 'Run `ng build --stats-json` (or `nx build <app> --stats-json`) and re-run to include the bundle size' }],
+      findings: [{ severity: 'info', message: 'Run `ng build --stats-json` (or `nx build <app> --stats-json`) and re-run to include the bundle size' }, ...heavy.findings],
+      ...measures,
     };
   }
 
@@ -77,7 +177,8 @@ export function bundleCheck(context: AnalysisContext): CheckResult {
       { label: 'Largest lazy chunk', value: largest.largestLazy ? formatBytes(largest.largestLazy.bytes) : '-' },
       { label: 'Largest package', value: largest.initialByPackage.find((entry) => entry.name !== '(your code)')?.name ?? '-', hint: 'in the initial bundle' },
     ],
-    findings,
+    findings: [...findings, ...heavy.findings],
+    ...measures,
   };
 }
 
