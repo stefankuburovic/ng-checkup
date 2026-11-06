@@ -29,6 +29,7 @@ import { readFleetList, runFleet } from './fleet.js';
 import { renderFleetForFile, renderFleetTerminal } from './report/fleet.js';
 import { diffReports, readSavedReport } from './diff.js';
 import { renderDiffForFile, renderDiffTerminal } from './report/diff.js';
+import { renderBadgeJson, renderBadgeSvg } from './report/badge.js';
 
 const HELP = `Usage: ng-checkup [path | repository] [options]
        ng-checkup init [path] [init options]
@@ -54,8 +55,10 @@ Arguments:
 Options:
   -r, --report <file>    Write the full report; format from the extension:
                          .html, .md, .json, .sarif (GitHub code scanning),
-                         .codequality.json (GitLab merge request widget) or
-                         .comment.md (a short pull-request comment). Repeatable.
+                         .codequality.json (GitLab merge request widget),
+                         .comment.md (a short pull-request comment), .svg (a
+                         README badge) or badge.json (the badge for shields.io).
+                         Repeatable.
       --json             Print the report as JSON to stdout instead of the summary
   -v, --verbose          Print every finding with its files
       --plan             Add an upgrade plan to the latest Angular, one major
@@ -396,7 +399,7 @@ function parseRoot(positionals: string[]): string {
 
 /** Rejects a report path whose extension names no format. */
 function assertReportFormat(path: string): void {
-  if (!REPORT_FORMATS.includes(extname(path).toLowerCase())) throw new Error(`Unknown report format for ${path}: use .html, .md, .json or .sarif`);
+  if (!REPORT_FORMATS.includes(extname(path).toLowerCase())) throw new Error(`Unknown report format for ${path}: use .html, .md, .json, .sarif or .svg`);
 }
 
 /** Renders a report in the format its file extension names. */
@@ -404,6 +407,8 @@ export function renderForFile(report: Report, path: string): string {
   const extension = extname(path).toLowerCase();
   if (path.toLowerCase().endsWith('.comment.md')) return renderComment(report);
   if (path.toLowerCase().endsWith('.codequality.json')) return renderCodeQuality(report);
+  if (extension === '.svg') return renderBadgeSvg(report);
+  if (/(^|[\\/.])badge\.json$/i.test(path)) return renderBadgeJson(report);
   if (extension === '.json') return `${JSON.stringify(report, null, 2)}\n`;
   if (extension === '.md') return renderMarkdown(report);
   if (extension === '.sarif') return renderSarif(report);

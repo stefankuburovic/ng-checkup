@@ -37,6 +37,7 @@ npx ng-checkup-cli
 - [Client report](#client-report)
 - [What it checks](#what-it-checks)
 - [Reports](#reports)
+- [A badge for the README](#a-badge-for-the-readme)
 - [In CI](#in-ci)
 - [Programmatic API](#programmatic-api)
 - [What leaves your machine](#what-leaves-your-machine)
@@ -400,6 +401,8 @@ Defaults that changed between versions are applied per version: a component with
 | `npx ng-checkup-cli --report checkup.sarif` | SARIF 2.1.0 for [GitHub code scanning](#in-ci) and other SARIF viewers |
 | `npx ng-checkup-cli --report checkup.codequality.json` | GitLab Code Quality, for the merge request widget |
 | `npx ng-checkup-cli --report checkup.comment.md` | a short pull-request comment: what changed against the baseline, a grade per area, the top priorities |
+| `npx ng-checkup-cli --report badge.svg` | the score as a [README badge](#a-badge-for-the-readme) |
+| `npx ng-checkup-cli --report badge.json` | the same badge as a shields.io endpoint; `x.badge.json` works too, any other `.json` is the full report |
 | `npx ng-checkup-cli --json` | the JSON on stdout, for piping |
 
 `--report` is repeatable, so one run can write all three files.
@@ -432,8 +435,10 @@ Arguments:
 Options:
   -r, --report <file>    Write the full report; format from the extension:
                          .html, .md, .json, .sarif (GitHub code scanning),
-                         .codequality.json (GitLab merge request widget) or
-                         .comment.md (a short pull-request comment). Repeatable.
+                         .codequality.json (GitLab merge request widget),
+                         .comment.md (a short pull-request comment), .svg (a
+                         README badge) or badge.json (the badge for shields.io).
+                         Repeatable.
       --json             Print the report as JSON to stdout instead of the summary
   -v, --verbose          Print every finding with its files
       --plan             Add an upgrade plan to the latest Angular, one major
@@ -533,6 +538,49 @@ MCP server (ng-checkup mcp):
 Exit codes: `0` done, `1` `--fail-on` tripped, `2` usage error (including `--fail-on regression` without a baseline). Areas graded `info` never fail a run.
 
 </details>
+
+### A badge for the README
+
+The score and its colour, in the same bands as the tables: green from 80, amber from 50, red below, grey when nothing was graded. A badge is only as fresh as the job that writes it, and the tool never commits anything itself, so pick one of two ways.
+
+**Commit the SVG.** Nothing outside the repository is involved, but the job needs permission to push:
+
+```yaml
+# .github/workflows/badge.yml
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: write
+jobs:
+  badge:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npx ng-checkup-cli --offline --report docs/ng-checkup.svg
+      - run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/ng-checkup.svg
+          git diff --cached --quiet || (git commit -m "Update the ng-checkup badge" && git push)
+```
+
+```markdown
+![ng-checkup](docs/ng-checkup.svg)
+```
+
+**Publish the JSON.** Put `badge.json` anywhere public (GitHub Pages, a gist, a bucket) and shields.io draws the badge, with no write access to the repository. shields.io reads the file, so the score is public, and it caches the result for a while:
+
+```bash
+npx ng-checkup-cli --offline --report public/badge.json
+```
+
+```markdown
+![ng-checkup](https://img.shields.io/endpoint?url=https://example.com/badge.json)
+```
 
 ## In CI
 

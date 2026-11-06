@@ -2,7 +2,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { extname, join, resolve } from 'node:path';
 
 /** Report file extensions the CLI can write, shared by the command line and the config file. */
-export const REPORT_FORMATS = ['.html', '.htm', '.md', '.json', '.sarif'];
+export const REPORT_FORMATS = ['.html', '.htm', '.md', '.json', '.sarif', '.svg'];
 
 /** The file `ng-checkup` reads from the analysed root when no `--config` is given. */
 export const CONFIG_FILE = 'ng-checkup.config.json';
@@ -79,7 +79,7 @@ export function loadConfig(root: string, explicitPath?: string): { config: Check
     const reports = record['reports'];
     if (!Array.isArray(reports) || !reports.every((entry) => typeof entry === 'string')) throw new Error(`${path}: reports must be an array of file names`);
     for (const report of reports) {
-      if (!REPORT_FORMATS.includes(extname(report).toLowerCase())) throw new Error(`${path}: unknown report format for ${report}, use .html, .md, .json or .sarif`);
+      if (!REPORT_FORMATS.includes(extname(report).toLowerCase())) throw new Error(`${path}: unknown report format for ${report}, use .html, .md, .json, .sarif or .svg`);
     }
     config.reports = reports;
   }

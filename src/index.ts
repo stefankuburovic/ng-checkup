@@ -52,6 +52,7 @@ export { renderMarkdown } from './report/markdown.js';
 export { renderSarif } from './report/sarif.js';
 export { COMMENT_MARKER, renderComment } from './report/comment.js';
 export { renderCodeQuality } from './report/codequality.js';
+export { renderBadgeJson, renderBadgeSvg } from './report/badge.js';
 export { createAnalysisCache, type AnalysisCache } from './cache.js';
 export { SinceError, type SinceInfo } from './since.js';
 export { overallScore, topPriorities } from './report/summary.js';

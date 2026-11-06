@@ -3,12 +3,8 @@ import type { FleetReport, FleetRow } from '../fleet.js';
 import type { Grade } from '../types.js';
 import { escape } from './escape.js';
 import { STYLES } from './html.js';
+import { scoreBand } from './summary.js';
 import { palette } from './terminal.js';
-
-/** The score's band, as the per-project table colours it. */
-function band(score: number | undefined): Grade {
-  return score === undefined ? 'info' : score >= 80 ? 'good' : score >= 50 ? 'fair' : 'poor';
-}
 
 /** The areas a row is poor or fair in, by title, worst first. */
 function weakAreas(report: FleetReport, row: FleetRow): { poor: string[]; fair: string[] } {
@@ -61,7 +57,7 @@ export function renderFleetHtml(report: FleetReport): string {
         const grade = row.grades[area.id] ?? 'info';
         return `<td><span class="pill grade-${grade}">${grade === 'info' ? '-' : grade}</span></td>`;
       });
-      return `<tr><td><strong>${escape(row.name)}</strong><br><code>${escape(row.entry)}${row.commit ? ` @ ${escape(row.commit)}` : ''}</code></td><td>${escape(row.angularVersion ?? '-')}</td><td class="num"><span class="pill grade-${band(row.score)}">${row.score ?? '-'}</span></td><td class="num">${row.highFindings}</td><td class="num">${formatCount(row.linesOfCode)}</td>${cells.join('')}</tr>`;
+      return `<tr><td><strong>${escape(row.name)}</strong><br><code>${escape(row.entry)}${row.commit ? ` @ ${escape(row.commit)}` : ''}</code></td><td>${escape(row.angularVersion ?? '-')}</td><td class="num"><span class="pill grade-${scoreBand(row.score)}">${row.score ?? '-'}</span></td><td class="num">${row.highFindings}</td><td class="num">${formatCount(row.linesOfCode)}</td>${cells.join('')}</tr>`;
     })
     .join('\n');
   return `<!doctype html>

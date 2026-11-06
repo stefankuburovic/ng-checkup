@@ -3,12 +3,8 @@ import type { MeasureDelta } from '../baseline.js';
 import type { DiffArea, DiffFinding, DiffReport, DiffSide } from '../diff.js';
 import { escape } from './escape.js';
 import { inline, STYLES } from './html.js';
+import { scoreBand } from './summary.js';
 import { palette } from './terminal.js';
-
-/** The score's band, as the fleet and per-project tables colour it. */
-function band(score: number | undefined): string {
-  return score === undefined ? 'info' : score >= 80 ? 'good' : score >= 50 ? 'fair' : 'poor';
-}
 
 const date = (side: DiffSide): string => side.generatedAt?.slice(0, 10) ?? '?';
 const signed = (value: number): string => (value > 0 ? `+${formatCount(value)}` : formatCount(value));
@@ -100,7 +96,7 @@ export function renderDiffMarkdown(report: DiffReport): string {
 export function renderDiffHtml(report: DiffReport): string {
   const { before, after } = report;
   const pill = (grade: string | undefined): string => `<span class="pill grade-${grade ?? 'info'}">${grade ?? '-'}</span>`;
-  const score = (value: number | undefined): string => `<span class="pill grade-${band(value)}">${value ?? '-'}</span>`;
+  const score = (value: number | undefined): string => `<span class="pill grade-${scoreBand(value)}">${value ?? '-'}</span>`;
   const table = (head: string, rows: string): string => `<div class="table-wrap"><table class="projects"><thead><tr>${head}</tr></thead><tbody>${rows}</tbody></table></div>`;
   const moved = movedAreas(report);
   const measures = (title: string, deltas: MeasureDelta[]): string =>

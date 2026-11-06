@@ -28,6 +28,11 @@ export function overallScore(report: Pick<Report, 'checks'>): number | undefined
   return Math.round(graded.reduce((sum, check) => sum + GRADE_POINTS[check.grade], 0) / graded.length);
 }
 
+/** The band of a score, the same in every table and on the badge: 80 and up is good, 50 and up is fair. */
+export function scoreBand(score: number | undefined): Grade {
+  return score === undefined ? 'info' : score >= 80 ? 'good' : score >= 50 ? 'fair' : 'poor';
+}
+
 /**
  * The titles of a project's poor and fair areas, in report order, for the
  * per-project tables. Titles come from the whole-workspace checks, since a
