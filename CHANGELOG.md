@@ -1,6 +1,8 @@
 # Changelog
 
-## Unreleased
+## 2.1.0 (2026-11-06)
+
+No score or grade changes: the new checks are findings and baseline measures outside the grade, and a baseline from 2.0 keeps working, with the five new measures counted as "not known yet", never as a failure.
 
 - **Template speed** in the components area, as low findings and measures outside the grade, so no score changes: `*ngFor` without `trackBy` (`untracked-ngfor`), `@for` with `track $index` (`track-by-index`), method calls in template bindings (`template-method-calls`) and impure pipes a template uses (`impure-pipes`). A template is joined with the component class that owns it: a call counts only when that class declares the method, so a signal never does, and a constant array of the class is left out of the loop rules. A template no class owns is not read. On the corpus: 0 to 80 `*ngFor`, 0 to 12 `track $index`, 0 to 41 method calls and 0 to 2 impure pipes per repository, with all 149 method calls pointing at the line that makes them.
 - **Heavy packages** in the bundle area, outside the grade: `moment`, whole `lodash`, `rxjs-compat` and `jquery` when startup code imports them or the build loads them through `scripts`, each with its lighter way out, and the measure `heavy-packages`. Without a stats file it is a low finding with no size; with one it is medium, gives the real size in the initial bundle and also names a listed package only another package pulls in. No saving is estimated. On the corpus: `moment` and `lodash` in airgap-wallet, `lodash` in go-data.
