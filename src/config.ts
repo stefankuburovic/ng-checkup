@@ -4,6 +4,11 @@ import { extname, join, resolve } from 'node:path';
 /** Report file extensions the CLI can write, shared by the command line and the config file. */
 export const REPORT_FORMATS = ['.html', '.htm', '.md', '.json', '.sarif', '.svg'];
 
+/** True for a path whose name says which report to write. A plain `.csv` says nothing: only the backlog export is CSV. */
+export function isReportPath(path: string): boolean {
+  return REPORT_FORMATS.includes(extname(path).toLowerCase()) || /\.issues\.csv$/i.test(path);
+}
+
 /** The file `ng-checkup` reads from the analysed root when no `--config` is given. */
 export const CONFIG_FILE = 'ng-checkup.config.json';
 
@@ -79,7 +84,7 @@ export function loadConfig(root: string, explicitPath?: string): { config: Check
     const reports = record['reports'];
     if (!Array.isArray(reports) || !reports.every((entry) => typeof entry === 'string')) throw new Error(`${path}: reports must be an array of file names`);
     for (const report of reports) {
-      if (!REPORT_FORMATS.includes(extname(report).toLowerCase())) throw new Error(`${path}: unknown report format for ${report}, use .html, .md, .json, .sarif or .svg`);
+      if (!isReportPath(report)) throw new Error(`${path}: unknown report format for ${report}, use .html, .md, .json, .sarif, .svg or .issues.csv`);
     }
     config.reports = reports;
   }

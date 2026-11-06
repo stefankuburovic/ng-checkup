@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { measuresOf, type MeasureDelta } from './baseline.js';
 import { TOOL } from './index.js';
-import { findingKind } from './report/codequality.js';
+import { findingIdentity } from './report/codequality.js';
 import { overallScore } from './report/summary.js';
 import type { FileRef, Grade, Report, Severity } from './types.js';
 
@@ -10,8 +10,8 @@ import type { FileRef, Grade, Report, Severity } from './types.js';
  * reports, the proof of a piece of modernization work.
  *
  * It reads the reports and nothing else, so it runs anywhere and years later.
- * Findings are matched as a whole by what they are about (`findingKind`, the
- * Code Quality fingerprint without the file), not file by file: a report lists
+ * Findings are matched as a whole by what they are about (`findingIdentity`,
+ * the Code Quality fingerprint without the file), not file by file: a report lists
  * only a few example files per finding, so a file missing from the list says
  * nothing about the code. The measures carry the numbers.
  *
@@ -127,8 +127,7 @@ function findingsByKind(report: Report): Map<string, DiffFinding> {
   for (const check of report.checks) {
     for (const finding of check.findings) {
       if (finding.severity === 'info') continue;
-      // A clause that depends on a count ("22 calls, 22 not tied to ...") comes and goes with the count, and the finding is the same without it.
-      const key = `${check.id}\n${findingKind(finding.message).split(', #')[0]}`;
+      const key = findingIdentity(check.id, finding.message);
       if (!found.has(key)) found.set(key, { check: check.title, severity: finding.severity, message: finding.message, ...(finding.detail ? { detail: finding.detail } : {}), ...(finding.files ? { files: finding.files } : {}), ...(finding.count !== undefined ? { count: finding.count } : {}) });
     }
   }

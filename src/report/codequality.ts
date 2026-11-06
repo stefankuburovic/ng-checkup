@@ -48,6 +48,16 @@ export function findingKind(message: string): string {
     .join('');
 }
 
+/**
+ * What makes a finding the same finding from one report to the next, whatever
+ * its count and without the file: its area and kind. A clause that depends on a
+ * count ("22 calls, 22 not tied to the lifetime") comes and goes with the count,
+ * so it is left out. Code Quality keeps its own fingerprint, per file, unchanged.
+ */
+export function findingIdentity(checkId: string, message: string): string {
+  return `${checkId}\n${findingKind(message).split(', #')[0]}`;
+}
+
 /** True for the findings that become Code Quality entries. */
 function isReported(finding: Finding): finding is Finding & { severity: Exclude<Severity, 'info'> } {
   return finding.severity !== 'info';

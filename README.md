@@ -38,6 +38,7 @@ npx ng-checkup-cli
 - [What it checks](#what-it-checks)
 - [Reports](#reports)
 - [A badge for the README](#a-badge-for-the-readme)
+- [A backlog from the findings](#a-backlog-from-the-findings)
 - [In CI](#in-ci)
 - [Programmatic API](#programmatic-api)
 - [What leaves your machine](#what-leaves-your-machine)
@@ -403,6 +404,8 @@ Defaults that changed between versions are applied per version: a component with
 | `npx ng-checkup-cli --report checkup.comment.md` | a short pull-request comment: what changed against the baseline, a grade per area, the top priorities |
 | `npx ng-checkup-cli --report badge.svg` | the score as a [README badge](#a-badge-for-the-readme) |
 | `npx ng-checkup-cli --report badge.json` | the same badge as a shields.io endpoint; `x.badge.json` works too, any other `.json` is the full report |
+| `npx ng-checkup-cli --report checkup.issues.csv` | a [backlog](#a-backlog-from-the-findings): one row per finding with all its files, for a spreadsheet or the Jira importer |
+| `npx ng-checkup-cli --report checkup.issues.md` | the same backlog as a checklist for a GitHub or GitLab issue |
 | `npx ng-checkup-cli --json` | the JSON on stdout, for piping |
 
 `--report` is repeatable, so one run can write all three files.
@@ -437,8 +440,9 @@ Options:
                          .html, .md, .json, .sarif (GitHub code scanning),
                          .codequality.json (GitLab merge request widget),
                          .comment.md (a short pull-request comment), .svg (a
-                         README badge) or badge.json (the badge for shields.io).
-                         Repeatable.
+                         README badge), badge.json (the badge for shields.io),
+                         .issues.csv or .issues.md (a backlog, one item per
+                         finding, with all its files). Repeatable.
       --json             Print the report as JSON to stdout instead of the summary
   -v, --verbose          Print every finding with its files
       --plan             Add an upgrade plan to the latest Angular, one major
@@ -581,6 +585,18 @@ npx ng-checkup-cli --offline --report public/badge.json
 ```markdown
 ![ng-checkup](https://img.shields.io/endpoint?url=https://example.com/badge.json)
 ```
+
+### A backlog from the findings
+
+```bash
+npx ng-checkup-cli --report checkup.issues.csv --report checkup.issues.md
+```
+
+One item per finding, most urgent first, with its area, priority, description and a fingerprint that stays the same while the finding is the same, whatever its count. These two list every file of a finding, where the other reports show the first few (`--max-examples`). The tool creates no tasks: you import or paste the file.
+
+The CSV has the columns `Summary`, `Priority` (`High`, `Medium`, `Low`), `Labels`, `Description`, `Area`, `Files` and `Fingerprint`, in UTF-8 without a byte-order mark. `Summary` is the one column Jira's importer requires, and its wizard lets you map the rest; `Description` includes the file list, since that field takes one column. A cell a spreadsheet would run as a formula gets a leading apostrophe, because messages and paths come from the repository being checked. A cell stops at Excel's limit of 32 767 characters and then says how many files it left out. A bare `.csv` is refused, since it names no format.
+
+GitHub limits an issue body to 65 536 characters, and a large codebase's checklist can go over that, so split it or use `--only`.
 
 ## In CI
 

@@ -6,8 +6,8 @@ import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 import { BASELINE_FILE, baselineDecreases, baselineIncreases, baselineMeasures, compareWithBaseline, createBaseline, measuresOf, readBaseline, serializeBaseline, type Baseline } from './baseline.js';
 import { createAnalysisCache } from './cache.js';
-import { loadConfig, REPORT_FORMATS, type CheckupConfig } from './config.js';
-import { BUNDLED_LATEST_ANGULAR_MAJOR, fetchLatestAngularMajor, ProjectNotFoundError, runCheckup, SinceError, TOOL, UnknownCheckError } from './index.js';
+import { isReportPath, loadConfig, type CheckupConfig } from './config.js';
+import { BUNDLED_LATEST_ANGULAR_MAJOR, fetchLatestAngularMajor, ProjectNotFoundError, runCheckup, SinceError, TOOL, UNCAPPED_EXAMPLES, UnknownCheckError } from './index.js';
 import { planInit, type CiChoice, type InitPlan } from './init.js';
 import { cloneRemote, describeCheckout, parseRemote, type RemoteRepository } from './remote.js';
 import { renderHtml } from './report/html.js';
@@ -30,6 +30,7 @@ import { renderFleetForFile, renderFleetTerminal } from './report/fleet.js';
 import { diffReports, readSavedReport } from './diff.js';
 import { renderDiffForFile, renderDiffTerminal } from './report/diff.js';
 import { renderBadgeJson, renderBadgeSvg } from './report/badge.js';
+import { capExamples, isIssuesReport, renderIssuesCsv, renderIssuesMarkdown } from './report/issues.js';
 
 const HELP = `Usage: ng-checkup [path | repository] [options]
        ng-checkup init [path] [init options]
@@ -57,8 +58,9 @@ Options:
                          .html, .md, .json, .sarif (GitHub code scanning),
                          .codequality.json (GitLab merge request widget),
                          .comment.md (a short pull-request comment), .svg (a
-                         README badge) or badge.json (the badge for shields.io).
-                         Repeatable.
+                         README badge), badge.json (the badge for shields.io),
+                         .issues.csv or .issues.md (a backlog, one item per
+                         finding, with all its files). Repeatable.
       --json             Print the report as JSON to stdout instead of the summary
   -v, --verbose          Print every finding with its files
       --plan             Add an upgrade plan to the latest Angular, one major
@@ -399,12 +401,14 @@ function parseRoot(positionals: string[]): string {
 
 /** Rejects a report path whose extension names no format. */
 function assertReportFormat(path: string): void {
-  if (!REPORT_FORMATS.includes(extname(path).toLowerCase())) throw new Error(`Unknown report format for ${path}: use .html, .md, .json, .sarif or .svg`);
+  if (!isReportPath(path)) throw new Error(`Unknown report format for ${path}: use .html, .md, .json, .sarif, .svg or .issues.csv`);
 }
 
 /** Renders a report in the format its file extension names. */
 export function renderForFile(report: Report, path: string): string {
   const extension = extname(path).toLowerCase();
+  if (path.toLowerCase().endsWith('.issues.csv')) return renderIssuesCsv(report);
+  if (path.toLowerCase().endsWith('.issues.md')) return renderIssuesMarkdown(report);
   if (path.toLowerCase().endsWith('.comment.md')) return renderComment(report);
   if (path.toLowerCase().endsWith('.codequality.json')) return renderCodeQuality(report);
   if (extension === '.svg') return renderBadgeSvg(report);
@@ -553,12 +557,14 @@ async function mainCheckup(parsed: CliArguments, rootLabel?: string): Promise<nu
   if (parsed.watch) return mainWatch(parsed, settings);
 
   let report: Report;
+  let full: Report;
   try {
-    report = await runCheckup(parsed.root, { offline: settings.offline, maxExamples: settings.maxExamples, ignore: analysisIgnores(parsed.root, settings), plan: settings.plan, attributeSelectors: settings.attributeSelectors, project: parsed.project, only: settings.only, skip: settings.skip, since: parsed.since });
+    full = await runCheckup(parsed.root, { offline: settings.offline, maxExamples: examplesToCollect(settings), ignore: analysisIgnores(parsed.root, settings), plan: settings.plan, attributeSelectors: settings.attributeSelectors, project: parsed.project, only: settings.only, skip: settings.skip, since: parsed.since });
   } catch (error) {
     if (error instanceof ProjectNotFoundError || error instanceof UnknownCheckError || error instanceof SinceError) return usageError(error);
     throw error;
   }
+  report = capExamples(full, settings.maxExamples);
   if (baseline) report.baseline = compareWithBaseline(report, baseline, settings.baselinePath, parsed.project);
   if (rootLabel) report.root = rootLabel;
   // A client report goes to someone else: no absolute path of this machine in it.
@@ -604,7 +610,7 @@ async function mainCheckup(parsed: CliArguments, rootLabel?: string): Promise<nu
     if (summary) report.trend = summary;
     if (parsed.trend.record) recordTrend(parsed.trend.path, points, point);
   }
-  writeReports(report, settings.reports);
+  writeReports(report, settings.reports, full);
 
   if (parsed.json) {
     process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
@@ -628,11 +634,16 @@ export function analysisIgnores(root: string, settings: Pick<RunSettings, 'ignor
   return patterns.length > 0 ? patterns : undefined;
 }
 
-/** Writes `report` to every target, in the format its extension names. */
-function writeReports(report: Report, targets: string[]): void {
+/** How many example files a run collects: all of them when a backlog export needs them, and `capExamples` cuts them again for every other report. */
+function examplesToCollect(settings: Pick<RunSettings, 'maxExamples' | 'reports'>): number {
+  return settings.reports.some(isIssuesReport) ? UNCAPPED_EXAMPLES : settings.maxExamples;
+}
+
+/** Writes `report` to every target, in the format its extension names; a backlog export gets `full`, which has every file. */
+function writeReports(report: Report, targets: string[], full: Report): void {
   for (const target of targets) {
     mkdirSync(dirname(target), { recursive: true });
-    writeFileSync(target, renderForFile(report, target));
+    writeFileSync(target, renderForFile(isIssuesReport(target) ? full : report, target));
   }
 }
 
@@ -658,10 +669,11 @@ async function mainWatch(parsed: CliArguments, initial: RunSettings): Promise<nu
     run: async () => {
       const { config, directory } = loadConfig(parsed.root, parsed.config);
       const settings = resolveSettings(parsed, config, directory);
-      const report = await runCheckup(parsed.root, { offline: settings.offline, maxExamples: settings.maxExamples, ignore: analysisIgnores(parsed.root, settings), plan: settings.plan, attributeSelectors: settings.attributeSelectors, project: parsed.project, only: settings.only, skip: settings.skip, since: parsed.since, cache });
+      const full = await runCheckup(parsed.root, { offline: settings.offline, maxExamples: examplesToCollect(settings), ignore: analysisIgnores(parsed.root, settings), plan: settings.plan, attributeSelectors: settings.attributeSelectors, project: parsed.project, only: settings.only, skip: settings.skip, since: parsed.since, cache });
+      const report = capExamples(full, settings.maxExamples);
       const baseline = applicableBaseline(readBaseline(settings.baselinePath), parsed.project);
       if (baseline) report.baseline = compareWithBaseline(report, baseline, settings.baselinePath, parsed.project);
-      writeReports(report, settings.reports);
+      writeReports(report, settings.reports, full);
       first ??= report;
       const time = new Date().toLocaleTimeString();
       process.stdout.write(

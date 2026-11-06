@@ -38,7 +38,7 @@ import { changedFilesSince, narrowToChanged } from './since.js';
 import { scanStylesheetFile } from './stylesheets.js';
 
 /** The example cap of a `--since` run before narrowing: high enough that no finding in a real repository is cut. */
-const UNCAPPED_EXAMPLES = 1_000_000;
+export const UNCAPPED_EXAMPLES = 1_000_000;
 import { overallScore } from './report/summary.js';
 import type { CheckupOptions, ProjectSummary, Report } from './types.js';
 import { applicationEntries, asRecord, majorOf, owningProject, readJson, resolveWorkspace, restrictToProject, type ProjectInfo, type WorkspaceInfo } from './workspace.js';
@@ -53,6 +53,7 @@ export { renderSarif } from './report/sarif.js';
 export { COMMENT_MARKER, renderComment } from './report/comment.js';
 export { renderCodeQuality } from './report/codequality.js';
 export { renderBadgeJson, renderBadgeSvg } from './report/badge.js';
+export { renderIssuesCsv, renderIssuesMarkdown } from './report/issues.js';
 export { createAnalysisCache, type AnalysisCache } from './cache.js';
 export { SinceError, type SinceInfo } from './since.js';
 export { overallScore, topPriorities } from './report/summary.js';
