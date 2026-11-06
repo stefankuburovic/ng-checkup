@@ -11,7 +11,7 @@ describe('--only and --skip', () => {
     expect(report.plan?.steps.length).toBeGreaterThan(0);
     const skipped = await runCheckup(fixture('legacy-app'), { offline: true, skip: ['bundle', 'version'] });
     expect(skipped.checks.map((check) => check.id)).not.toContain('bundle');
-    expect(skipped.checks).toHaveLength(12);
+    expect(skipped.checks).toHaveLength(13);
   });
 
   it('refuse an id that names no check', () => {

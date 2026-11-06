@@ -105,7 +105,7 @@ describe('the built CLI', SPAWN_TIMEOUT, () => {
     expect(result.stdout).toContain('Top priorities');
     expect(readFileSync(join(output, 'r.html'), 'utf8')).toContain('<!doctype html>');
     expect(readFileSync(join(output, 'r.md'), 'utf8')).toContain('# Angular checkup: legacy-app');
-    expect((JSON.parse(readFileSync(join(output, 'r.json'), 'utf8')) as Report).checks).toHaveLength(14);
+    expect((JSON.parse(readFileSync(join(output, 'r.json'), 'utf8')) as Report).checks).toHaveLength(15);
   });
 
   it('sets a repository up with init, is a no-op the second time, and writes nothing on --dry-run', () => {

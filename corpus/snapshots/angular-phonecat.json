@@ -191,6 +191,13 @@
       ]
     },
     {
+      "id": "ssr",
+      "grade": "info",
+      "summary": "This project does not render on the server, so nothing here applies.",
+      "measures": {},
+      "findings": []
+    },
+    {
       "id": "circular-deps",
       "grade": "info",
       "summary": "No TypeScript application code to check.",

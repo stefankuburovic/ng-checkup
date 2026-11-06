@@ -7,6 +7,7 @@ import { testQualityOf, type TestQuality } from './test-quality.js';
 import { colorLinesInTemplate } from './stylesheets.js';
 import { accessibilityOf, type AccessibilityFacts } from './accessibility.js';
 import { translationKeysInCode, translationKeysInTemplate, type TranslationKeyUse } from './translations.js';
+import { skipHydrationLines, ssrFactsOf, type SsrFacts } from './ssr.js';
 import { templateSpeedOf, type TemplateSpeedFacts } from './template-speed.js';
 import { withoutHtmlComments } from './template-text.js';
 
@@ -151,6 +152,8 @@ export interface TemplateFact {
   accessibility: AccessibilityFacts;
   /** What it makes change detection repeat (see `templateSpeedOf`), lines of the file that holds the template. */
   speed: TemplateSpeedFacts;
+  /** Lines with `ngSkipHydration`, of the file that holds the template. */
+  skipHydration: number[];
 }
 
 /**
@@ -308,6 +311,8 @@ export interface SourceFileFacts {
    */
   bindingNamesInCode: string[];
   /** Literal translation keys looked up through a translation service or marked with `marker()` (see `translationKeysInCode`). */
+  /** What it does on the server (see `ssrFactsOf`). */
+  ssr: SsrFacts;
   translationKeys: TranslationKeyUse[];
   /** True when the file passes `bindToComponentInputs` to the router, which then sets component inputs from the URL. */
   bindsRouteInputs?: boolean;
@@ -363,6 +368,7 @@ export function scanSourceFile(root: string, absolutePath: string): SourceFileFa
     classReferences: classReferencesOf(source),
     bindingNamesInCode: [],
     translationKeys: translationKeysInCode(source),
+    ssr: ssrFactsOf(source, path),
     ...(isSpecFile(path) ? { testQuality: testQualityOf(source) } : {}),
   };  const anyExempt = lintExemptLines(text, '@typescript-eslint/no-explicit-any');
 
@@ -635,6 +641,7 @@ export function scanSourceFile(root: string, absolutePath: string): SourceFileFa
                   colorLines: colorLinesInTemplate(template.text).map((line) => line + source.getLineAndCharacterOfPosition(template.start).line),
                   accessibility: shiftLines(accessibilityOf(template.text), source.getLineAndCharacterOfPosition(template.start).line),
                   speed: shiftSpeedLines(templateSpeedOf(template.text), source.getLineAndCharacterOfPosition(template.start).line),
+                  skipHydration: skipHydrationLines(template.text).map((line) => line + source.getLineAndCharacterOfPosition(template.start).line),
                   firstLegacyLine: legacyOffset === undefined ? undefined : source.getLineAndCharacterOfPosition(template.start + legacyOffset).line + 1,
                 });
               }
@@ -1014,6 +1021,7 @@ export function scanTemplateFile(root: string, absolutePath: string): TemplateFa
     colorLines: colorLinesInTemplate(text),
     accessibility: accessibilityOf(text),
     speed: templateSpeedOf(text),
+    skipHydration: skipHydrationLines(text),
     firstLegacyLine: offset === undefined ? undefined : text.slice(0, offset).split('\n').length,
     ...(angularJs.attributes > 0 || angularJs.apps > 0 || angularJs.cdnVersion ? { angularJs } : {}),
   };

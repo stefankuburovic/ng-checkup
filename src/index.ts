@@ -19,6 +19,7 @@ import { stateCheck } from './checks/state.js';
 import { testingCheck } from './checks/testing.js';
 import { translationsCheck } from './checks/translations.js';
 import { accessibilityCheck } from './checks/accessibility.js';
+import { ssrCheck } from './checks/ssr.js';
 import { typeSafetyCheck } from './checks/type-safety.js';
 import { versionCheck } from './checks/version.js';
 import { cachedFacts, dependencyStamp } from './cache.js';
@@ -109,16 +110,17 @@ export const CHECKS: Check[] = [
   securityCheck,
   translationsCheck,
   accessibilityCheck,
+  ssrCheck,
   circularDepsCheck,
   bundleCheck,
 ];
 
 /**
- * Every check id a report can hold, for `--only` and `--skip`: the fourteen
+ * Every check id a report can hold, for `--only` and `--skip`: the fifteen
  * that always run, and the two legacy areas that replace each other when
  * there is legacy code.
  */
-export const CHECK_IDS = ['angularjs', 'primo-nde', 'version', 'deprecated-apis', 'dependencies', 'change-detection', 'components', 'state', 'architecture', 'testing', 'type-safety', 'security', 'translations', 'accessibility', 'circular-deps', 'bundle'] as const;
+export const CHECK_IDS = ['angularjs', 'primo-nde', 'version', 'deprecated-apis', 'dependencies', 'change-detection', 'components', 'state', 'architecture', 'testing', 'type-safety', 'security', 'translations', 'accessibility', 'ssr', 'circular-deps', 'bundle'] as const;
 
 /**
  * A predicate over check ids from `only` and `skip`. Every check still runs

@@ -97,7 +97,7 @@ describe('AngularJS', () => {
     removeTemp(root!);
     const angular = await check({ 'package.json': JSON.stringify({ name: 'ng', dependencies: { '@angular/core': '^22.0.0' } }), 'src/app.component.ts': "import { Component } from '@angular/core';\n@Component({ selector: 'app-root', template: '' })\nexport class AppComponent {}\n" });
     expect(angular.result).toBeUndefined();
-    expect(angular.report.checks).toHaveLength(14);
+    expect(angular.report.checks).toHaveLength(15);
   });
 
   it('calls packages without code leftovers', async () => {

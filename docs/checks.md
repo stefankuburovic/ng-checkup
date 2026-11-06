@@ -1,6 +1,6 @@
 # The checks
 
-Fourteen checks run on every repository, twelve of them graded; [Translations](#translations) and [Accessibility](#accessibility) only report. A fourteenth runs first when there is legacy code: [AngularJS migration](#angularjs) for AngularJS code or packages, or, for an Ex Libris Primo VE customization package, [Primo NDE migration](#primo-nde) in its place.
+Fifteen checks run on every repository, twelve of them graded; [Translations](#translations), [Accessibility](#accessibility) and [SSR & hydration](#ssr) only report. A sixteenth runs first when there is legacy code: [AngularJS migration](#angularjs) for AngularJS code or packages, or, for an Ex Libris Primo VE customization package, [Primo NDE migration](#primo-nde) in its place.
 
 Every check grades one area **good**, **fair**, **poor** or **info**. `info` means there was nothing to grade (no components, no tests) or an input was missing (no `node_modules`), and it never counts against the score.
 
@@ -20,6 +20,7 @@ The score is the average of the graded areas: good counts 100, fair 60, poor 20.
 - [Security](#security)
 - [Translations](#translations) (listed, never graded)
 - [Accessibility](#accessibility) (listed, never graded)
+- [SSR & hydration](#ssr) (listed, never graded)
 - [Circular dependencies](#circular-deps)
 - [Bundle size](#bundle)
 
@@ -322,6 +323,25 @@ Every attribute counts in Angular's spellings (`alt`, `[alt]`, `[attr.alt]`), co
 
 ---
 
+## SSR & hydration (`ssr`) <a id="ssr"></a>
+
+**When it runs:** only in a project that renders on the server: `@angular/ssr` or `@nguniversal/*` in `package.json`, a `provideServerRendering()` call, a `server` target, or the `server`, `ssr` or `outputMode: "server"` options of the build target. Without one every `window` would be noise, so the area says it does not apply and has no measures. In a workspace of several projects only the ones that say they render on the server are read, since a shared library may or may not run there.
+
+**What it reads:** code known to run during rendering, from the syntax: a module's top level (not `main.ts`, which only runs in the browser), the fields and constructor of a component, directive, pipe or service, the lifecycle hooks of a component or directive, and the class's own methods those call through `this`.
+
+- *Browser globals* (`browser-globals`, medium): `window`, `document`, `localStorage`, `sessionStorage` and `navigator` that resolve to no local name. `document` from `const document = inject(DOCUMENT)` or a constructor parameter is the injected one, not the global, and `this.document` and types do not count. On the server these names do not exist, so the render stops with a ReferenceError.
+- *Native DOM changes* (`dom-mutations`, low): assigning `innerHTML` or `outerHTML`, and `appendChild` and similar on a `nativeElement`, which end in a hydration mismatch.
+- *`ngSkipHydration`* (`skip-hydration`, low): in templates and `host` metadata. The documented way out, so a debt rather than a defect.
+- *Hydration not on* (`missing-hydration`, medium): no `provideClientHydration()` in an app with a build entry, on Angular 16 or newer.
+
+**What stays silent:** a guard (`isPlatformBrowser`, `isPlatformServer`, `typeof window`, a condition naming `browser`, `server` or `platform`, an earlier `if` of that kind, a `try`), a method called under a guard, a callback or nested function (`afterNextRender`, `setTimeout`, a subscription), which may run later, and a click handler nothing on the server calls. It also cannot see routes set to `RenderMode.Client`, whose code does not run on the server. So a count of 0 does not prove a page renders; a hit is worth reading.
+
+**Grading:** none. Always `info`, so it changes no score; the measures sit in the baseline, so `--fail-on regression` fails on a new one.
+
+**Checked on:** the SSR apps of the corpus (vendure-storefront, rx-angular: 0 hits, all guarded or in callbacks) and eight other public SSR repositories, where each of the hits was read by hand.
+
+---
+
 ## Circular dependencies (`circular-deps`) <a id="circular-deps"></a>
 
 **What it reads:** every static, value-level import between application files, resolved like the Angular CLI does (relative paths, `index.ts` barrels and tsconfig `paths` aliases). `import()` and test code are ignored, and so is every import TypeScript erases: `import type`, and also a plain import whose names the file uses only as types (`store: Store`), or that names only types (`export type ID = string`), directly or through a barrel. None of those exists at runtime, so none can cause an initialization-order crash. One Angular rule keeps a real cycle visible: the constructor parameter types of a decorated class are DI tokens, so they count as runtime references.
@@ -394,6 +414,10 @@ The largest packages in the initial bundle are listed with their size, from the 
 | `change-detection.ngzone-files` | Files injecting NgZone |
 | `change-detection.zone-test-helpers` | Zone-based test helper calls |
 | `bundle.heavy-packages` | Heavy packages loaded at startup |
+| `ssr.browser-globals` | Browser globals in code that runs on the server |
+| `ssr.dom-mutations` | Native DOM changes in code that runs during rendering |
+| `ssr.missing-hydration` | Server rendering without `provideClientHydration` |
+| `ssr.skip-hydration` | Uses of `ngSkipHydration` |
 | `circular-deps.files-in-cycles` | Files in import cycles |
 | `components.decorator-inputs-outputs` | `@Input()` / `@Output()` decorators |
 | `components.hardcoded-colors` | Colour literals outside the design tokens |

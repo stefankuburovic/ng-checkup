@@ -343,6 +343,13 @@
       ]
     },
     {
+      "id": "ssr",
+      "grade": "info",
+      "summary": "This project does not render on the server, so nothing here applies.",
+      "measures": {},
+      "findings": []
+    },
+    {
       "id": "circular-deps",
       "grade": "poor",
       "summary": "6 groups of files importing each other in a loop, 68 files in total.",
@@ -434,6 +441,7 @@
         "security": "good",
         "translations": "info",
         "accessibility": "info",
+        "ssr": "info",
         "circular-deps": "poor",
         "bundle": "info"
       }
@@ -453,6 +461,7 @@
         "security": "good",
         "translations": "info",
         "accessibility": "info",
+        "ssr": "info",
         "circular-deps": "good",
         "bundle": "info"
       }
@@ -472,6 +481,7 @@
         "security": "good",
         "translations": "info",
         "accessibility": "info",
+        "ssr": "info",
         "circular-deps": "fair",
         "bundle": "info"
       }
@@ -491,6 +501,7 @@
         "security": "good",
         "translations": "info",
         "accessibility": "info",
+        "ssr": "info",
         "circular-deps": "good",
         "bundle": "info"
       }
@@ -510,6 +521,7 @@
         "security": "good",
         "translations": "info",
         "accessibility": "info",
+        "ssr": "info",
         "circular-deps": "good",
         "bundle": "info"
       }
@@ -529,6 +541,7 @@
         "security": "good",
         "translations": "info",
         "accessibility": "info",
+        "ssr": "info",
         "circular-deps": "good",
         "bundle": "info"
       }
@@ -548,6 +561,7 @@
         "security": "good",
         "translations": "info",
         "accessibility": "info",
+        "ssr": "info",
         "circular-deps": "good",
         "bundle": "info"
       }

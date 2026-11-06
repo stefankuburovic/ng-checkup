@@ -579,6 +579,18 @@
       ]
     },
     {
+      "id": "ssr",
+      "grade": "info",
+      "summary": "No browser global or native DOM change in code that runs on the server, across 40 files.",
+      "measures": {
+        "browser-globals": 0,
+        "dom-mutations": 0,
+        "skip-hydration": 0,
+        "missing-hydration": 0
+      },
+      "findings": []
+    },
+    {
       "id": "circular-deps",
       "grade": "fair",
       "summary": "1 group of files importing each other in a loop, 2 files in total.",
@@ -628,6 +640,7 @@
         "security": "poor",
         "translations": "info",
         "accessibility": "info",
+        "ssr": "info",
         "circular-deps": "good",
         "bundle": "info"
       }
@@ -647,6 +660,7 @@
         "security": "good",
         "translations": "info",
         "accessibility": "info",
+        "ssr": "info",
         "circular-deps": "good",
         "bundle": "info"
       }
@@ -666,6 +680,7 @@
         "security": "good",
         "translations": "info",
         "accessibility": "info",
+        "ssr": "info",
         "circular-deps": "good",
         "bundle": "info"
       }
@@ -685,6 +700,7 @@
         "security": "good",
         "translations": "info",
         "accessibility": "info",
+        "ssr": "info",
         "circular-deps": "fair",
         "bundle": "info"
       }
@@ -704,6 +720,7 @@
         "security": "good",
         "translations": "info",
         "accessibility": "info",
+        "ssr": "info",
         "circular-deps": "good",
         "bundle": "info"
       }
@@ -723,6 +740,7 @@
         "security": "good",
         "translations": "info",
         "accessibility": "info",
+        "ssr": "info",
         "circular-deps": "good",
         "bundle": "info"
       }
@@ -742,6 +760,7 @@
         "security": "good",
         "translations": "info",
         "accessibility": "info",
+        "ssr": "info",
         "circular-deps": "good",
         "bundle": "info"
       }
@@ -761,6 +780,7 @@
         "security": "good",
         "translations": "info",
         "accessibility": "info",
+        "ssr": "info",
         "circular-deps": "good",
         "bundle": "info"
       }
@@ -780,6 +800,7 @@
         "security": "good",
         "translations": "info",
         "accessibility": "info",
+        "ssr": "info",
         "circular-deps": "good",
         "bundle": "info"
       }

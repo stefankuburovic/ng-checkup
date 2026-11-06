@@ -44,7 +44,7 @@ const TOOLS = [
   {
     name: 'checkup',
     description:
-      'Grades an Angular codebase in twelve areas (Angular version, deprecated APIs, third-party compatibility, zoneless readiness, components, state, architecture, testing, type safety, security, circular dependencies, bundle size), lists missing translation keys and accessibility defects beside them, and returns the report as Markdown: score, grade per area, every finding with its files. Start here for "how modern is this app" or "what should we fix first".',
+      'Grades an Angular codebase in twelve areas (Angular version, deprecated APIs, third-party compatibility, zoneless readiness, components, state, architecture, testing, type safety, security, circular dependencies, bundle size), lists missing translation keys, accessibility defects and code that breaks server rendering beside them, and returns the report as Markdown: score, grade per area, every finding with its files. Start here for "how modern is this app" or "what should we fix first".',
     inputSchema: {
       type: 'object',
       properties: {

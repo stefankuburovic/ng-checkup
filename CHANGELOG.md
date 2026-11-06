@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- **SSR & hydration**, a new area (`ssr`) that reports but is never graded, so no score changes, and that says nothing in an app that does not render on the server: `window`, `document`, `localStorage`, `sessionStorage` and `navigator` in code known to run there (a module's top level, fields and constructors, lifecycle hooks and the methods they call, with local names and every usual guard understood), native DOM changes that break hydration, `ngSkipHydration`, and `provideClientHydration()` missing, each a measure. Callbacks stay silent, since nothing here can tell when they run. On the corpus: 0 in vendure-storefront and rx-angular, which guard theirs; on other public SSR apps it found a `document.addEventListener` a constructor reaches and hydration commented out.
+
 ## 2.1.0 (2026-11-06)
 
 No score or grade changes: the new checks are findings and baseline measures outside the grade, and a baseline from 2.0 keeps working, with the five new measures counted as "not known yet", never as a failure.
