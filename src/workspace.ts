@@ -39,6 +39,8 @@ export interface ProjectInfo {
    * root. Undefined when none exists.
    */
   tsconfig?: string;
+  /** The project's `i18n` block as written, undefined without one (see `readI18n`). */
+  i18n?: Record<string, unknown>;
 }
 
 /** What the analysis knows about the repository before it reads any source file. */
@@ -364,6 +366,7 @@ function readAngularJsonProjects(root: string, angularJson: Record<string, unkno
       type: projectTypeOf(project['projectType']),
       sourceRoot: sourceRootOf(root, projectRoot, project['sourceRoot']),
       tsconfig: projectTsconfig(root, projectRoot, name, targets, project['projectType']),
+      ...(project['i18n'] ? { i18n: asRecord(project['i18n']) } : {}),
     };
   });
 }
@@ -382,6 +385,7 @@ function readProjectJsonProjects(root: string, projectJsons: string[], targets: 
       type: projectTypeOf(project['projectType']),
       sourceRoot: sourceRootOf(root, projectRoot, project['sourceRoot']),
       tsconfig: projectTsconfig(root, projectRoot, name, targets, project['projectType']),
+      ...(project['i18n'] ? { i18n: asRecord(project['i18n']) } : {}),
     });
   }
   return projects;

@@ -1,5 +1,15 @@
-import type { CheckResult, Finding } from '../types.js';
+import type { I18nFacts, I18nIssue } from '../i18n.js';
+import type { TranslationFacts } from '../translations.js';
+import type { CheckResult, FileRef, Finding, Measure, Metric } from '../types.js';
 import { formatCount, plural, verb, type AnalysisContext } from './context.js';
+
+/** One half of the area, before the two are put together. */
+interface AreaPart {
+  summary: string;
+  metrics: Metric[];
+  findings: Finding[];
+  measures: Measure[];
+}
 
 /**
  * Translation keys that resolve to no string, the defect a user sees as a
@@ -21,17 +31,32 @@ import { formatCount, plural, verb, type AnalysisContext } from './context.js';
  */
 export function translationsCheck(context: AnalysisContext): CheckResult {
   const facts = context.translations;
-  if (!facts) {
+  const i18n = context.i18n;
+  if (!facts && !i18n) {
     return {
       id: 'translations',
       title: 'Translations',
       grade: 'info',
-      summary: 'No ngx-translate or Transloco bundle found to check translation keys against.',
+      summary: 'No ngx-translate or Transloco bundle and no `i18n` locales found to check translations against.',
       metrics: [],
       findings: [],
     };
   }
+  const library = facts ? libraryKeys(context, facts) : { findings: [], metrics: [], measures: [], summary: '' };
+  const built = i18n ? builtInI18n(context, i18n) : { findings: [], metrics: [], measures: [], summary: '' };
+  return {
+    id: 'translations',
+    title: 'Translations',
+    grade: 'info',
+    summary: [library.summary, built.summary].filter(Boolean).join(' '),
+    metrics: [...library.metrics, ...built.metrics],
+    findings: [...library.findings, ...built.findings],
+    measures: [...library.measures, ...built.measures],
+  };
+}
 
+/** One library's half of the area: literal keys against the bundles. */
+function libraryKeys(context: AnalysisContext, facts: TranslationFacts): AreaPart {
   const findings: Finding[] = [];
   const example = (entries: typeof facts.missing) => entries.slice(0, context.maxExamples).map((entry) => entry.file);
   // Capped on its own: a `--since` run lifts maxExamples for the narrowing, and the detail would list every key.
@@ -61,9 +86,6 @@ export function translationsCheck(context: AnalysisContext): CheckResult {
 
   const missing = facts.missing.length;
   return {
-    id: 'translations',
-    title: 'Translations',
-    grade: 'info',
     summary:
       missing === 0
         ? `All ${plural(facts.keys, 'literal translation key')} resolve in ${facts.languages.join(', ')}.`
@@ -76,5 +98,75 @@ export function translationsCheck(context: AnalysisContext): CheckResult {
     ],
     findings,
     measures: [{ id: 'missing-keys', label: 'Translation keys that resolve to no string', value: missing }],
+  };
+}
+
+/** The ids of a list of issues for a finding's detail, capped, with their locales. */
+function listedIssues(context: AnalysisContext, issues: I18nIssue[]): string {
+  const byId = new Map<string, string[]>();
+  for (const issue of issues) byId.set(issue.id, [...(byId.get(issue.id) ?? []), issue.locale]);
+  const shown = [...byId.entries()].slice(0, Math.min(context.maxExamples, 10));
+  return `${shown.map(([id, locales]) => `\`${id}\` (${locales.join(', ')})`).join(', ')}${byId.size > shown.length ? ', ...' : ''}`;
+}
+
+/** The files behind a list of issues, one line per file, most issues first. */
+function issueFiles(context: AnalysisContext, issues: I18nIssue[]): { files: FileRef[]; count: number } {
+  const byPath = new Map<string, I18nIssue[]>();
+  for (const issue of issues) byPath.set(issue.file.path, [...(byPath.get(issue.file.path) ?? []), issue]);
+  const sorted = [...byPath.values()].sort((left, right) => right.length - left.length);
+  return { files: sorted.slice(0, context.maxExamples).map((entries) => entries.find((entry) => entry.file.line !== undefined)?.file ?? entries[0]!.file), count: sorted.length };
+}
+
+/** Angular's built-in i18n's half of the area: each locale against the source file. */
+function builtInI18n(context: AnalysisContext, i18n: I18nFacts): AreaPart {
+  const findings: Finding[] = [];
+  const source = i18n.sourceFiles.length > 0 ? `the source file ${i18n.sourceFiles.map((path) => `\`${path}\``).join(', ')}` : 'the source file';
+  const stale = `Compared with ${source}, not with the code, since an id without \`@@\` is a hash of the message. That file can be out of date, so run \`ng extract-i18n\` first.`;
+  if (i18n.missing.length > 0) {
+    findings.push({
+      severity: 'medium',
+      message: `${plural(i18n.missing.length, 'message')} without a translation (${i18n.locales.join(', ')})`,
+      detail: `Angular falls back to the source text, so users of that language read those parts in the source language, and by default the build only warns (\`i18nMissingTranslation\`). ${listedIssues(context, i18n.missing)}. ${stale}`,
+      ...issueFiles(context, i18n.missing),
+    });
+  }
+  if (i18n.needsTranslation.length > 0) {
+    findings.push({
+      severity: 'low',
+      message: `${plural(i18n.needsTranslation.length, 'translation')} marked as not done`,
+      detail: `State \`new\` or \`needs-translation\` in XLIFF 1.2, \`initial\` in 2.0, and the target is still the source text: a merge tool copied it there and nobody has translated it, so those users read the source language and the build does not warn. A different text under such a state is left out, since someone translated it and kept the state. ${listedIssues(context, i18n.needsTranslation)}.`,
+      ...issueFiles(context, i18n.needsTranslation),
+    });
+  }
+  if (i18n.obsolete.length > 0) {
+    findings.push({
+      severity: 'low',
+      message: `${plural(i18n.obsolete.length, 'translation')} of messages no longer in the source file`,
+      detail: `Harmless in the build. Often the message was reworded, so its hash changed, and the same text now counts as missing. ${listedIssues(context, i18n.obsolete)}. ${stale}`,
+      ...issueFiles(context, i18n.obsolete),
+    });
+  }
+  if (i18n.sourceFiles.length === 0) {
+    findings.push({ severity: 'info', message: 'No i18n source file found, so missing and obsolete translations were not compared', detail: 'Run `ng extract-i18n`, or name the file with `outputPath` and `outFile` on the `extract-i18n` target.' });
+  }
+  if (i18n.unreadable.length > 0) {
+    findings.push({ severity: 'info', message: `${plural(i18n.unreadable.length, 'i18n file')} not read`, detail: 'Missing from disk, or in a format this does not read (XMB and XTB). XLIFF 1.2 and 2.0, JSON and ARB are read.', files: i18n.unreadable.slice(0, context.maxExamples).map((path) => ({ path })), count: i18n.unreadable.length });
+  }
+  const total = i18n.missing.length + i18n.needsTranslation.length;
+  return {
+    summary: i18n.sourceFiles.length === 0 ? `${plural(i18n.locales.length, 'locale')} (${i18n.locales.join(', ')}), no source file to compare with.` : total === 0 ? `All ${plural(i18n.messages, 'message')} translated in ${i18n.locales.join(', ')}.` : `${plural(total, 'translation')} missing or not done across ${plural(i18n.locales.length, 'locale')}.`,
+    metrics: [
+      { label: 'Messages', value: formatCount(i18n.messages), hint: 'in the source file' },
+      { label: 'Locales', value: formatCount(i18n.locales.length), hint: i18n.locales.join(', ') },
+      { label: 'Without translation', value: formatCount(i18n.missing.length) },
+      { label: 'Not done', value: formatCount(i18n.needsTranslation.length) },
+      { label: 'Obsolete', value: formatCount(i18n.obsolete.length) },
+    ],
+    findings,
+    measures: [
+      { id: 'i18n-missing', label: 'Messages without a translation', value: i18n.missing.length },
+      { id: 'i18n-not-done', label: 'Translations marked as not done', value: i18n.needsTranslation.length },
+      { id: 'i18n-obsolete', label: 'Translations of messages no longer in the source file', value: i18n.obsolete.length },
+    ],
   };
 }

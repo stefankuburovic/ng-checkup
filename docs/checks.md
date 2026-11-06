@@ -303,6 +303,14 @@ On the corpus, airgap-wallet has 5 (`walletconnect.error` where the bundle has `
 
 ---
 
+**Angular's built-in i18n** (`$localize`, the `i18n` attribute) is read beside the libraries, when a project's `i18n.locales` in `angular.json` or `project.json` names translation files: XLIFF 1.2 and 2.0, Angular's JSON and ARB. Each locale is compared with the source file `ng extract-i18n` writes, found from the `outputPath` and `outFile` of the `extract-i18n` target, else beside a translation file (`messages.de.xlf` gives `messages.xlf`), else in the default places.
+
+- *Messages without a translation* (`i18n-missing`, medium): in the source file, and absent or empty in a locale. Counted once per message and locale. Angular falls back to the source text and by default the build only warns.
+- *Translations marked as not done* (`i18n-not-done`, low): state `new` or `needs-translation` (`initial` in 2.0), and the target is still the source text, as merge tools leave it. A different text under such a state was translated by someone who kept the state, and is left out.
+- *Obsolete translations* (`i18n-obsolete`, low): in a locale, and no longer in the source file.
+
+The comparison runs on the source file and not on the code, since an id without `@@` is a hash of the message. That file can be out of date, and the findings say so: run `ng extract-i18n` first. Without a source file only the states are read, and an info finding says what was not compared. A file that is missing or in a format this does not read (XMB and XTB) is listed, never treated as empty. On public repositories, the counts of missing and obsolete translations matched an independent count across 70 locales of three repositories (PeerTube, rclone-webui-angular, angular-example-app). No repository of the corpus has locales, so the snapshots do not cover this.
+
 ## Accessibility (`accessibility`) <a id="accessibility"></a>
 
 **What it reads:** every template, external or inline (test code left out), with a small tag scanner, for five defects WCAG level A names and the European Accessibility Act asks to fix:
@@ -449,6 +457,9 @@ The largest packages in the initial bundle are listed with their size, from the 
 | `testing.tests-without-assertions` | Tests that assert nothing |
 | `testing.unawaited-subscribe-assertions` | Assertions in a subscribe the test does not wait for |
 | `testing.untested-files` | Components and services without a spec |
+| `translations.i18n-missing` | Messages without a translation |
+| `translations.i18n-not-done` | Translations marked as not done |
+| `translations.i18n-obsolete` | Translations of messages no longer in the source file |
 | `translations.missing-keys` | Translation keys that resolve to no string |
 | `type-safety.explicit-any` | Explicit `any` in application code |
 | `type-safety.non-null-assertions` | Non-null assertions (`x!`) |

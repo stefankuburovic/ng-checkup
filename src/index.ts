@@ -34,6 +34,7 @@ import { buildMigrationPlan, buildPrimoPlan } from './migration.js';
 import { unimportedFiles, unusedBindings, unusedDeclarables } from './unused.js';
 import { buildPlan } from './plan.js';
 import { scanSourceFile, scanTemplateFile, type SourceFileFacts, type TemplateFact } from './scan.js';
+import { readI18n } from './i18n.js';
 import { judgeTranslations, type TranslationFacts, type TranslationLibrary } from './translations.js';
 import { changedFilesSince, narrowToChanged } from './since.js';
 import { scanStylesheetFile } from './stylesheets.js';
@@ -284,6 +285,18 @@ function narrowContext(context: AnalysisContext, project: ProjectInfo, ownerOf: 
     ...(context.translations
       ? { translations: { ...context.translations, missing: context.translations.missing.filter((entry) => ownerOf(entry.file.path) === project), unknownNamespace: context.translations.unknownNamespace.filter((entry) => ownerOf(entry.file.path) === project) } }
       : {}),
+    ...(context.i18n
+      ? {
+          i18n: {
+            ...context.i18n,
+            sourceFiles: context.i18n.sourceFiles.filter((path) => ownerOf(path) === project),
+            missing: context.i18n.missing.filter((entry) => ownerOf(entry.file.path) === project),
+            needsTranslation: context.i18n.needsTranslation.filter((entry) => ownerOf(entry.file.path) === project),
+            obsolete: context.i18n.obsolete.filter((entry) => ownerOf(entry.file.path) === project),
+            unreadable: context.i18n.unreadable.filter((path) => ownerOf(path) === project),
+          },
+        }
+      : {}),
     bundles: context.bundles.filter((bundle) => bundle.project === project.name),
     appCompilerOptions: readCompilerOptions(workspace.appTsconfig),
     angularCompilerOptions: workspace.appTsconfig ? readAngularCompilerOptions(workspace.appTsconfig) : {},
@@ -329,6 +342,7 @@ export async function buildContext(root: string, options: CheckupOptions): Promi
   const declarables = unusedDeclarables(sources, templates, workspace, unimported, options.attributeSelectors ?? false);
   const bindings = options.attributeSelectors ? unusedBindings(sources, templates, workspace, declarables, unimported) : undefined;
   const translations = readTranslations(root, workspace, files.translationBundles, sources, templates);
+  const i18n = readI18n(root, workspace);
 
   const context: AnalysisContext = {
     workspace,
@@ -347,6 +361,7 @@ export async function buildContext(root: string, options: CheckupOptions): Promi
     ...(options.attributeSelectors ? { attributeSelectors: true } : {}),
     ...(bindings ? { unusedBindings: bindings } : {}),
     ...(translations ? { translations } : {}),
+    ...(i18n ? { i18n } : {}),
     latestAngular,
     ...(nextMajor ? { nextMajor } : {}),
     compatibility: dependencies.compatibility,

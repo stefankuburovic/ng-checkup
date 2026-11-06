@@ -247,7 +247,7 @@
     {
       "id": "translations",
       "grade": "info",
-      "summary": "No ngx-translate or Transloco bundle found to check translation keys against.",
+      "summary": "No ngx-translate or Transloco bundle and no `i18n` locales found to check translations against.",
       "measures": {},
       "findings": []
     },
