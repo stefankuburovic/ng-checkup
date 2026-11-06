@@ -125,7 +125,11 @@
         "legacy-control-flow": 395,
         "manual-subscriptions": 43,
         "hardcoded-colors": 18,
-        "unended-subscriptions": 3
+        "unended-subscriptions": 3,
+        "untracked-ngfor": 52,
+        "track-by-index": 0,
+        "template-method-calls": 4,
+        "impure-pipes": 1
       },
       "findings": [
         {
@@ -177,6 +181,33 @@
             "src/app/pages/trading-settings/trading-settings.page.scss:17"
           ],
           "count": 9
+        },
+        {
+          "severity": "low",
+          "message": "52 `*ngFor` loops without `trackBy`",
+          "files": [
+            "src/app/pages/delegation-detail/delegation-detail.html:123",
+            "src/app/components/tezos-fa-form/tezos-fa-form.component.html:50",
+            "src/app/pages/account-add/account-add.html:25"
+          ],
+          "count": 35
+        },
+        {
+          "severity": "low",
+          "message": "4 method calls in template bindings",
+          "files": [
+            "src/app/pages/delegation-detail/delegation-detail.html:123",
+            "src/app/components/permission-request/permission-request.component.html:54"
+          ],
+          "count": 2
+        },
+        {
+          "severity": "low",
+          "message": "1 impure pipe in use",
+          "files": [
+            "src/app/pipes/fiat-currency-symbol/fiat-currency-symbol.pipe.ts:4"
+          ],
+          "count": 1
         }
       ]
     },

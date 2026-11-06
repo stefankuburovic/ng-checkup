@@ -123,7 +123,11 @@
         "legacy-control-flow": 226,
         "manual-subscriptions": 6,
         "hardcoded-colors": 21,
-        "unended-subscriptions": 1
+        "unended-subscriptions": 1,
+        "untracked-ngfor": 6,
+        "track-by-index": 0,
+        "template-method-calls": 2,
+        "impure-pipes": 0
       },
       "findings": [
         {
@@ -173,6 +177,25 @@
             "src/global.scss:78"
           ],
           "count": 8
+        },
+        {
+          "severity": "low",
+          "message": "6 `*ngFor` loops without `trackBy`",
+          "files": [
+            "src/app/tab-preferences/tab-preferences.page.html:62",
+            "src/app/components/dashboard/dashboard.component.html:50",
+            "src/app/pages/logview/logview.page.html:22"
+          ],
+          "count": 5
+        },
+        {
+          "severity": "low",
+          "message": "2 method calls in template bindings",
+          "files": [
+            "src/app/components/machinechart/machinechart.component.html:36",
+            "src/app/pages/logview/logview.page.html:22"
+          ],
+          "count": 2
         }
       ]
     },

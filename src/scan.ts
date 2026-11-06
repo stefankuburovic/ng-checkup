@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs';
+import { posix } from 'node:path';
 import ts from 'typescript';
 import { scanAngularJsTemplate, type AngularJsTemplateStats } from './angularjs.js';
 import { isSpecFile, isTestCode, toReportPath } from './files.js';
@@ -6,6 +7,7 @@ import { testQualityOf, type TestQuality } from './test-quality.js';
 import { colorLinesInTemplate } from './stylesheets.js';
 import { accessibilityOf, type AccessibilityFacts } from './accessibility.js';
 import { translationKeysInCode, translationKeysInTemplate, type TranslationKeyUse } from './translations.js';
+import { templateSpeedOf, type TemplateSpeedFacts } from './template-speed.js';
 import { withoutHtmlComments } from './template-text.js';
 
 /** One name brought in by an import or re-export. */
@@ -67,6 +69,12 @@ export interface ComponentFact {
   /** See `BindingFact`. */
   inputs?: BindingFact[];
   outputs?: BindingFact[];
+  /** Report path of the file `templateUrl` names, whether or not it exists. */
+  templateUrl?: string;
+  /** Functions the class itself declares: methods and fields initialised with one. Never signals, never anything inherited. */
+  methods?: string[];
+  /** Array fields that hold the same items for good (see `constantArraysOf`). */
+  constantArrays?: string[];
 }
 
 /**
@@ -102,6 +110,8 @@ export interface PipeFact {
   name?: string;
   line: number;
   defaultExport?: boolean;
+  /** True for `pure: false` in the decorator. */
+  impure?: boolean;
 }
 
 /** Control-flow and escape-hatch counts for one template, inline or external. */
@@ -124,6 +134,8 @@ export interface TemplateFact {
   path: string;
   /** True for a `template:` string inside a component file. */
   inline: boolean;
+  /** For an inline template: the name of the class it belongs to. */
+  owner?: string;
   stats: TemplateStats;
   /** 1-based line of the first `*ngIf`/`*ngFor`/`[ngSwitch]`, undefined when there is none. */
   firstLegacyLine?: number;
@@ -137,6 +149,8 @@ export interface TemplateFact {
   colorLines: number[];
   /** What it shows a screen reader or keyboard user (see `accessibilityOf`), lines of the file that holds the template. */
   accessibility: AccessibilityFacts;
+  /** What it makes change detection repeat (see `templateSpeedOf`), lines of the file that holds the template. */
+  speed: TemplateSpeedFacts;
 }
 
 /**
@@ -586,11 +600,12 @@ export function scanSourceFile(root: string, absolutePath: string): SourceFileFa
         const metadata = ts.isCallExpression(decorator.expression) ? decorator.expression.arguments[0] : undefined;
         const nameProperty = metadata && ts.isObjectLiteralExpression(metadata) ? metadata.properties.find((property) => ts.isPropertyAssignment(property) && ts.isIdentifier(property.name) && property.name.text === 'name') : undefined;
         const value = nameProperty && ts.isPropertyAssignment(nameProperty) ? nameProperty.initializer : undefined;
-        facts.pipes.push({ className: name, line: lineOf(node), ...(value && ts.isStringLiteralLike(value) ? { name: value.text } : {}), ...(isDefaultExport(node) ? { defaultExport: true } : {}) });
+        const impure = metadata && ts.isObjectLiteralExpression(metadata) && metadata.properties.some((property) => ts.isPropertyAssignment(property) && ts.isIdentifier(property.name) && property.name.text === 'pure' && property.initializer.kind === ts.SyntaxKind.FalseKeyword);
+        facts.pipes.push({ className: name, line: lineOf(node), ...(value && ts.isStringLiteralLike(value) ? { name: value.text } : {}), ...(isDefaultExport(node) ? { defaultExport: true } : {}), ...(impure ? { impure: true } : {}) });
       }
       else if (key === '@angular/core#Component') {
         const metadata = ts.isCallExpression(decorator.expression) ? decorator.expression.arguments[0] : undefined;
-        const component: ComponentFact = { name: node.name?.text ?? '(anonymous)', line: lineOf(node), ...(isDefaultExport(node) ? { defaultExport: true } : {}) };
+        const component: ComponentFact = { name: node.name?.text ?? '(anonymous)', line: lineOf(node), ...(isDefaultExport(node) ? { defaultExport: true } : {}), ...functionsAndConstantsOf(node, source) };
         if (metadata && ts.isObjectLiteralExpression(metadata)) {
           for (const property of metadata.properties) {
             if (!ts.isPropertyAssignment(property) || !ts.isIdentifier(property.name)) continue;
@@ -602,6 +617,8 @@ export function scanSourceFile(root: string, absolutePath: string): SourceFileFa
               component.changeDetection = value.name.text;
             } else if (property.name.text === 'selector' && ts.isStringLiteralLike(value)) {
               component.selector = value.text;
+            } else if (property.name.text === 'templateUrl' && ts.isStringLiteralLike(value)) {
+              component.templateUrl = posix.join(posix.dirname(path), value.text);
             } else if (property.name.text === 'template') {
               const template = templateTextOf(value);
               if (template !== undefined) {
@@ -610,12 +627,14 @@ export function scanSourceFile(root: string, absolutePath: string): SourceFileFa
                 facts.inlineTemplates.push({
                   path,
                   inline: true,
+                  owner: component.name,
                   stats,
                   usage: templateUsage(template.text),
                   // Lines counted inside the template string, moved to the line the string starts on.
                   translationKeys: translationKeysInTemplate(template.text).map((use) => ({ ...use, line: use.line + source.getLineAndCharacterOfPosition(template.start).line })),
                   colorLines: colorLinesInTemplate(template.text).map((line) => line + source.getLineAndCharacterOfPosition(template.start).line),
                   accessibility: shiftLines(accessibilityOf(template.text), source.getLineAndCharacterOfPosition(template.start).line),
+                  speed: shiftSpeedLines(templateSpeedOf(template.text), source.getLineAndCharacterOfPosition(template.start).line),
                   firstLegacyLine: legacyOffset === undefined ? undefined : source.getLineAndCharacterOfPosition(template.start + legacyOffset).line + 1,
                 });
               }
@@ -941,6 +960,46 @@ function shiftLines(facts: AccessibilityFacts, offset: number): AccessibilityFac
   return Object.fromEntries(Object.entries(facts).map(([key, lines]: [string, number[]]) => [key, lines.map((line) => line + offset)])) as unknown as AccessibilityFacts;
 }
 
+/** Moves every line of an inline template's speed facts by `offset`, the 0-based line its string starts on. */
+function shiftSpeedLines(facts: TemplateSpeedFacts, offset: number): TemplateSpeedFacts {
+  const shift = <T extends { line: number }>(entries: T[]): T[] => entries.map((entry) => ({ ...entry, line: entry.line + offset }));
+  return { untrackedLoops: shift(facts.untrackedLoops), indexTrackedLoops: shift(facts.indexTrackedLoops), calls: shift(facts.calls) };
+}
+
+/**
+ * The functions a component class declares, and its array fields that keep
+ * the same items for good: a non-empty array literal nothing in the class
+ * writes to or mutates, or a `readonly` field holding a named constant. A
+ * decorated field is left out, since a parent may bind it.
+ */
+function functionsAndConstantsOf(node: ts.ClassDeclaration, source: ts.SourceFile): Pick<ComponentFact, 'methods' | 'constantArrays'> {
+  const text = node.getText(source);
+  const methods: string[] = [];
+  const constantArrays: string[] = [];
+  for (const member of node.members) {
+    if (!member.name || !ts.isIdentifier(member.name)) continue;
+    if ((ts.getCombinedModifierFlags(member) & ts.ModifierFlags.Static) !== 0) continue;
+    const name = member.name.text;
+    if (ts.isMethodDeclaration(member)) {
+      methods.push(name);
+      continue;
+    }
+    if (!ts.isPropertyDeclaration(member) || !member.initializer) continue;
+    let value = member.initializer;
+    while (ts.isAsExpression(value) || ts.isSatisfiesExpression(value) || ts.isParenthesizedExpression(value)) value = value.expression;
+    if (ts.isArrowFunction(value) || ts.isFunctionExpression(value)) {
+      methods.push(name);
+      continue;
+    }
+    if ((ts.getDecorators(member) ?? []).length > 0) continue;
+    const readonly = (ts.getCombinedModifierFlags(member) & ts.ModifierFlags.Readonly) !== 0;
+    const escaped = name.replace(/\$/g, '\\$');
+    const written = new RegExp(`\\bthis\\.${escaped}\\s*(?:=[^=]|\\.(?:push|pop|shift|unshift|splice|sort|reverse|fill|copyWithin)\\s*\\()`).test(text);
+    if (!written && ((ts.isArrayLiteralExpression(value) && value.elements.length > 0) || (readonly && ts.isIdentifier(value)))) constantArrays.push(name);
+  }
+  return { ...(methods.length > 0 ? { methods } : {}), ...(constantArrays.length > 0 ? { constantArrays } : {}) };
+}
+
 /** Scans an external template file. */
 export function scanTemplateFile(root: string, absolutePath: string): TemplateFact {
   const text = readFileSync(absolutePath, 'utf8');
@@ -954,6 +1013,7 @@ export function scanTemplateFile(root: string, absolutePath: string): TemplateFa
     translationKeys: translationKeysInTemplate(text),
     colorLines: colorLinesInTemplate(text),
     accessibility: accessibilityOf(text),
+    speed: templateSpeedOf(text),
     firstLegacyLine: offset === undefined ? undefined : text.slice(0, offset).split('\n').length,
     ...(angularJs.attributes > 0 || angularJs.apps > 0 || angularJs.cdnVersion ? { angularJs } : {}),
   };

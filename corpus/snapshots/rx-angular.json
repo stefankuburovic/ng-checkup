@@ -213,7 +213,11 @@
         "legacy-control-flow": 1,
         "manual-subscriptions": 75,
         "hardcoded-colors": 89,
-        "unended-subscriptions": 11
+        "unended-subscriptions": 11,
+        "untracked-ngfor": 0,
+        "track-by-index": 2,
+        "template-method-calls": 24,
+        "impure-pipes": 2
       },
       "findings": [
         {
@@ -250,6 +254,34 @@
             "apps/demos/src/styles/_design-system.scss:136"
           ],
           "count": 17
+        },
+        {
+          "severity": "low",
+          "message": "2 `@for` loops with `track $index`",
+          "files": [
+            "apps/demos/src/app/features/cdk/coercing/coercing.component.ts:94",
+            "apps/demos/src/app/features/state/rx-actions/rx-actions.component.ts:113"
+          ],
+          "count": 2
+        },
+        {
+          "severity": "low",
+          "message": "24 method calls in template bindings",
+          "files": [
+            "apps/demos/src/app/shared/debug-helper/trigger-provider/trigger-provider.component.ts:14",
+            "apps/demos/src/app/shared/debug-helper/value-provider/value-provider/value-provider.component.ts:31",
+            "apps/demos/src/app/features/concepts/nested-vs-injected/nested-vs-projected.component.ts:38"
+          ],
+          "count": 14
+        },
+        {
+          "severity": "low",
+          "message": "2 impure pipes in use",
+          "files": [
+            "apps/demos/src/app/rx-angular-pocs/template/pipes/push/push.pipe.ts:23",
+            "libs/template/push/src/lib/push.pipe.ts:89"
+          ],
+          "count": 2
         }
       ]
     },

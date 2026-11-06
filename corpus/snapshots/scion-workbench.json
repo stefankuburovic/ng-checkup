@@ -110,7 +110,11 @@
         "legacy-control-flow": 0,
         "manual-subscriptions": 103,
         "hardcoded-colors": 0,
-        "unended-subscriptions": 4
+        "unended-subscriptions": 4,
+        "untracked-ngfor": 0,
+        "track-by-index": 12,
+        "template-method-calls": 5,
+        "impure-pipes": 0
       },
       "findings": [
         {
@@ -138,6 +142,26 @@
             "apps/workbench-client-testing-app/src/app/view-page/view-page.component.ts:175"
           ],
           "count": 1
+        },
+        {
+          "severity": "low",
+          "message": "12 `@for` loops with `track $index`",
+          "files": [
+            "apps/workbench-client-testing-app-common/src/lib/register-workbench-capability-page/perspective-capability-properties/perspective-capability-properties.component.html:22",
+            "apps/workbench-client-testing-app-common/src/lib/register-workbench-capability-page/capability-params/capability-params.component.html:9",
+            "apps/workbench-client-testing-app-common/src/lib/register-workbench-capability-page/part-capability-properties/part-capability-properties.component.html:50"
+          ],
+          "count": 11
+        },
+        {
+          "severity": "low",
+          "message": "5 method calls in template bindings",
+          "files": [
+            "apps/workbench-testing-app/src/app/message-box-opener-page/message-box-opener-page.component.html:11",
+            "apps/workbench-testing-app/src/app/notification-opener-page/notification-opener-page.component.html:14",
+            "apps/workbench-testing-app/src/app/start-page/start-page.component.html:3"
+          ],
+          "count": 3
         }
       ]
     },

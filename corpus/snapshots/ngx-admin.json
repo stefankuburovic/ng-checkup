@@ -118,7 +118,11 @@
         "legacy-control-flow": 47,
         "manual-subscriptions": 90,
         "hardcoded-colors": 5,
-        "unended-subscriptions": 1
+        "unended-subscriptions": 1,
+        "untracked-ngfor": 25,
+        "track-by-index": 0,
+        "template-method-calls": 13,
+        "impure-pipes": 0
       },
       "findings": [
         {
@@ -167,6 +171,26 @@
             "src/app/pages/dashboard/security-cameras/security-cameras.component.scss:76"
           ],
           "count": 2
+        },
+        {
+          "severity": "low",
+          "message": "25 `*ngFor` loops without `trackBy`",
+          "files": [
+            "src/app/pages/layout/infinite-list/infinite-list.component.html:9",
+            "src/app/pages/ui-features/icons/icons.component.html:8",
+            "src/app/pages/dashboard/rooms/room-selector/room-selector.component.html:72"
+          ],
+          "count": 15
+        },
+        {
+          "severity": "low",
+          "message": "13 method calls in template bindings",
+          "files": [
+            "src/app/pages/dashboard/rooms/player/player.component.html:14",
+            "src/app/pages/tables/tree-grid/tree-grid.component.html:13",
+            "src/app/pages/dashboard/temperature/temperature-dragger/temperature-dragger.component.html:22"
+          ],
+          "count": 6
         }
       ]
     },

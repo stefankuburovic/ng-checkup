@@ -113,7 +113,11 @@
         "legacy-control-flow": 90,
         "manual-subscriptions": 40,
         "hardcoded-colors": 16,
-        "unended-subscriptions": 16
+        "unended-subscriptions": 16,
+        "untracked-ngfor": 25,
+        "track-by-index": 0,
+        "template-method-calls": 16,
+        "impure-pipes": 1
       },
       "findings": [
         {
@@ -165,6 +169,34 @@
             "src/app/app.component.scss:16"
           ],
           "count": 7
+        },
+        {
+          "severity": "low",
+          "message": "25 `*ngFor` loops without `trackBy`",
+          "files": [
+            "src/app/app.component.html:60",
+            "src/app/checkout/components/checkout-payment/checkout-payment.component.html:4",
+            "src/app/checkout/components/checkout-shipping/checkout-shipping.component.html:8"
+          ],
+          "count": 14
+        },
+        {
+          "severity": "low",
+          "message": "16 method calls in template bindings",
+          "files": [
+            "src/app/shared/components/radio-card/radio-card.component.html:3",
+            "src/app/checkout/components/checkout-payment/checkout-payment.component.html:28",
+            "src/app/core/components/product-list-controls/product-list-controls.component.html:13"
+          ],
+          "count": 7
+        },
+        {
+          "severity": "low",
+          "message": "1 impure pipe in use",
+          "files": [
+            "src/app/shared/pipes/format-price.pipe.ts:19"
+          ],
+          "count": 1
         }
       ]
     },

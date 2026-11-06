@@ -90,7 +90,11 @@
         "legacy-control-flow": 0,
         "manual-subscriptions": 0,
         "hardcoded-colors": 2,
-        "unended-subscriptions": 0
+        "unended-subscriptions": 0,
+        "untracked-ngfor": 0,
+        "track-by-index": 0,
+        "template-method-calls": 0,
+        "impure-pipes": 0
       },
       "findings": [
         {

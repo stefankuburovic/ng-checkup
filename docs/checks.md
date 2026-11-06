@@ -146,6 +146,15 @@ From Angular 22, OnPush is the default, so a component without `changeDetection`
 
 **Subscriptions nothing ends** are a finding and a measure of their own (`unended-subscriptions`): no `takeUntilDestroyed`, `takeUntil`, `take`, `first` or `takeWhile` in the chain, no cleanup anywhere in the class (`ngOnDestroy`, `unsubscribe()`, `DestroyRef`, `Subscription.add`), and a source that outlives the component. Sources that complete or die with the component are left out: `HttpClient`, `ActivatedRoute`, a form's `valueChanges`, a dialog's close event, `translate.get()`, and a `Subject` or `EventEmitter` the class creates itself. A service call that completes after one value cannot be told from one that never completes, so the finding is low and the count is an upper bound. On the corpus it lists 0 to 25 per repository; a codebase that already guards every component file (one with a `check-subscriptions` script, say) reads 0.
 
+**Template speed** is four low findings and measures, outside the grade: what a template makes change detection repeat. A template is read only when a component class in application code owns it, through `templateUrl` or an inline `template`, and a template several classes share needs all of them to agree, so a rule in doubt says nothing.
+
+- *`*ngFor` without `trackBy`* (`untracked-ngfor`): `*ngFor` or `[ngForOf]` with no `trackBy`. A list rebuilt from new objects recreates every row. A list of strings or numbers is fine as it is and cannot be told from the template, so the count is an upper bound.
+- *`@for` with `track $index`* (`track-by-index`), the variable it was renamed to included: state in the DOM or a child stays at the position when items move. Harmless on a list that never changes order, which the code cannot always show.
+- *Method calls in template bindings* (`template-method-calls`): a call of a method the class itself declares, or a field holding a function, in an interpolation, property binding, structural directive, block condition or `@let`. Signals (`signal`, `computed`, `input`, ...) are not methods and are not counted, nor are event handlers, `track` expressions, calls on another object (`form.get('x')`), template variables, getters or inherited methods. A cheap read costs nothing, so this is the list to look through, not to empty.
+- *Impure pipes* (`impure-pipes`): `pure: false` on a pipe this repository declares and a template uses. Some pipes need it, `push` from rx-angular for one.
+
+A literal array, and a field of the class that keeps the same items (a non-empty array literal nothing in the class writes to or mutates, or a `readonly` field holding a named constant), is left out of both loop rules. On the corpus, per repository: 0 to 80 `*ngFor`, 0 to 12 `track $index`, 0 to 41 method calls, 0 to 2 impure pipes.
+
 **Grading:** the average adoption of standalone, signal inputs and built-in control flow, counting only the areas the code uses: 80% or more is good, 40% or more is fair, below that is poor.
 
 **Fixing it**
@@ -385,10 +394,14 @@ The largest packages in the initial bundle are listed with their size, from the 
 | `circular-deps.files-in-cycles` | Files in import cycles |
 | `components.decorator-inputs-outputs` | `@Input()` / `@Output()` decorators |
 | `components.hardcoded-colors` | Colour literals outside the design tokens |
+| `components.impure-pipes` | Impure pipes |
 | `components.legacy-control-flow` | `*ngIf` / `*ngFor` / `[ngSwitch]` uses |
 | `components.manual-subscriptions` | Manual `.subscribe()` in components and directives |
 | `components.module-components` | Components declared in NgModules |
+| `components.template-method-calls` | Method calls in template bindings |
+| `components.track-by-index` | `@for` with `track $index` |
 | `components.unended-subscriptions` | `.subscribe()` in components and directives that nothing ends |
+| `components.untracked-ngfor` | `*ngFor` without `trackBy` |
 | `dependencies.deprecated-packages` | Packages deprecated on npm |
 | `dependencies.peer-mismatches` | Packages that do not accept the installed Angular |
 | `deprecated-apis.deprecated-usages` | Deprecated API uses (symbol × file) |

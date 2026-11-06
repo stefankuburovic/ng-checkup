@@ -201,7 +201,11 @@
         "legacy-control-flow": 249,
         "manual-subscriptions": 2,
         "hardcoded-colors": 309,
-        "unended-subscriptions": 1
+        "unended-subscriptions": 1,
+        "untracked-ngfor": 80,
+        "track-by-index": 0,
+        "template-method-calls": 37,
+        "impure-pipes": 0
       },
       "findings": [
         {
@@ -250,6 +254,26 @@
             "src/styles/orientdb-graphviz.css:13"
           ],
           "count": 9
+        },
+        {
+          "severity": "low",
+          "message": "80 `*ngFor` loops without `trackBy`",
+          "files": [
+            "src/app/administration/etl/etl.component.html:34",
+            "src/app/administration/stats/cluster/overview/clusteroverview.component.html:21",
+            "src/app/administration/teleporter/detailpanel/detailpanel.component.html:249"
+          ],
+          "count": 25
+        },
+        {
+          "severity": "low",
+          "message": "37 method calls in template bindings",
+          "files": [
+            "src/app/administration/etl/etl.component.html:5",
+            "src/app/util/dual-list/dual-list.component.html:11",
+            "src/app/administration/importmanager/importmanager.component.html:5"
+          ],
+          "count": 10
         }
       ]
     },

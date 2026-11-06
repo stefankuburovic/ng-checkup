@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- **Template speed** in the components area, as low findings and measures outside the grade, so no score changes: `*ngFor` without `trackBy` (`untracked-ngfor`), `@for` with `track $index` (`track-by-index`), method calls in template bindings (`template-method-calls`) and impure pipes a template uses (`impure-pipes`). A template is joined with the component class that owns it: a call counts only when that class declares the method, so a signal never does, and a constant array of the class is left out of the loop rules. A template no class owns is not read. On the corpus: 0 to 80 `*ngFor`, 0 to 12 `track $index`, 0 to 41 method calls and 0 to 2 impure pipes per repository, with all 149 method calls pointing at the line that makes them.
+
 ## 2.0.2 (2026-11-03)
 
 - **Test quality, fewer false positives.** A test that returns a promise (`() => new Promise((done) => ...)`, `return firstValueFrom(...)`) is awaited by the runner, so an assertion in its subscription is no longer reported as unwaited; neither is one inside `testScheduler.run(...)`, which runs its virtual time before it returns. A type test (`// @ts-expect-error` in the body) asserts at compile time and is no longer reported as asserting nothing. On rx-angular's main branch this takes the unwaited assertions from 22 to 1; on the corpus snapshot from 17 to 16, and the empty tests from 5 to 3.

@@ -94,7 +94,11 @@
         "legacy-control-flow": 680,
         "manual-subscriptions": 601,
         "hardcoded-colors": 28,
-        "unended-subscriptions": 25
+        "unended-subscriptions": 25,
+        "untracked-ngfor": 70,
+        "track-by-index": 0,
+        "template-method-calls": 41,
+        "impure-pipes": 0
       },
       "findings": [
         {
@@ -146,6 +150,26 @@
             "src/app/features/dashboard/components/bb-stacked-bar-chart/bb-stacked-bar-chart.component.scss:11"
           ],
           "count": 7
+        },
+        {
+          "severity": "low",
+          "message": "70 `*ngFor` loops without `trackBy`",
+          "files": [
+            "src/app/shared/components-v2/app-side-dialog-v2/app-side-dialog-v2.component.html:337",
+            "src/app/shared/components-v2/app-create-view-modify-v2/app-create-view-modify-v2.component.html:347",
+            "src/app/features/transmission-chain/components/transmission-chains-dashlet/transmission-chains-dashlet.component.html:307"
+          ],
+          "count": 33
+        },
+        {
+          "severity": "low",
+          "message": "41 method calls in template bindings",
+          "files": [
+            "src/app/features/duplicate-records/pages/duplicate-records-list/duplicate-records-list.component.html:33",
+            "src/app/features/transmission-chain/components/transmission-chains-dashlet/transmission-chains-dashlet.component.html:210",
+            "src/app/features/transmission-chain/pages/transmission-chains-graph/transmission-chains-graph.component.html:95"
+          ],
+          "count": 8
         }
       ]
     },

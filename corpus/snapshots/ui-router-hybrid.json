@@ -151,7 +151,11 @@
         "legacy-control-flow": 1,
         "manual-subscriptions": 0,
         "hardcoded-colors": 17,
-        "unended-subscriptions": 0
+        "unended-subscriptions": 0,
+        "untracked-ngfor": 1,
+        "track-by-index": 0,
+        "template-method-calls": 0,
+        "impure-pipes": 0
       },
       "findings": [
         {
@@ -174,6 +178,14 @@
           "message": "17 colour literals outside the design tokens",
           "files": [
             "src/styles.css:41"
+          ],
+          "count": 1
+        },
+        {
+          "severity": "low",
+          "message": "1 `*ngFor` loop without `trackBy`",
+          "files": [
+            "src/app/contacts/contactList.component.ts:28"
           ],
           "count": 1
         }

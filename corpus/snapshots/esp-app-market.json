@@ -90,7 +90,11 @@
         "legacy-control-flow": 19,
         "manual-subscriptions": 11,
         "hardcoded-colors": 125,
-        "unended-subscriptions": 4
+        "unended-subscriptions": 4,
+        "untracked-ngfor": 9,
+        "track-by-index": 0,
+        "template-method-calls": 7,
+        "impure-pipes": 0
       },
       "findings": [
         {
@@ -137,6 +141,26 @@
             "src/app/devices/devices.component.css:11"
           ],
           "count": 6
+        },
+        {
+          "severity": "low",
+          "message": "9 `*ngFor` loops without `trackBy`",
+          "files": [
+            "src/app/apps/apps.component.html:12",
+            "src/app/flasher/flasher.component.html:46",
+            "src/app/devices/devices.component.html:32"
+          ],
+          "count": 4
+        },
+        {
+          "severity": "low",
+          "message": "7 method calls in template bindings",
+          "files": [
+            "src/app/flasher/flasher.component.html:12",
+            "src/app/app.component.html:32",
+            "src/app/diagnostics/diagnostics.component.html:65"
+          ],
+          "count": 3
         }
       ]
     },

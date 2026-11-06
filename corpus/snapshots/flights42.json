@@ -77,7 +77,11 @@
         "legacy-control-flow": 0,
         "manual-subscriptions": 10,
         "hardcoded-colors": 43,
-        "unended-subscriptions": 3
+        "unended-subscriptions": 3,
+        "untracked-ngfor": 0,
+        "track-by-index": 4,
+        "template-method-calls": 0,
+        "impure-pipes": 0
       },
       "findings": [
         {
@@ -115,6 +119,16 @@
             "src/styles.css:170",
             "src/app/domains/shared/ui-assistant/assistant-chat/assistant-chat.css:47",
             "src/app/domains/shared/ui-common/dialog/dialog-outlet.css:3"
+          ],
+          "count": 4
+        },
+        {
+          "severity": "low",
+          "message": "4 `@for` loops with `track $index`",
+          "files": [
+            "src/app/domains/shared/ui-assistant/chat-messages/chat-messages.html:11",
+            "src/app/domains/shared/ui-common/advanced-data-table/advanced-data-table.html:10",
+            "src/app/domains/ticketing/feature-booking/advanced-flight-edit/flight-form/flight-form.html:63"
           ],
           "count": 4
         }

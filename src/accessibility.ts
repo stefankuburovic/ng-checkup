@@ -34,8 +34,8 @@ const NON_INTERACTIVE = new Set(['div', 'span', 'li', 'ul', 'ol', 'td', 'tr', 't
 const UNLABELLED_INPUT_TYPES = new Set(['hidden', 'submit', 'button', 'reset', 'image']);
 
 /** A start or end tag, attributes quoted either way, `>` inside a quoted value allowed. */
-const TAG = /<(\/?)([a-zA-Z][\w:.-]*)((?:\s+[^\s=>/"']+(?:\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>"']+))?)*)\s*(\/?)>/g;
-const ATTRIBUTE = /([^\s=>/"']+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>"']+)))?/g;
+export const TAG = /<(\/?)([a-zA-Z][\w:.-]*)((?:\s+[^\s=>/"']+(?:\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>"']+))?)*)\s*(\/?)>/g;
+export const ATTRIBUTE = /([^\s=>/"']+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>"']+)))?/g;
 
 /** Attributes of one tag by name, lower-cased, with Angular's binding brackets kept (`[attr.aria-label]`, `(click)`). */
 function attributesOf(text: string): Map<string, string> {
