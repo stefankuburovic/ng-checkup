@@ -33,6 +33,7 @@ npx ng-checkup-cli
 - [A live site](#a-live-site)
 - [Monorepos](#monorepos)
 - [Many repositories](#many-repositories)
+- [Before and after](#before-and-after)
 - [Client report](#client-report)
 - [What it checks](#what-it-checks)
 - [Reports](#reports)
@@ -330,6 +331,19 @@ npx ng-checkup-cli fleet repos.txt --report fleet.html
 
 One page across all of them, worst first: the Angular version, the score, the number of high findings and a grade per area for each repository. `repos.txt` names one per line, a local path (relative to the file) or a remote repository as the main command takes it (`github:acme/portal#release`), with `#` for comments. Remote entries are cloned shallow into a temporary folder and deleted; an entry that cannot be checked is a row saying why. The runs are offline unless you pass `--online`, since across many repositories the registry lookups are most of the time and the comparison is between them. `.md` and `.json` work too.
 
+## Before and after
+
+```bash
+npx ng-checkup-cli --report before.json
+# ... the work ...
+npx ng-checkup-cli --report after.json
+npx ng-checkup-cli diff before.json after.json --report diff.html
+```
+
+The proof of a piece of work: the score, the grades that moved, the measures that went up or down, and the findings that are new or resolved. It reads the two files and nothing else, so it runs anywhere and on reports of any age. `.md` and `.json` work too, and it exits 0 even when things got worse, since `--fail-on regression` is what gates a build.
+
+Findings are matched as a whole, by what they are about, and not file by file, because a report lists only a few example files per finding. What only one report has is neither better nor worse: a measure a newer version added is listed apart. The report says so when the two come from different versions of the tool, since a new finding may then come from a new rule, and when a `--since` report makes the findings impossible to compare.
+
 ## Client report
 
 For consultants and tech leads who hand the result to someone else: `--client` turns the HTML report into a deliverable for a paid Health Check or an upgrade proposal.
@@ -400,6 +414,7 @@ Usage: ng-checkup [path | repository] [options]
        ng-checkup url <address> [--json] [--offline]
        ng-checkup history [path] [--points <n>] [--report <file>] [--json]
        ng-checkup fleet <list> [--report <file>] [--online] [--json]
+       ng-checkup diff <before.json> <after.json> [--report <file>] [--json]
        ng-checkup mcp
 
 A one-minute modernization report for an Angular codebase. Reads the code,
@@ -499,6 +514,13 @@ Fleet (ng-checkup fleet <list>):
                          github:owner/repo per line, # for comments
   -r, --report <file>    Write it as .html, .md or .json
       --online           Ask the npm registry and osv.dev for each (slower)
+      --json             Print it as JSON
+
+Diff (ng-checkup diff <before.json> <after.json>):
+                         What changed between two reports saved with
+                         --report x.json: score, grades, measures, new and
+                         resolved findings. Runs nothing, reads only the files
+  -r, --report <file>    Write it as .html, .md or .json
       --json             Print it as JSON
 
 MCP server (ng-checkup mcp):

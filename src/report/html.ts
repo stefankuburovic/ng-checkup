@@ -412,7 +412,7 @@ function findingItem(finding: Finding): string {
 }
 
 /** Escapes text and turns backtick spans into `<code>`, the only markup finding text uses. */
-function inline(text: string): string {
+export function inline(text: string): string {
   return escape(text).replace(/`([^`]+)`/g, '<code>$1</code>');
 }
 

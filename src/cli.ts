@@ -27,6 +27,8 @@ import { assessSite, probeSite } from './site.js';
 import { serveMcp } from './mcp.js';
 import { readFleetList, runFleet } from './fleet.js';
 import { renderFleetForFile, renderFleetTerminal } from './report/fleet.js';
+import { diffReports, readSavedReport } from './diff.js';
+import { renderDiffForFile, renderDiffTerminal } from './report/diff.js';
 
 const HELP = `Usage: ng-checkup [path | repository] [options]
        ng-checkup init [path] [init options]
@@ -34,6 +36,7 @@ const HELP = `Usage: ng-checkup [path | repository] [options]
        ng-checkup url <address> [--json] [--offline]
        ng-checkup history [path] [--points <n>] [--report <file>] [--json]
        ng-checkup fleet <list> [--report <file>] [--online] [--json]
+       ng-checkup diff <before.json> <after.json> [--report <file>] [--json]
        ng-checkup mcp
 
 A one-minute modernization report for an Angular codebase. Reads the code,
@@ -135,6 +138,13 @@ Fleet (ng-checkup fleet <list>):
       --online           Ask the npm registry and osv.dev for each (slower)
       --json             Print it as JSON
 
+Diff (ng-checkup diff <before.json> <after.json>):
+                         What changed between two reports saved with
+                         --report x.json: score, grades, measures, new and
+                         resolved findings. Runs nothing, reads only the files
+  -r, --report <file>    Write it as .html, .md or .json
+      --json             Print it as JSON
+
 MCP server (ng-checkup mcp):
                          Serves the checkup to an editor agent over the Model
                          Context Protocol (stdio): tools checkup, findings
@@ -155,7 +165,8 @@ Examples:
   npx ng-checkup-cli url https://app.example.com
   npx ng-checkup-cli history --report history.html
   npx ng-checkup-cli --since origin/main --report checkup.comment.md
-  npx ng-checkup-cli fleet repos.txt --report fleet.html`;
+  npx ng-checkup-cli fleet repos.txt --report fleet.html
+  npx ng-checkup-cli diff before.json after.json --report diff.html`;
 
 /** Grades in order of how bad they are, for `--fail-on`. */
 const SEVERITY_ORDER: Grade[] = ['good', 'fair', 'poor'];
@@ -464,6 +475,7 @@ async function main(argv: string[]): Promise<number> {
   if (argv[0] === 'url') return mainUrl(argv.slice(1));
   if (argv[0] === 'history') return mainHistory(argv.slice(1));
   if (argv[0] === 'fleet') return mainFleet(argv.slice(1));
+  if (argv[0] === 'diff') return mainDiff(argv.slice(1));
   if (argv[0] === 'mcp') {
     // A Model Context Protocol server on stdin/stdout until the client closes it (see `serveMcp`).
     await serveMcp(process.stdin, process.stdout);
@@ -887,6 +899,33 @@ async function mainFleet(argv: string[]): Promise<number> {
       writeFileSync(target, renderFleetForFile(report, target));
     }
     return report.rows.some((row) => !row.error) ? 0 : 2;
+  } catch (error) {
+    return usageError(error);
+  }
+}
+
+/**
+ * `ng-checkup diff <before.json> <after.json>`: what changed between two saved
+ * reports (see `diffReports`). Always exits 0 on a comparison, worse or not:
+ * `--fail-on regression` is what gates a build.
+ */
+function mainDiff(argv: string[]): number {
+  try {
+    const { values, positionals } = parseArgs({ args: argv, allowPositionals: true, options: { report: { type: 'string', short: 'r', multiple: true }, json: { type: 'boolean' }, 'no-color': { type: 'boolean' }, help: { type: 'boolean', short: 'h' } } });
+    if (values.help) {
+      process.stdout.write(`${HELP}\n`);
+      return 0;
+    }
+    if (positionals.length !== 2) throw new Error('diff takes two reports saved with --report x.json: the one before and the one after');
+    for (const path of values.report ?? []) if (!['.html', '.md', '.json'].includes(extname(path).toLowerCase())) throw new Error(`Unknown diff format for ${path}: use .html, .md or .json`);
+    const report = diffReports(readSavedReport(positionals[0]!), readSavedReport(positionals[1]!));
+    const color = !values['no-color'] && process.env['NO_COLOR'] === undefined && Boolean(process.stdout.isTTY);
+    process.stdout.write(values.json ? `${JSON.stringify(report, null, 2)}\n` : `${renderDiffTerminal(report, { color })}\n`);
+    for (const target of (values.report ?? []).map((path) => resolve(path))) {
+      mkdirSync(dirname(target), { recursive: true });
+      writeFileSync(target, renderDiffForFile(report, target));
+    }
+    return 0;
   } catch (error) {
     return usageError(error);
   }
