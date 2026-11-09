@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 2.2.1 (2026-11-09)
 
 - The `.issues.csv` backlog has a last column, `Issue Type`, always `Task`, so the Jira importer creates every row as the same type without a choice per row. The columns before it keep their place. The README has a table of which column goes to which Jira field, and how the fingerprint tells a task already imported.
 
