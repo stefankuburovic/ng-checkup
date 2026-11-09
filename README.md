@@ -595,7 +595,21 @@ npx ng-checkup-cli --report checkup.issues.csv --report checkup.issues.md
 
 One item per finding, most urgent first, with its area, priority, description and a fingerprint that stays the same while the finding is the same, whatever its count. These two list every file of a finding, where the other reports show the first few (`--max-examples`). The tool creates no tasks: you import or paste the file.
 
-The CSV has the columns `Summary`, `Priority` (`High`, `Medium`, `Low`), `Labels`, `Description`, `Area`, `Files` and `Fingerprint`, in UTF-8 without a byte-order mark. `Summary` is the one column Jira's importer requires, and its wizard lets you map the rest; `Description` includes the file list, since that field takes one column. A cell a spreadsheet would run as a formula gets a leading apostrophe, because messages and paths come from the repository being checked. A cell stops at Excel's limit of 32 767 characters and then says how many files it left out. A bare `.csv` is refused, since it names no format.
+The CSV has the columns `Summary`, `Priority` (`High`, `Medium`, `Low`), `Labels`, `Description`, `Area`, `Files`, `Fingerprint` and `Issue Type` (always `Task`), in UTF-8 without a byte-order mark. `Summary` is the one column Jira's importer requires; `Description` includes the file list, since that field takes one column. A cell a spreadsheet would run as a formula gets a leading apostrophe, because messages and paths come from the repository being checked. A cell stops at Excel's limit of 32 767 characters and then says how many files it left out. A bare `.csv` is refused, since it names no format.
+
+**Importing into Jira.** In the project, open the import of work items from CSV, upload the file and map the columns like this:
+
+| Column | Jira field | Why |
+| --- | --- | --- |
+| `Summary` | Summary | required |
+| `Issue Type` | Issue Type | every row a Task, so there is nothing to pick per row |
+| `Priority` | Priority | `High`, `Medium` and `Low` are Jira's own names |
+| `Labels` | Labels | one label per area, such as `ng-checkup-accessibility` |
+| `Description` | Description | the explanation and every file, one per line |
+| `Fingerprint` | Labels | see below |
+| `Area`, `Files` | do not import | already in the label and the description |
+
+Mapping `Fingerprint` to Labels as well gives each task a second label, the 16-character fingerprint, which needs no custom field. Before importing a later export, look for a row's fingerprint (`labels = 3f2a9c0d1e4b5a67`) and leave out the rows already in Jira; the importer does not do this by itself. A project without a `Task` type shows an error on that column: map it to the type the project has.
 
 GitHub limits an issue body to 65 536 characters, and a large codebase's checklist can go over that, so split it or use `--only`.
 

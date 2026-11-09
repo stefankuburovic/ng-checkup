@@ -90,10 +90,12 @@ function fitLines(lines: string[], room: number): string {
  * The backlog as CSV for a spreadsheet or the Jira importer: RFC 4180 quoting,
  * UTF-8 without a byte-order mark. `Summary` is the one column Jira requires.
  * Jira's description takes one column only, so `Description` holds the file
- * list too, and `Files` has it apart for a spreadsheet.
+ * list too, and `Files` has it apart for a spreadsheet. `Issue Type` is always
+ * `Task`, so the importer has nothing to choose per row; it comes last, so
+ * the columns before it keep their place.
  */
 export function renderIssuesCsv(report: Report): string {
-  const rows = [['Summary', 'Priority', 'Labels', 'Description', 'Area', 'Files', 'Fingerprint'].join(',')];
+  const rows = [['Summary', 'Priority', 'Labels', 'Description', 'Area', 'Files', 'Fingerprint', 'Issue Type'].join(',')];
   for (const { check, finding, fingerprint, files } of itemsOf(report)) {
     const detail = finding.detail ?? '';
     const heading = files.length > 0 ? `${detail ? `${detail}\n\n` : ''}Files:\n` : detail;
@@ -106,6 +108,7 @@ export function renderIssuesCsv(report: Report): string {
         check.title,
         fitLines(files, CELL_LIMIT),
         fingerprint,
+        'Task',
       ]
         .map(cell)
         .join(','),

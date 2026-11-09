@@ -58,7 +58,7 @@ describe('the backlog as CSV', () => {
         ]),
       ),
     );
-    expect(rows[0]).toEqual(['Summary', 'Priority', 'Labels', 'Description', 'Area', 'Files', 'Fingerprint']);
+    expect(rows[0]).toEqual(['Summary', 'Priority', 'Labels', 'Description', 'Area', 'Files', 'Fingerprint', 'Issue Type']);
     expect(rows).toHaveLength(3);
     expect(rows[1]!.slice(0, 5)).toEqual(['First up', 'High', 'ng-checkup-components', '', 'Components & templates']);
     expect(rows[2]![0]).toBe('2 *ngFor loops without trackBy');
@@ -66,6 +66,7 @@ describe('the backlog as CSV', () => {
     expect(rows[2]![3]).toBe('Why it matters, "quoted".\nSecond line, with a comma.\n\nFiles:\na.html:3\nb.html');
     expect(rows[2]![5]).toBe('a.html:3\nb.html');
     expect(rows[2]![6]).toMatch(/^[0-9a-f]{16}$/);
+    expect(rows.slice(1).map((row) => row[7])).toEqual(['Task', 'Task']);
   });
 
   it('keeps a spreadsheet from running a cell as a formula', () => {
