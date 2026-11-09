@@ -3,6 +3,7 @@ import { createInterface } from 'node:readline';
 import type { Readable, Writable } from 'node:stream';
 import { createAnalysisCache, type AnalysisCache } from './cache.js';
 import { CHECK_IDS, runCheckup, TOOL } from './index.js';
+import { loadConfig } from './config.js';
 import { renderMarkdown } from './report/markdown.js';
 import type { CheckupOptions, Report, Severity } from './types.js';
 
@@ -98,7 +99,9 @@ export function serveMcp(input: Readable, output: Writable, log: (line: string) 
     const root = resolve(typeof args['path'] === 'string' ? args['path'] : '.');
     let cache = caches.get(root);
     if (!cache) caches.set(root, (cache = createAnalysisCache()));
-    return runCheckup(root, { offline: args['online'] !== true, maxExamples: AGENT_EXAMPLES, cache, ...extra });
+    // The config's rules belong to the project, so an agent sees the same custom-rules area as the CLI; it is re-read on every call.
+    const { rules } = loadConfig(root).config;
+    return runCheckup(root, { offline: args['online'] !== true, maxExamples: AGENT_EXAMPLES, cache, ...(rules ? { rules } : {}), ...extra });
   };
 
   const call = async (name: string, args: Record<string, unknown>): Promise<string> => {

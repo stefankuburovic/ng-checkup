@@ -20,6 +20,8 @@ import { testingCheck } from './checks/testing.js';
 import { translationsCheck } from './checks/translations.js';
 import { accessibilityCheck } from './checks/accessibility.js';
 import { ssrCheck } from './checks/ssr.js';
+import { customRulesCheck } from './checks/rules.js';
+import { importViolations, patternViolations } from './rules.js';
 import { typeSafetyCheck } from './checks/type-safety.js';
 import { versionCheck } from './checks/version.js';
 import { cachedFacts, dependencyStamp } from './cache.js';
@@ -28,7 +30,7 @@ import { lookUpVulnerabilities } from './vulnerabilities.js';
 import { loadDeprecationIndex } from './typings.js';
 import { nextMajorChanges } from './next-major.js';
 import { ignoreMatcher } from './config.js';
-import { collectFiles, isTestCode } from './files.js';
+import { collectFiles, isTestCode, toReportPath } from './files.js';
 import { buildImportGraph, filesImportedBySpecs, findTanglesIn, readCompilerOptions, staticallyReachable } from './graph.js';
 import { buildMigrationPlan, buildPrimoPlan } from './migration.js';
 import { unimportedFiles, unusedBindings, unusedDeclarables } from './unused.js';
@@ -59,7 +61,8 @@ export { renderIssuesCsv, renderIssuesMarkdown } from './report/issues.js';
 export { createAnalysisCache, type AnalysisCache } from './cache.js';
 export { SinceError, type SinceInfo } from './since.js';
 export { overallScore, topPriorities } from './report/summary.js';
-export { CONFIG_FILE, loadConfig, type CheckupConfig } from './config.js';
+export { CONFIG_FILE, loadConfig, mergeConfig, parseInlineConfig, type CheckupConfig } from './config.js';
+export { parseRules, RuleTimeoutError, type CustomRule, type RuleViolation } from './rules.js';
 export { buildPlan, type PlanItem, type PlanRequirement, type UpgradePlan, type UpgradeStep } from './plan.js';
 export { buildMigrationPlan, buildPrimoPlan, type MigrationPhase, type MigrationPlan } from './migration.js';
 export { ANGULAR_VERSIONS, type AngularVersionInfo } from './angular-versions.js';
@@ -118,10 +121,10 @@ export const CHECKS: Check[] = [
 
 /**
  * Every check id a report can hold, for `--only` and `--skip`: the fifteen
- * that always run, and the two legacy areas that replace each other when
- * there is legacy code.
+ * that always run, the two legacy areas that replace each other when there
+ * is legacy code, and `rules`, present when the config has rules.
  */
-export const CHECK_IDS = ['angularjs', 'primo-nde', 'version', 'deprecated-apis', 'dependencies', 'change-detection', 'components', 'state', 'architecture', 'testing', 'type-safety', 'security', 'translations', 'accessibility', 'ssr', 'circular-deps', 'bundle'] as const;
+export const CHECK_IDS = ['angularjs', 'primo-nde', 'version', 'deprecated-apis', 'dependencies', 'change-detection', 'components', 'state', 'architecture', 'testing', 'type-safety', 'security', 'translations', 'accessibility', 'ssr', 'circular-deps', 'bundle', 'rules'] as const;
 
 /**
  * A predicate over check ids from `only` and `skip`. Every check still runs
@@ -183,7 +186,8 @@ export async function runCheckup(root: string, options: CheckupOptions = {}): Pr
   // the NDE custom module, so it gets its own area and plan instead of the general AngularJS ones.
   const primo = summarizePrimo(context);
   const legacy = primo.present ? [primoNdeCheck(context)] : hasAngularJs(context) ? [angularJsCheck(context)] : [];
-  const allChecks = [...legacy, ...CHECKS.map((check) => check(context))];
+  const custom = customRulesCheck(context);
+  const allChecks = [...legacy, ...CHECKS.map((check) => check(context)), ...(custom ? [custom] : [])];
   const application = context.sources.filter((file) => !file.isSpec && !file.isGenerated);
   const generatedFiles = context.sources.filter((file) => file.isGenerated).length;
   // AngularJS code is mostly JavaScript; without it an AngularJS app or a Primo package reported 0 lines.
@@ -247,7 +251,8 @@ function projectBreakdown(context: AnalysisContext, keep: (id: string) => boolea
     const sources = context.sources.filter((file) => ownerOf(file.path) === project);
     if (!sources.some((file) => file.imports.some((fact) => fact.specifier.startsWith('@angular/')))) continue;
     const projectContext = narrowContext(context, project, ownerOf);
-    const checks = PROJECT_CHECKS.map((check) => check(projectContext)).filter((check) => keep(check.id));
+    const custom = customRulesCheck(projectContext);
+    const checks = [...PROJECT_CHECKS.map((check) => check(projectContext)), ...(custom ? [custom] : [])].filter((check) => keep(check.id));
     rows.push({
       name: project.name,
       root: project.root,
@@ -298,6 +303,7 @@ function narrowContext(context: AnalysisContext, project: ProjectInfo, ownerOf: 
         }
       : {}),
     bundles: context.bundles.filter((bundle) => bundle.project === project.name),
+    ...(context.customRules ? { customRules: { ...context.customRules, violations: context.customRules.violations.filter((violation) => ownerOf(violation.path) === project) } } : {}),
     appCompilerOptions: readCompilerOptions(workspace.appTsconfig),
     angularCompilerOptions: workspace.appTsconfig ? readAngularCompilerOptions(workspace.appTsconfig) : {},
   };
@@ -343,6 +349,23 @@ export async function buildContext(root: string, options: CheckupOptions): Promi
   const bindings = options.attributeSelectors ? unusedBindings(sources, templates, workspace, declarables, unimported) : undefined;
   const translations = readTranslations(root, workspace, files.translationBundles, sources, templates);
   const i18n = readI18n(root, workspace);
+  // Not cached between watch runs: the rules come from the config, which every run re-reads.
+  const rules = options.rules ?? [];
+  const generated = new Set(sources.filter((file) => file.isGenerated).map((file) => file.path));
+  const customRules =
+    rules.length === 0
+      ? undefined
+      : {
+          rules,
+          violations: [
+            ...importViolations(rules, sources),
+            ...(await patternViolations(
+              rules,
+              [...files.typescript, ...files.html, ...files.stylesheets].map((absolute) => ({ path: toReportPath(root, absolute), absolute })),
+              (path) => generated.has(path),
+            )),
+          ],
+        };
 
   const context: AnalysisContext = {
     workspace,
@@ -362,6 +385,7 @@ export async function buildContext(root: string, options: CheckupOptions): Promi
     ...(bindings ? { unusedBindings: bindings } : {}),
     ...(translations ? { translations } : {}),
     ...(i18n ? { i18n } : {}),
+    ...(customRules ? { customRules } : {}),
     latestAngular,
     ...(nextMajor ? { nextMajor } : {}),
     compatibility: dependencies.compatibility,

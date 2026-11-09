@@ -54,7 +54,7 @@ export class HistoryUnavailableError extends Error {
  * @param onProgress Called before each point, for a progress line.
  * @throws `HistoryUnavailableError` outside a git repository or in a shallow clone.
  */
-export async function collectHistory(root: string, options: { points?: number; ignore?: string[]; only?: string[]; skip?: string[]; onProgress?: (done: number, total: number, label: string) => void } = {}): Promise<HistoryReport> {
+export async function collectHistory(root: string, options: { points?: number; ignore?: string[]; only?: string[]; skip?: string[]; rules?: CheckupOptions['rules']; onProgress?: (done: number, total: number, label: string) => void } = {}): Promise<HistoryReport> {
   const git = (...args: string[]): string => execFileSync('git', ['-C', root, ...args], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], maxBuffer: 64 * 1024 * 1024 }).trim();
   try {
     if (git('rev-parse', '--is-inside-work-tree') !== 'true') throw new Error();
@@ -84,7 +84,7 @@ export async function collectHistory(root: string, options: { points?: number; i
   // With uncommitted changes the last commit is a state of its own, between the last month and the working tree.
   if (!clean && !commits.some((entry) => entry.commit === head)) commits.push({ commit: head, date: headDate.toISOString().slice(0, 10) });
 
-  const checkup: CheckupOptions = { offline: true, ignore: options.ignore, only: options.only, skip: options.skip };
+  const checkup: CheckupOptions = { offline: true, ignore: options.ignore, only: options.only, skip: options.skip, ...(options.rules ? { rules: options.rules } : {}) };
   const points: HistoryPoint[] = [];
   const labels: Record<string, string> = {};
   const total = commits.length + 1;

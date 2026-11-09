@@ -10,6 +10,7 @@ import type { TypingsSource } from '../typings.js';
 import type { VulnerabilityScan } from '../vulnerabilities.js';
 import type { SourceFileFacts, TemplateFact } from '../scan.js';
 import type { I18nFacts } from '../i18n.js';
+import type { RuleFacts } from '../rules.js';
 import type { TranslationFacts } from '../translations.js';
 import type { StylesheetFact } from '../stylesheets.js';
 import type { CheckResult, FileRef } from '../types.js';
@@ -84,6 +85,8 @@ export interface AnalysisContext {
   translations?: TranslationFacts;
   /** Angular's built-in i18n, judged against the source file (see `readI18n`). Undefined when no project has a locale. */
   i18n?: I18nFacts;
+  /** The config's own rules and what breaks them (see `CustomRule`). Undefined when no rule is configured. */
+  customRules?: RuleFacts;
   maxExamples: number;
 }
 

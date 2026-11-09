@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- **Custom rules** in the config: `rules` forbid an import (`forbidImport`) or a pattern per line (`pattern`), optionally only in some paths (`files`), with a severity and a message. They form their own area, `rules`, never graded and present only when there are rules, so no score changes. Each rule is a baseline measure, `rules.<id>`, so `--fail-on regression` fails only on a new violation, which is what an ESLint rule cannot do on legacy code. Patterns run in a worker thread; one that takes longer than two seconds on a file stops the run and names the rule and the file. The MCP server reads the rules from the project's config.
+- **`--config-json <json>`**: the config's keys for one run, laid over the file, rules merged by id; `-` reads the JSON from standard input. Also for `ng-checkup baseline`.
+- **`--interactive` (`-i`)**: asks for every setting one at a time, rules included, the config file's value as the default, and explains and asks again on a wrong answer. At the end it offers to save the answers to `ng-checkup.config.json`; either way the run uses them. Questions go to stderr, so `--json` stays clean.
+- The README states where each integration takes its settings from: what the run gives, then the config file, then the defaults. The Action and GitLab inputs are empty by default, so a committed config file is what CI runs with.
+
 ## 2.2.1 (2026-11-09)
 
 - The `.issues.csv` backlog has a last column, `Issue Type`, always `Task`, so the Jira importer creates every row as the same type without a choice per row. The columns before it keep their place. The README has a table of which column goes to which Jira field, and how the fingerprint tells a task already imported.

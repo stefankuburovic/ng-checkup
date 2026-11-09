@@ -186,6 +186,12 @@ export interface CheckupOptions {
   /** Check ids to leave out of the report and the score (`--skip bundle`). */
   skip?: string[];
   /**
+   * The team's own rules, as `rules` in the config file (validate raw input
+   * with `parseRules`). They become the custom-rules area, never graded, one
+   * baseline measure per rule.
+   */
+  rules?: import('./rules.js').CustomRule[];
+  /**
    * Compare the imports with the next Angular major's typings (default true).
    * The corpus turns it off: which release of the next major is "the latest"
    * moves with every patch Angular publishes, and a snapshot must not.

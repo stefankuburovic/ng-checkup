@@ -131,8 +131,60 @@ npx ng-checkup-cli init --ci gitlab    # pick the CI instead of detecting it (gi
 | `attributeSelectors` | also list directives, and components with an attribute selector, that no template matches, and inputs and outputs no template binds | `--attribute-selectors` |
 | `only` | report only these areas, by [check id](https://github.com/stefankuburovic/ng-checkup/blob/main/docs/checks.md) (`["security", "dependencies"]`) | `--only` |
 | `skip` | leave these areas out of the report, the score and the baseline | `--skip` |
+| `rules` | your own rules, see [Custom rules](#custom-rules) | |
 
 An unknown key or a wrong type stops the run with an error, so a typo cannot silently switch off a CI threshold. Use `--config path/to/file.json` for a file elsewhere.
+
+**Asked one by one:** `--interactive` (`-i`) asks for every setting in turn, rules included, with the config file's value in brackets: Enter keeps it, `-` clears a list, and a wrong answer is explained and asked again. At the end it asks whether to save the answers to `ng-checkup.config.json` for the next runs; either way this run uses them.
+
+```bash
+npx ng-checkup-cli -i
+```
+
+**Where a setting comes from.** In every integration the same order holds: what is given for this run, then the config file, then the built-in default.
+
+| Where | This run | Then | Without either |
+| --- | --- | --- | --- |
+| Command line | flags, `--config-json`, `--interactive` | `ng-checkup.config.json` | defaults |
+| GitHub Action | inputs you set (`fail-on`, `plan`, `offline`, `args`) | `ng-checkup.config.json` | defaults |
+| GitLab component and include | inputs or variables you set (`fail-on`, `args`) | `ng-checkup.config.json` | defaults |
+| VS Code extension | `offline: true` in the file wins over the setting | `ng-checkup.config.json` | the extension's settings |
+| MCP server | the tool call's arguments | `rules` from `ng-checkup.config.json` | defaults |
+
+The integrations' inputs are empty by default, so a config file committed to the repository is what CI runs with. Two exceptions: the Action and the GitLab job write their reports to fixed paths of their own, so `reports` from the file is not used there, and the editor lists every location of a finding whatever `maxExamples` says.
+
+**For one run only:** `--config-json` takes the same keys as JSON and lays them over the file, without editing it. `rules` are merged by id, so a run can try one more rule. `-` reads the JSON from standard input, to paste or pipe a longer one.
+
+```bash
+npx ng-checkup-cli --config-json '{"offline":true,"rules":[{"id":"no-moment","forbidImport":"moment"}]}'
+```
+
+### Custom rules
+
+Forbid an import or a pattern, and count every place that breaks it:
+
+```json
+{
+  "rules": [
+    { "id": "no-moment", "forbidImport": "moment", "severity": "medium", "message": "Use date-fns" },
+    { "id": "no-console", "pattern": "console\\.(log|debug)", "severity": "low" },
+    { "id": "no-focused-tests", "pattern": "\\bf(describe|it)\\(", "files": ["**/*.spec.ts"], "severity": "high" }
+  ]
+}
+```
+
+| Key | Meaning |
+| --- | --- |
+| `id` | lower-case letters, digits and dashes; the measure is `rules.<id>` |
+| `forbidImport` | a package or path, or a list of them; `moment` also covers `moment/locale/de`, and `import type` is allowed |
+| `pattern` | a regular expression, tested on every line of TypeScript files, templates and stylesheets, comments included |
+| `files` | paths the rule reads, in the `ignore` syntax; without it, application code only, with it test code too |
+| `severity` | `high`, `medium` (default) or `low` |
+| `message` | what to do instead, shown with every finding |
+
+Each rule needs `id` and exactly one of `forbidImport` and `pattern`. The rules form their own area, never graded, so the score does not change. Each rule is a measure in the baseline: `ng-checkup baseline` records today's count, and `--fail-on regression` fails only when it goes up. That is the difference from ESLint's `no-restricted-imports`, which fails on every old violation too.
+
+A pattern that takes longer than two seconds on one file stops the run and names the rule and the file; that is a pattern that backtracks without end, such as `(a+)+b`.
 
 ## Baseline: adopt it on legacy code
 
@@ -384,6 +436,7 @@ The codebase is named by its repository and commit, never by a path on your disk
 | [**SSR & hydration**](https://github.com/stefankuburovic/ng-checkup/blob/main/docs/checks.md#ssr) | only in an app that renders on the server: browser globals and native DOM changes in code that runs there, `ngSkipHydration`, `provideClientHydration` missing | never graded: findings and baseline measures, so `--fail-on regression` catches a new one |
 | [**Circular dependencies**](https://github.com/stefankuburovic/ng-checkup/blob/main/docs/checks.md#circular-deps) | import cycles through relative paths, barrels and tsconfig `paths` | more than three groups or ten files in loops |
 | [**Bundle size**](https://github.com/stefankuburovic/ng-checkup/blob/main/docs/checks.md#bundle) | the initial bundle from the last `ng build --stats-json` (esbuild or webpack) against the build's budget, its largest packages, lazy chunks, and outside the grade: `moment`, whole `lodash`, `rxjs-compat` and `jquery` at startup | over the `initial` error budget (1 MB by default) |
+| [**Custom rules**](https://github.com/stefankuburovic/ng-checkup/blob/main/docs/checks.md#rules) (only with `rules` in the config) | your team's forbidden imports and patterns, one baseline measure per rule | never graded: `--fail-on regression` catches a new violation |
 
 `--only security,dependencies` reports just those areas, and `--skip bundle` leaves one out; the score is then the average of what is left. Each finding says why it matters and which `ng generate` migration fixes it. **[Every check, its grading and its fix →](https://github.com/stefankuburovic/ng-checkup/blob/main/docs/checks.md)**
 
@@ -486,6 +539,14 @@ Options:
                          binds
       --offline          Nothing online: no npm registry, no osv.dev lookup
       --config <file>    Config file (default: ng-checkup.config.json in the root)
+      --config-json <json>
+                         Settings for this run only, with the keys of the config
+                         file, laid over it: '{"rules":[{"id":"no-moment",
+                         "forbidImport":"moment"}]}'. Rules are merged by id.
+                         - reads the JSON from standard input
+  -i, --interactive      Ask for every setting one at a time, rules included,
+                         the config file's value as the default, and offer to
+                         save the answers to the config file for the next runs
       --no-color         Plain output (also off when NO_COLOR is set or not a TTY)
   -h, --help             Show this help
       --version          Show the version
@@ -500,6 +561,8 @@ Baseline options (ng-checkup baseline):
                          several projects, each project: --project runs then
                          compare with their own numbers
       --force            Accept measures that went up since the last baseline
+      --config-json <json>
+                         As for a checkup run, so a rule given there is recorded
 
 Url (ng-checkup url <address>):
                          Which framework a public web app runs, from what a
@@ -724,7 +787,7 @@ for (const check of report.checks) {
 await writeFile('checkup.md', renderMarkdown(report));
 ```
 
-`runCheckup` never writes anything. Its options mirror the flags (`offline`, `plan`, `attributeSelectors`, `project`, `ignore`, `only`, `skip`, `maxExamples`), plus `cache` from `createAnalysisCache()` to make repeated runs incremental. `renderHtml`, `renderMarkdown`, `renderSarif`, `overallScore`, `topPriorities`, `loadConfig`, `planInit` (what `init` would change, without writing it), `collectHistory` with `renderHistoryHtml` and `renderHistoryMarkdown`, and the baseline functions (`createBaseline`, `compareWithBaseline`, `baselineMeasures`, `readBaseline`, `serializeBaseline`) are exported too, along with the `Report`, `CheckResult`, `Finding` and `Grade` types. `Report` is also the schema of the JSON output.
+`runCheckup` never writes anything. Its options mirror the flags (`offline`, `plan`, `attributeSelectors`, `project`, `ignore`, `only`, `skip`, `maxExamples`) and the config's `rules` (validate raw input with `parseRules`), plus `cache` from `createAnalysisCache()` to make repeated runs incremental. `renderHtml`, `renderMarkdown`, `renderSarif`, `overallScore`, `topPriorities`, `loadConfig`, `planInit` (what `init` would change, without writing it), `collectHistory` with `renderHistoryHtml` and `renderHistoryMarkdown`, and the baseline functions (`createBaseline`, `compareWithBaseline`, `baselineMeasures`, `readBaseline`, `serializeBaseline`) are exported too, along with the `Report`, `CheckResult`, `Finding` and `Grade` types. `Report` is also the schema of the JSON output.
 
 ## What leaves your machine
 
@@ -768,7 +831,7 @@ Ideas and bug reports are welcome in [issues](https://github.com/stefankuburovic
 npx -y ng-checkup-cli mcp
 ```
 
-Serves the checkup over the [Model Context Protocol](https://modelcontextprotocol.io) on stdio, so Claude Code, Cursor, Copilot or any MCP client can ask about the workspace directly. Three tools: `checkup` (the Markdown report, narrowed by `only`, `project` or `since`), `findings` (JSON, filtered by area, minimum severity or one file: "what is wrong with this component") and `upgrade_plan`. Runs are offline unless a call asks for `online`, and the server keeps one analysis cache per folder, so a second question re-parses only what changed. Register it with your client as the command `npx -y ng-checkup-cli mcp`; in Claude Code:
+Serves the checkup over the [Model Context Protocol](https://modelcontextprotocol.io) on stdio, so Claude Code, Cursor, Copilot or any MCP client can ask about the workspace directly. Three tools: `checkup` (the Markdown report, narrowed by `only`, `project` or `since`), `findings` (JSON, filtered by area, minimum severity or one file: "what is wrong with this component") and `upgrade_plan`. Runs are offline unless a call asks for `online`, and the server keeps one analysis cache per folder, so a second question re-parses only what changed. The [custom rules](#custom-rules) of the folder's `ng-checkup.config.json` apply, read again on every call. Register it with your client as the command `npx -y ng-checkup-cli mcp`; in Claude Code:
 
 ```bash
 claude mcp add ng-checkup -- npx -y ng-checkup-cli mcp

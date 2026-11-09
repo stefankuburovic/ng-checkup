@@ -1,6 +1,6 @@
 # The checks
 
-Fifteen checks run on every repository, twelve of them graded; [Translations](#translations), [Accessibility](#accessibility) and [SSR & hydration](#ssr) only report. A sixteenth runs first when there is legacy code: [AngularJS migration](#angularjs) for AngularJS code or packages, or, for an Ex Libris Primo VE customization package, [Primo NDE migration](#primo-nde) in its place.
+Fifteen checks run on every repository, twelve of them graded; [Translations](#translations), [Accessibility](#accessibility) and [SSR & hydration](#ssr) only report. A sixteenth runs first when there is legacy code: [AngularJS migration](#angularjs) for AngularJS code or packages, or, for an Ex Libris Primo VE customization package, [Primo NDE migration](#primo-nde) in its place. [Custom rules](#rules) appear last when the config has rules, and only report.
 
 Every check grades one area **good**, **fair**, **poor** or **info**. `info` means there was nothing to grade (no components, no tests) or an input was missing (no `node_modules`), and it never counts against the score.
 
@@ -23,6 +23,7 @@ The score is the average of the graded areas: good counts 100, fair 60, poor 20.
 - [SSR & hydration](#ssr) (listed, never graded)
 - [Circular dependencies](#circular-deps)
 - [Bundle size](#bundle)
+- [Custom rules](#rules) (only with rules in the config, never graded)
 
 In a monorepo every project also gets its own grade on the code checks (everything except the version and third-party checks, which the projects share); see [Monorepos](../README.md#monorepos).
 
@@ -391,6 +392,27 @@ The largest packages in the initial bundle are listed with their size, from the 
 
 ---
 
+## Custom rules (`rules`) <a id="rules"></a>
+
+**When it runs:** only when the config has `rules`, in `ng-checkup.config.json` or `--config-json`. Without them the area is not in the report.
+
+**What it reads:** each rule is one of two kinds.
+
+- `forbidImport`: package or path specifiers no file may import. `moment` also forbids `moment/locale/de`, not `moment-timezone`. Static imports, `import()`, `require` and `export … from` count; `import type` does not, since it loads nothing.
+- `pattern`: a regular expression tested on every line of TypeScript files, templates and stylesheets, comments included. It reads text, not code, so `console\.log` also matches a commented-out line.
+
+By default a rule reads application code: no specs, e2e or mock files, and no generated files. With `files` it reads the paths named there, in the `ignore` syntax, test code included, so a rule can forbid `fdescribe` in `**/*.spec.ts`.
+
+**What it reports:** one finding per broken rule, at the rule's `severity` (default `medium`), with its `message` and every place. One measure per rule, `rules.<id>`, broken or not, so the baseline holds a 0 and `--fail-on regression` fails on the first violation of a rule that had none.
+
+**Why not ESLint:** `no-restricted-imports` and `no-restricted-syntax` forbid the same things, but fail on every old violation, so in a legacy codebase the rule tends to be switched off. Here the old violations are recorded, and only a new one fails.
+
+**Limits:** a pattern that takes longer than two seconds on one file stops the run and names the rule and the file; that is a pattern that backtracks without end, such as `(a+)+b`. An invalid rule stops the run before anything is read, as an unknown config key does.
+
+**Grading:** none. Always `info`, so it changes no score.
+
+---
+
 ## Measures recorded by the baseline <a id="measures"></a>
 
 `ng-checkup baseline` records these counts in `ng-checkup.baseline.json`, and `--fail-on regression` fails when any of them goes up. Lower is better for every one. The number of majors behind is deliberately not a measure: it grows when Angular ships a release, not when the code gets worse. Neither is bundle size, which grows with every feature.
@@ -453,6 +475,7 @@ The largest packages in the initial bundle are listed with their size, from the 
 | `state.behaviorsubject-services` | Services holding state in a `BehaviorSubject` |
 | `state.classic-ngrx-files` | Files on classic NgRx |
 | `state.effect-decorators` | Removed `@Effect()` decorators |
+| `rules.<id>` | Places that break the config's rule `<id>` |
 | `testing.schema-suppressed-specs` | Spec files with `NO_ERRORS_SCHEMA` or `CUSTOM_ELEMENTS_SCHEMA` |
 | `testing.tests-without-assertions` | Tests that assert nothing |
 | `testing.unawaited-subscribe-assertions` | Assertions in a subscribe the test does not wait for |

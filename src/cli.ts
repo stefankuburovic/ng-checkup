@@ -6,8 +6,8 @@ import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 import { BASELINE_FILE, baselineDecreases, baselineIncreases, baselineMeasures, compareWithBaseline, createBaseline, measuresOf, readBaseline, serializeBaseline, type Baseline } from './baseline.js';
 import { createAnalysisCache } from './cache.js';
-import { isReportPath, loadConfig, type CheckupConfig } from './config.js';
-import { BUNDLED_LATEST_ANGULAR_MAJOR, fetchLatestAngularMajor, ProjectNotFoundError, runCheckup, SinceError, TOOL, UNCAPPED_EXAMPLES, UnknownCheckError } from './index.js';
+import { CONFIG_FILE, isReportPath, loadConfig, mergeConfig, parseInlineConfig, type CheckupConfig } from './config.js';
+import { BUNDLED_LATEST_ANGULAR_MAJOR, CHECK_IDS, fetchLatestAngularMajor, ProjectNotFoundError, runCheckup, SinceError, TOOL, UNCAPPED_EXAMPLES, UnknownCheckError } from './index.js';
 import { planInit, type CiChoice, type InitPlan } from './init.js';
 import { cloneRemote, describeCheckout, parseRemote, type RemoteRepository } from './remote.js';
 import { renderHtml } from './report/html.js';
@@ -31,6 +31,9 @@ import { diffReports, readSavedReport } from './diff.js';
 import { renderDiffForFile, renderDiffTerminal } from './report/diff.js';
 import { renderBadgeJson, renderBadgeSvg } from './report/badge.js';
 import { capExamples, isIssuesReport, renderIssuesCsv, renderIssuesMarkdown } from './report/issues.js';
+import { RuleTimeoutError } from './rules.js';
+import { runWizard, toJson } from './wizard.js';
+import { createInterface } from 'node:readline/promises';
 
 const HELP = `Usage: ng-checkup [path | repository] [options]
        ng-checkup init [path] [init options]
@@ -103,6 +106,14 @@ Options:
                          binds
       --offline          Nothing online: no npm registry, no osv.dev lookup
       --config <file>    Config file (default: ng-checkup.config.json in the root)
+      --config-json <json>
+                         Settings for this run only, with the keys of the config
+                         file, laid over it: '{"rules":[{"id":"no-moment",
+                         "forbidImport":"moment"}]}'. Rules are merged by id.
+                         - reads the JSON from standard input
+  -i, --interactive      Ask for every setting one at a time, rules included,
+                         the config file's value as the default, and offer to
+                         save the answers to the config file for the next runs
       --no-color         Plain output (also off when NO_COLOR is set or not a TTY)
   -h, --help             Show this help
       --version          Show the version
@@ -117,6 +128,8 @@ Baseline options (ng-checkup baseline):
                          several projects, each project: --project runs then
                          compare with their own numbers
       --force            Accept measures that went up since the last baseline
+      --config-json <json>
+                         As for a checkup run, so a rule given there is recorded
 
 Url (ng-checkup url <address>):
                          Which framework a public web app runs, from what a
@@ -209,6 +222,12 @@ export interface CliArguments {
   watch: boolean;
   color: boolean;
   config?: string;
+  /** `--config-json`: settings for this run, laid over the config file. */
+  inlineConfig?: CheckupConfig;
+  /** `--interactive`: ask for the settings before the run. */
+  interactive?: boolean;
+  /** The wizard's answers, which replace the config file for this run (see `runWizard`). */
+  configOverride?: CheckupConfig;
 }
 
 /** Parsed arguments of `ng-checkup init`. */
@@ -227,6 +246,8 @@ export interface BaselineArguments {
   root: string;
   force: boolean;
   config?: string;
+  /** `--config-json`, as for a checkup run. */
+  inlineConfig?: CheckupConfig;
 }
 
 /** What a run actually uses: the command line laid over the config file. */
@@ -242,6 +263,7 @@ export interface RunSettings {
   ignore?: string[];
   only?: string[];
   skip?: string[];
+  rules?: CheckupConfig['rules'];
 }
 
 /**
@@ -276,6 +298,8 @@ export function parseCliArguments(argv: string[], environment: NodeJS.ProcessEnv
       trend: { type: 'string' },
       'trend-record': { type: 'boolean' },
       config: { type: 'string' },
+      'config-json': { type: 'string' },
+      interactive: { type: 'boolean', short: 'i' },
       'no-color': { type: 'boolean' },
       help: { type: 'boolean', short: 'h' },
       version: { type: 'boolean' },
@@ -286,6 +310,8 @@ export function parseCliArguments(argv: string[], environment: NodeJS.ProcessEnv
   const remote = positionals.length === 1 ? parseRemote(positionals[0]!) : undefined;
   const root = remote ? positionals[0]! : parseRoot(positionals);
   if (remote && values.watch) throw new Error('--watch needs a local checkout; clone the repository and run it there');
+  if (values.interactive && values['config-json'] !== undefined) throw new Error('--interactive asks for the settings that --config-json gives; use one of them');
+  if (values.interactive && remote) throw new Error('--interactive saves its answers into the project, which a temporary clone of a remote repository is not; run it in a local checkout');
   if (remote && values.offline) throw new Error('a remote repository has to be cloned, which needs the network, so it cannot be combined with --offline');
 
   const reports = (values.report ?? []).map((report) => resolve(report));
@@ -332,6 +358,8 @@ export function parseCliArguments(argv: string[], environment: NodeJS.ProcessEnv
     watch: values.watch ?? false,
     color: !values['no-color'] && environment['NO_COLOR'] === undefined && isTty,
     config: values.config,
+    ...(values['config-json'] !== undefined ? { inlineConfig: readInlineConfig(values['config-json']) } : {}),
+    ...(values.interactive ? { interactive: true } : {}),
   };
 }
 
@@ -371,6 +399,7 @@ export function resolveSettings(args: CliArguments, config: CheckupConfig, confi
     ignore: config.ignore,
     only: args.only ?? config.only,
     skip: args.skip ?? config.skip,
+    ...(config.rules ? { rules: config.rules } : {}),
     baselinePath: config.baseline ? resolve(configDirectory, config.baseline) : join(args.root, BASELINE_FILE),
   };
 }
@@ -380,10 +409,70 @@ export function parseBaselineArguments(argv: string[]): BaselineArguments | 'hel
   const { values, positionals } = parseArgs({
     args: argv,
     allowPositionals: true,
-    options: { force: { type: 'boolean' }, config: { type: 'string' }, help: { type: 'boolean', short: 'h' } },
+    options: { force: { type: 'boolean' }, config: { type: 'string' }, 'config-json': { type: 'string' }, help: { type: 'boolean', short: 'h' } },
   });
   if (values.help) return 'help';
-  return { root: parseRoot(positionals), force: values.force ?? false, config: values.config };
+  return { root: parseRoot(positionals), force: values.force ?? false, config: values.config, ...(values['config-json'] !== undefined ? { inlineConfig: readInlineConfig(values['config-json']) } : {}) };
+}
+
+/**
+ * `--config-json`: the JSON itself, or `-` for standard input. Paths in it
+ * (`reports`, `baseline`) resolve against the working directory, as the
+ * paths typed on the command line do; the file's resolve against the file.
+ */
+function readInlineConfig(value: string): CheckupConfig {
+  let text = value;
+  if (value === '-') {
+    if (process.stdin.isTTY) process.stderr.write('Paste the settings as JSON, then press Ctrl+D:\n');
+    text = readFileSync(0, 'utf8');
+  }
+  const config = parseInlineConfig(text);
+  return {
+    ...config,
+    ...(config.reports ? { reports: config.reports.map((report) => resolve(report)) } : {}),
+    ...(config.baseline ? { baseline: resolve(config.baseline) } : {}),
+  };
+}
+
+/** The config file with `--config-json` laid over it, or the wizard's answers in its place. */
+function loadRunConfig(root: string, path: string | undefined, inline: CheckupConfig | undefined, override?: CheckupConfig): { config: CheckupConfig; directory: string } {
+  if (override) return { config: override, directory: path ? resolve(path, '..') : root };
+  const { config, directory } = loadConfig(root, path);
+  return { config: mergeConfig(config, inline), directory };
+}
+
+/** A path as a person reads it: relative to the working directory when it is below it, absolute otherwise. */
+function displayPath(path: string): string {
+  const shown = relative(process.cwd(), path);
+  return shown && !shown.startsWith('..') && !isAbsolute(shown) ? shown : path;
+}
+
+/**
+ * `--interactive`: the wizard on the terminal, its questions on stderr so
+ * `--json` keeps stdout to itself. On "save" it writes the config file,
+ * keeping a `$schema` the file had.
+ *
+ * @returns The answers, which replace the config file for this run.
+ */
+async function interactiveConfig(parsed: CliArguments): Promise<CheckupConfig> {
+  if (!process.stdin.isTTY) throw new Error('--interactive asks questions, which needs a terminal; in a script, give the settings with --config-json');
+  const path = parsed.config ? resolve(parsed.config) : join(parsed.root, CONFIG_FILE);
+  const { config } = loadConfig(parsed.root, parsed.config);
+  const prompt = createInterface({ input: process.stdin, output: process.stderr });
+  let result;
+  try {
+    result = await runWizard(config, CHECK_IDS, (question) => prompt.question(question), (line) => process.stderr.write(`${line}\n`), displayPath(path));
+  } finally {
+    prompt.close();
+  }
+  if (result.save) {
+    const schema = existsSync(path) ? (JSON.parse(readFileSync(path, 'utf8')) as Record<string, unknown>)['$schema'] : undefined;
+    writeFileSync(path, `${JSON.stringify({ ...(schema !== undefined ? { $schema: schema } : {}), ...toJson(result.config) }, null, 2)}\n`);
+    process.stderr.write(`Saved to ${path}.\n\n`);
+  } else {
+    process.stderr.write('Not saved: these settings apply to this run only.\n\n');
+  }
+  return result.config;
 }
 
 /** `security, testing` → `['security', 'testing']`: comma-separated ids, spaces and empty entries dropped. */
@@ -501,6 +590,13 @@ async function main(argv: string[]): Promise<number> {
   } catch (error) {
     return usageError(error);
   }
+  if (parsed.interactive) {
+    try {
+      parsed.configOverride = await interactiveConfig(parsed);
+    } catch (error) {
+      return usageError(error);
+    }
+  }
   if (!parsed.remote) return mainCheckup(parsed);
 
   let clone: ReturnType<typeof cloneRemote>;
@@ -544,7 +640,7 @@ async function mainCheckup(parsed: CliArguments, rootLabel?: string): Promise<nu
   let settings: RunSettings;
   let baseline: ReturnType<typeof readBaseline>;
   try {
-    const { config, directory } = loadConfig(parsed.root, parsed.config);
+    const { config, directory } = loadRunConfig(parsed.root, parsed.config, parsed.inlineConfig, parsed.configOverride);
     // A remote repository's own config may name report files; they would be
     // written into the temporary clone and deleted with it.
     settings = resolveSettings(parsed, rootLabel ? { ...config, reports: undefined } : config, directory);
@@ -559,9 +655,9 @@ async function mainCheckup(parsed: CliArguments, rootLabel?: string): Promise<nu
   let report: Report;
   let full: Report;
   try {
-    full = await runCheckup(parsed.root, { offline: settings.offline, maxExamples: examplesToCollect(settings), ignore: analysisIgnores(parsed.root, settings), plan: settings.plan, attributeSelectors: settings.attributeSelectors, project: parsed.project, only: settings.only, skip: settings.skip, since: parsed.since });
+    full = await runCheckup(parsed.root, { offline: settings.offline, maxExamples: examplesToCollect(settings), ignore: analysisIgnores(parsed.root, settings), plan: settings.plan, attributeSelectors: settings.attributeSelectors, project: parsed.project, only: settings.only, skip: settings.skip, since: parsed.since, ...(settings.rules ? { rules: settings.rules } : {}) });
   } catch (error) {
-    if (error instanceof ProjectNotFoundError || error instanceof UnknownCheckError || error instanceof SinceError) return usageError(error);
+    if (error instanceof ProjectNotFoundError || error instanceof UnknownCheckError || error instanceof SinceError || error instanceof RuleTimeoutError) return usageError(error);
     throw error;
   }
   report = capExamples(full, settings.maxExamples);
@@ -667,9 +763,9 @@ async function mainWatch(parsed: CliArguments, initial: RunSettings): Promise<nu
     root: parsed.root,
     ignorePaths: initial.reports,
     run: async () => {
-      const { config, directory } = loadConfig(parsed.root, parsed.config);
+      const { config, directory } = loadRunConfig(parsed.root, parsed.config, parsed.inlineConfig, parsed.configOverride);
       const settings = resolveSettings(parsed, config, directory);
-      const full = await runCheckup(parsed.root, { offline: settings.offline, maxExamples: examplesToCollect(settings), ignore: analysisIgnores(parsed.root, settings), plan: settings.plan, attributeSelectors: settings.attributeSelectors, project: parsed.project, only: settings.only, skip: settings.skip, since: parsed.since, cache });
+      const full = await runCheckup(parsed.root, { offline: settings.offline, maxExamples: examplesToCollect(settings), ignore: analysisIgnores(parsed.root, settings), plan: settings.plan, attributeSelectors: settings.attributeSelectors, project: parsed.project, only: settings.only, skip: settings.skip, since: parsed.since, cache, ...(settings.rules ? { rules: settings.rules } : {}) });
       const report = capExamples(full, settings.maxExamples);
       const baseline = applicableBaseline(readBaseline(settings.baselinePath), parsed.project);
       if (baseline) report.baseline = compareWithBaseline(report, baseline, settings.baselinePath, parsed.project);
@@ -730,10 +826,10 @@ async function mainBaseline(argv: string[]): Promise<number> {
  * @throws When a measure went up and `force` is not set, listing each one.
  */
 export async function writeBaseline(args: BaselineArguments): Promise<string> {
-  const { config, directory } = loadConfig(args.root, args.config);
+  const { config, directory } = loadRunConfig(args.root, args.config, args.inlineConfig);
   const path = config.baseline ? resolve(directory, config.baseline) : join(args.root, BASELINE_FILE);
   const previous = readBaseline(path);
-  const report = await runCheckup(args.root, { offline: true, ignore: config.ignore, only: config.only, skip: config.skip, attributeSelectors: config.attributeSelectors ?? false });
+  const report = await runCheckup(args.root, { offline: true, ignore: config.ignore, only: config.only, skip: config.skip, attributeSelectors: config.attributeSelectors ?? false, ...(config.rules ? { rules: config.rules } : {}) });
   const next = createBaseline(report);
   const increases = baselineIncreases(previous, next);
   if (increases.length > 0 && !args.force) {
@@ -864,6 +960,7 @@ async function mainHistory(argv: string[]): Promise<number> {
       ignore: analysisIgnores(parsed.root, { ignore: config.ignore, reports: parsed.reports }),
       only: config.only,
       skip: config.skip,
+      ...(config.rules ? { rules: config.rules } : {}),
       onProgress: (done, total, label) => {
         if (progress) process.stderr.write(`\r\u001b[2KChecking ${done + 1}/${total}: ${label}`);
       },
