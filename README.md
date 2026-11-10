@@ -464,6 +464,8 @@ Defaults that changed between versions are applied per version: a component with
 
 `--report` is repeatable, so one run can write all three files.
 
+The HTML report opens with an overview a manager can read on its own: the score with its move since the baseline, every area's grade, and the measures that got better or worse. A grade is always a shape and a word, never colour alone. Everything in it is a link: a grade card to its areas, an area or a measure to its section, and every file to your editor at its line (`--editor`, VS Code by default, plain text on CI). `--overview ledger`, `tiles`, `columns` or `changes` lays the same overview out differently.
+
 <details>
 <summary>All options</summary>
 
@@ -529,6 +531,15 @@ Options:
                          (security,testing); the rest stay out of the score
       --skip <ids>       Leave these areas out of the report and the score
       --max-examples <n> Example files listed per finding (default 5)
+      --editor <name>    Where file links in the HTML report open: vscode,
+                         cursor, windsurf, idea, webstorm, file (the system's
+                         app, no line) or none. Default: $NG_CHECKUP_EDITOR,
+                         else the editor whose terminal runs it, else vscode;
+                         none on CI, where the paths are the runner's
+      --overview <layout>
+                         Layout of the HTML overview: base, ledger (one row
+                         per area), tiles, columns (by grade) or changes
+                         (what moved since the baseline first)
       --since <ref>      Keep only the findings in files changed since the merge
                          base of <ref> and HEAD (origin/main); grades, score
                          and baseline stay the whole repository's

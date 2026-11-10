@@ -1,5 +1,6 @@
 import { existsSync, readFileSync } from 'node:fs';
-import type { Report } from './types.js';
+import type { Grade, Report } from './types.js';
+import { overallScore } from './report/summary.js';
 
 /** The file `ng-checkup baseline` writes and every run compares against, in the analysed root. */
 export const BASELINE_FILE = 'ng-checkup.baseline.json';
@@ -27,6 +28,13 @@ export interface Baseline {
    * field is additive, so `version` stays 1.
    */
   projects?: Record<string, Record<string, number>>;
+  /**
+   * The workspace score and the grade of every area when the baseline was
+   * written, for the "since the baseline" line of the HTML overview. Absent in
+   * baselines written before 3.0, which still read: both fields are additive.
+   */
+  score?: number;
+  grades?: Record<string, Grade>;
 }
 
 /** One measure that moved against the baseline. */
@@ -49,6 +57,11 @@ export interface BaselineComparison {
   improvements: MeasureDelta[];
   /** Measures the baseline does not know yet, e.g. from a newer ng-checkup. Never a failure. */
   added: string[];
+  /** The baseline's date, `YYYY-MM-DD`; empty when the file does not say. */
+  updated?: string;
+  /** The baseline's score and grades, when it recorded them and this is a whole-workspace run. */
+  score?: number;
+  grades?: Record<string, Grade>;
 }
 
 /** Every measure of a report under its baseline key, with its check's title for display. */
@@ -75,7 +88,9 @@ export function createBaseline(report: Report, today = report.generatedAt.slice(
   const projects = report.projects?.length
     ? Object.fromEntries([...report.projects].sort((left, right) => left.name.localeCompare(right.name)).map((row) => [row.name, sorted(row.measures)]))
     : undefined;
-  return { version: 1, tool: `${report.tool.name} ${report.tool.version}`, updated: today, measures, ...(projects ? { projects } : {}) };
+  const score = overallScore(report);
+  const grades = Object.fromEntries(report.checks.map((check) => [check.id, check.grade]));
+  return { version: 1, tool: `${report.tool.name} ${report.tool.version}`, updated: today, ...(score !== undefined ? { score } : {}), grades, measures, ...(projects ? { projects } : {}) };
 }
 
 /**
@@ -110,6 +125,8 @@ export function readBaseline(path: string): Baseline | undefined {
   const record = (typeof raw === 'object' && raw !== null ? raw : {}) as Record<string, unknown>;
   const measures = record['measures'];
   const projects = record['projects'];
+  const score = record['score'];
+  const grades = record['grades'];
   if (record['version'] !== 1 || !isMeasureRecord(measures) || (projects !== undefined && !(isRecord(projects) && Object.values(projects).every(isMeasureRecord)))) {
     throw new Error(`${path} is not an ng-checkup baseline (expected version 1 and numeric measures). Recreate it with ng-checkup baseline --force.`);
   }
@@ -119,6 +136,9 @@ export function readBaseline(path: string): Baseline | undefined {
     updated: String(record['updated'] ?? ''),
     measures,
     ...(projects !== undefined ? { projects: projects as Record<string, Record<string, number>> } : {}),
+    // Informational only, so a malformed value is dropped rather than failing the run.
+    ...(typeof score === 'number' ? { score } : {}),
+    ...(isRecord(grades) && Object.values(grades).every((grade) => grade === 'good' || grade === 'fair' || grade === 'poor' || grade === 'info') ? { grades: grades as Record<string, Grade> } : {}),
   };
 }
 
@@ -159,7 +179,17 @@ export function compareWithBaseline(report: Report, baseline: Baseline, path: st
     if (current.value > before) regressions.push(delta);
     else if (current.value < before) improvements.push(delta);
   }
-  return { path, regressions, improvements, added };
+  // A project entry has no score or grades of its own; only a whole-workspace run compares them.
+  const whole = project === undefined;
+  return {
+    path,
+    regressions,
+    improvements,
+    added,
+    ...(baseline.updated ? { updated: baseline.updated } : {}),
+    ...(whole && baseline.score !== undefined ? { score: baseline.score } : {}),
+    ...(whole && baseline.grades ? { grades: baseline.grades } : {}),
+  };
 }
 
 /** One recorded number that changed between two baselines. Project keys read `project:checkId.measureId`. */

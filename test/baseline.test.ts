@@ -23,9 +23,28 @@ function reportWith(measures: Record<string, number>): Report {
 }
 
 describe('createBaseline and compareWithBaseline', () => {
+  it('carries the score, the grades and the date into the comparison, for the HTML overview', () => {
+    const baseline = createBaseline(reportWith({ 'explicit-any': 9 }));
+    const comparison = compareWithBaseline(reportWith({ 'explicit-any': 7 }), baseline, 'b.json');
+    expect(comparison).toMatchObject({ updated: '2026-10-20', score: 60, grades: { 'type-safety': 'fair' } });
+    // A project entry has no score of its own.
+    expect(compareWithBaseline(reportWith({ 'explicit-any': 7 }), { ...baseline, projects: { app: {} } }, 'b.json', 'app').score).toBeUndefined();
+  });
+
+  it('reads a baseline written before 3.0, without score or grades', () => {
+    const root = writeTemp({ 'old.json': JSON.stringify({ version: 1, tool: 'ng-checkup 2.0.0', updated: '2026-01-01', measures: { a: 1 } }), 'bad.json': JSON.stringify({ version: 1, measures: { a: 1 }, score: 'x', grades: { a: 'great' } }) });
+    try {
+      expect(readBaseline(join(root, 'old.json'))).toEqual({ version: 1, tool: 'ng-checkup 2.0.0', updated: '2026-01-01', measures: { a: 1 } });
+      expect(readBaseline(join(root, 'bad.json'))).not.toHaveProperty('score');
+      expect(readBaseline(join(root, 'bad.json'))).not.toHaveProperty('grades');
+    } finally {
+      removeTemp(root);
+    }
+  });
+
   it('records every measure under check.measure with sorted keys', () => {
     const baseline = createBaseline(reportWith({ 'non-null-assertions': 4, 'explicit-any': 9 }));
-    expect(baseline).toEqual({ version: 1, tool: 'ng-checkup 0.3.0', updated: '2026-10-20', measures: { 'type-safety.explicit-any': 9, 'type-safety.non-null-assertions': 4 } });
+    expect(baseline).toEqual({ version: 1, tool: 'ng-checkup 0.3.0', updated: '2026-10-20', score: 60, grades: { 'type-safety': 'fair', testing: 'info' }, measures: { 'type-safety.explicit-any': 9, 'type-safety.non-null-assertions': 4 } });
     expect(Object.keys(JSON.parse(serializeBaseline(baseline)).measures)).toEqual(['type-safety.explicit-any', 'type-safety.non-null-assertions']);
   });
 

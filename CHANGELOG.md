@@ -1,6 +1,14 @@
 # Changelog
 
-## Unreleased
+## 2.3.0 (2026-11-10)
+
+No score or grade changes: the new checks are findings and baseline measures outside the grade, and custom rules form an area of their own that is never graded and appears only with rules in the config. A baseline from 2.2 keeps working, the new measures count as "not known yet", never as a failure.
+
+- **A new overview at the top of the HTML report**, for the reader who reads only the first page: the score with its band and its move since the baseline on a 0–100 scale, a sentence saying what that means, a count per grade, every area worst first with the grade it had in the baseline when that changed, the projects of a monorepo, and at most eight measures that moved, worse first. A grade is a shape and a word as well as a colour (WCAG 1.4.1), and the shapes are drawn with borders, so they print. Under five graded areas, as in an AngularJS app, the score is marked as a rough signal. `--overview ledger | tiles | columns | changes` picks another layout of the same markup. The cards grid and the score ring are gone from the standard report; the client report is unchanged.
+- **File links open in the editor**, at the line: `vscode://` by default, `--editor cursor | windsurf | idea | webstorm | file | none` or `NG_CHECKUP_EDITOR` for another. The default follows the terminal the command runs in, and is `none` on CI, where an absolute path is the runner's.
+- **"and N more" opens the rest.** The HTML report now carries every file of a finding: the first `--max-examples` show, the rest sit behind "and N more", which opens the next 50, ending in the next "and N more". No script; a closed one prints as its line. A report with thousands of files is bigger (go-data: 137 KB to 855 KB), still one file. The other formats keep the examples only.
+- **A contents column** beside the HTML report on screens from 1248 px wide: the sections and every area with its grade shape, each a link that scrolls to it (smoothly, unless reduced motion is asked for), the one clicked marked. Hidden on narrow screens, where the overview lists the areas, and in print.
+- `ng-checkup baseline` also records the score and the grade of each area, for the overview's "since the baseline" line. Both are optional, so an older baseline still reads; it just shows no score change until it is written again.
 
 - **Custom rules** in the config: `rules` forbid an import (`forbidImport`) or a pattern per line (`pattern`), optionally only in some paths (`files`), with a severity and a message. They form their own area, `rules`, never graded and present only when there are rules, so no score changes. Each rule is a baseline measure, `rules.<id>`, so `--fail-on regression` fails only on a new violation, which is what an ESLint rule cannot do on legacy code. Patterns run in a worker thread; one that takes longer than two seconds on a file stops the run and names the rule and the file. The MCP server reads the rules from the project's config.
 - **`--config-json <json>`**: the config's keys for one run, laid over the file, rules merged by id; `-` reads the JSON from standard input. Also for `ng-checkup baseline`.

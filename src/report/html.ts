@@ -4,9 +4,39 @@ import type { CheckResult, Finding, Grade, Report } from '../types.js';
 export { escape };
 import { CHART_STYLES, historySection } from './charts.js';
 import { escape } from './escape.js';
-import { trendSentence } from '../trend.js';
 import { renderNotes } from './notes.js';
-import { formatDuration, formatLocation, gradeLabel, kindLabel, migrationTarget, overallScore, projectAreas, remainingCount, SCORE_EXPLANATION, severityLabel, sinceSentence, topPriorities } from './summary.js';
+import { formatDuration, gradeLabel, migrationTarget, overallScore, projectAreas, remainingCount, SCORE_EXPLANATION, severityLabel, topPriorities } from './summary.js';
+import type { Editor } from './editor.js';
+import { OVERVIEW_STYLES } from './overview-css.js';
+import { fileLink, OVERVIEW_CHANGE_LIMIT, projectAnchor, renderOverview, type OverviewVariant } from './overview.js';
+import type { FileRef } from '../types.js';
+
+/** How the HTML report links files and lays out its overview. */
+export interface HtmlOptions {
+  /** Where a file link opens (default VS Code); `none` leaves paths as text. */
+  editor?: Editor;
+  /** The overview layout (default `base`). */
+  overview?: OverviewVariant;
+  /**
+   * How many files of a finding show before "and N more" (default 5). The
+   * report may carry every file: the rest are behind that line, which opens
+   * them in batches of `FILE_BATCH`, so a finding with 300 files stays short
+   * until someone asks for them.
+   */
+  examples?: number;
+}
+
+/** How many more files each "and N more" opens. */
+export const FILE_BATCH = 50;
+
+/** Renders one file location: a link to the editor, or text. */
+type FileRenderer = (ref: FileRef) => string;
+
+/** How a finding's files render: each one, and how many show before the rest fold away. */
+interface FileList {
+  link: FileRenderer;
+  examples: number;
+}
 
 /**
  * Renders the report as one self-contained HTML file.
@@ -18,14 +48,16 @@ import { formatDuration, formatLocation, gradeLabel, kindLabel, migrationTarget,
  * home. It follows the system light/dark preference and prints cleanly, since
  * "save as PDF" is how many readers will pass it on.
  */
-export function renderHtml(report: Report): string {
-  if (report.client) return renderClientHtml(report, report.client);
+export function renderHtml(report: Report, options: HtmlOptions = {}): string {
+  const editor = options.editor ?? 'vscode';
+  const links: FileRenderer = (ref) => fileLink(ref, report.root, editor);
+  const file: FileList = { link: links, examples: options.examples ?? 5 };
+  if (report.client) return renderClientHtml(report, report.client, file);
   const { project } = report;
   const score = overallScore(report);
   const priorities = topPriorities(report);
-  const meta = [`${kindLabel(report)}${project.workspaceFolder ? ` in ${project.workspaceFolder}` : ''}`, project.angularVersion ? `Angular ${project.angularVersion}` : undefined, `${plural(project.sourceFiles, 'TypeScript file')}${project.javascriptFiles ? `, ${plural(project.javascriptFiles, 'JavaScript file')}` : ''}`, plural(project.templateFiles, 'template'), plural(project.linesOfCode, 'line') + ' of code', project.generatedFiles ? `${plural(project.generatedFiles, 'generated file')} left out` : undefined, sinceSentence(report)]
-    .filter(Boolean)
-    .join(' · ');
+  const changes = report.baseline ? report.baseline.regressions.length + report.baseline.improvements.length : 0;
+  const contents = tableOfContents(report, { priorities: priorities.length > 0, changes: changes > OVERVIEW_CHANGE_LIMIT });
 
   return `<!doctype html>
 <html lang="en">
@@ -34,27 +66,12 @@ export function renderHtml(report: Report): string {
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="generator" content="${escape(`${report.tool.name} ${report.tool.version}`)}">
 <title>Angular checkup: ${escape(project.name)}</title>
-<style>${STYLES}</style>
+<style>${STYLES}${OVERVIEW_STYLES}${contents.style}</style>
 </head>
 <body>
+${contents.nav}
 <main>
-  <header class="masthead">
-    <div>
-      <p class="eyebrow">Angular checkup</p>
-      <h1>${escape(project.name)}</h1>
-      <p class="meta">${escape(meta)}</p>
-      <p class="meta">Generated ${escape(report.generatedAt.slice(0, 10))}</p>
-      ${report.trend && trendSentence(report.trend) ? `<p class="meta">Last ${report.trend.days} days: ${escape(trendSentence(report.trend)!)}</p>` : ''}
-    </div>
-    ${score === undefined ? '' : scoreRing(score)}
-  </header>
-
-  <section aria-labelledby="overview">
-    <h2 id="overview" class="section-title">Overview</h2>
-    <div class="cards">
-      ${report.checks.map(overviewCard).join('\n      ')}
-    </div>
-  </section>
+  ${renderOverview(report, { editor, variant: options.overview ?? 'base' })}
 
   ${
     priorities.length === 0
@@ -74,13 +91,13 @@ export function renderHtml(report: Report): string {
 
   ${report.projects ? projectsSection(report) : ''}
 
-  ${report.baseline ? baselineSection(report.baseline) : ''}
+  ${report.baseline && changes > OVERVIEW_CHANGE_LIMIT ? baselineSection(report.baseline) : ''}
 
   ${report.migration ? migrationSection(report.migration) : ''}
 
   ${report.plan ? planSection(report.plan) : ''}
 
-  ${report.checks.map(checkSection).join('\n  ')}
+  ${report.checks.map((check) => checkSection(check, file)).join('\n  ')}
 
   <footer>
     <p>${score === undefined ? '' : `Score: ${escape(SCORE_EXPLANATION)} `}File counts are static and need no build; deprecations come from the installed packages' own <code>@deprecated</code> tags.</p>
@@ -103,7 +120,7 @@ export function renderHtml(report: Report): string {
  * it is an estimate, which is why the estimate column lives in the notes.
  * Prints to PDF with the cover and the appendix on pages of their own.
  */
-function renderClientHtml(report: Report, client: NonNullable<Report['client']>): string {
+function renderClientHtml(report: Report, client: NonNullable<Report['client']>, file: FileList): string {
   const { project } = report;
   const score = overallScore(report);
   const graded = report.checks.filter((check) => check.grade !== 'info');
@@ -142,7 +159,7 @@ function renderClientHtml(report: Report, client: NonNullable<Report['client']>)
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="generator" content="${escape(`${report.tool.name} ${report.tool.version}`)}">
 <title>${escape(checkName)}: ${escape(client.name)}</title>
-<style>${STYLES}${CLIENT_STYLES}${report.history ? CHART_STYLES : ''}</style>
+<style>${STYLES}${OVERVIEW_STYLES}${CLIENT_STYLES}${report.history ? CHART_STYLES : ''}</style>
 </head>
 <body>
 <main>
@@ -240,7 +257,7 @@ function renderClientHtml(report: Report, client: NonNullable<Report['client']>)
       ? `<section aria-labelledby="hotspots-title">
     <h2 id="hotspots-title" class="section-title">Where refactoring pays off first</h2>
     <p class="check-summary">${inline(hotspots.detail ?? '')}</p>
-    <ul class="files">${(hotspots.files ?? []).map((file) => `<li><code>${escape(formatLocation(file))}</code></li>`).join('')}</ul>
+    <ul class="files">${(hotspots.files ?? []).map((ref) => `<li>${file.link(ref)}</li>`).join('')}</ul>
   </section>`
       : ''
   }
@@ -255,7 +272,7 @@ function renderClientHtml(report: Report, client: NonNullable<Report['client']>)
     ${report.projects ? projectsSection(report) : ''}
     ${report.migration ? migrationSection(report.migration) : ''}
     ${plan ? planSection(plan) : ''}
-    ${report.checks.map(checkSection).join('\n  ')}
+    ${report.checks.map((check) => checkSection(check, file)).join('\n  ')}
   </div>
 
   <footer>
@@ -280,6 +297,37 @@ function scoreRing(score: number): string {
       </svg>
       <figcaption><span class="score-value">${score}</span><span class="score-unit">/100</span></figcaption>
     </figure>`;
+}
+
+/**
+ * The contents column: every section of the report, the areas with their
+ * grade shape, each a link that scrolls to it. Fixed beside the report on a
+ * wide screen, hidden on a narrow one (the overview lists the areas there)
+ * and in print. No script: the entry of the section a click went to is marked
+ * through `:target`, from one rule written for this report's ids.
+ */
+function tableOfContents(report: Report, has: { priorities: boolean; changes: boolean }): { nav: string; style: string } {
+  const sections = [
+    { id: 'overview', label: 'Overview' },
+    ...(has.priorities ? [{ id: 'priorities', label: 'Top priorities' }] : []),
+    ...(report.projects ? [{ id: 'projects', label: 'Projects' }] : []),
+    ...(has.changes ? [{ id: 'changes', label: 'All changes' }] : []),
+    ...(report.migration ? [{ id: 'migration-title', label: 'Migration plan' }] : []),
+    ...(report.plan ? [{ id: 'plan-title', label: `Upgrade plan to ${report.plan.to}` }] : []),
+  ];
+  const nav = `<nav class="toc" aria-label="Contents">
+  <p class="toc-title">Contents</p>
+  <ul>
+    ${sections.map((section) => `<li><a href="#${section.id}">${escape(section.label)}</a></li>`).join('\n    ')}
+  </ul>
+  <p class="toc-title">Areas</p>
+  <ul class="toc-areas">
+    ${report.checks.map((check) => `<li class="g-${check.grade}"><a href="#${escape(check.id)}"><span class="ov-glyph" aria-hidden="true"></span><span>${escape(check.title)}</span><span class="ov-vh">, ${gradeLabel(check.grade)}</span></a></li>`).join('\n    ')}
+  </ul>
+</nav>`;
+  const ids = [...sections.map((section) => section.id), ...report.checks.map((check) => check.id)].filter((id) => /^[A-Za-z][\w-]*$/.test(id));
+  const style = `\n${ids.map((id) => `body:has(#${id}:target) .toc a[href="#${id}"]`).join(',\n')} { color: var(--text); font-weight: 650; background: var(--surface); box-shadow: inset 2px 0 0 var(--accent); }\n`;
+  return { nav, style };
 }
 
 /** The AngularJS migration plan: one card per phase, with its goal and its work in this codebase. */
@@ -330,7 +378,7 @@ function planSection(plan: NonNullable<Report['plan']>): string {
 function projectsSection(report: Report): string {
   const rows = report.projects ?? [];
   const pills = (titles: string[], grade: Grade): string => titles.map((title) => `<span class="pill grade-${grade}">${escape(title)}</span>`).join(' ');
-  return `<section aria-labelledby="projects-title">
+  return `<section id="projects" aria-labelledby="projects-title">
     <h2 id="projects-title" class="section-title">Projects</h2>
     <p class="check-summary">${plural(rows.length, 'project')}, worst first. Each is graded on its own code; the Angular version and the third-party packages are shared and graded below.</p>
     <div class="table-wrap"><table class="projects">
@@ -340,7 +388,7 @@ function projectsSection(report: Report): string {
         .map((row) => {
           const { poor, fair } = projectAreas(row, report);
           const band: Grade = row.score === undefined ? 'info' : row.score >= 80 ? 'good' : row.score >= 50 ? 'fair' : 'poor';
-          return `<tr><td><strong>${escape(row.name)}</strong><br><code>${escape(row.root || '.')}</code></td><td>${escape(row.type)}</td><td class="num"><span class="pill grade-${band}">${row.score ?? '-'}</span></td><td class="num">${formatCount(row.sourceFiles)}</td><td class="num">${row.highFindings}</td><td>${pills(poor, 'poor')} ${pills(fair, 'fair')}</td></tr>`;
+          return `<tr id="${projectAnchor(row.name)}"><td><strong>${escape(row.name)}</strong><br><code>${escape(row.root || '.')}</code></td><td>${escape(row.type)}</td><td class="num"><span class="pill grade-${band}">${row.score ?? '-'}</span></td><td class="num">${formatCount(row.sourceFiles)}</td><td class="num">${row.highFindings}</td><td>${pills(poor, 'poor')} ${pills(fair, 'fair')}</td></tr>`;
         })
         .join('\n      ')}
       </tbody>
@@ -358,7 +406,7 @@ function baselineSection(comparison: NonNullable<Report['baseline']>): string {
     rows.length === 0
       ? 'No change since the baseline.'
       : `${comparison.regressions.length} worse, ${comparison.improvements.length} better than the baseline.`;
-  return `<section aria-labelledby="baseline-title">
+  return `<section id="changes" aria-labelledby="baseline-title">
     <h2 id="baseline-title" class="section-title">Compared with the baseline</h2>
     <p class="check-summary">${escape(summary)}</p>
     ${
@@ -382,7 +430,7 @@ function overviewCard(check: CheckResult): string {
 }
 
 /** The full section of one check: summary, metric grid, findings. */
-function checkSection(check: CheckResult): string {
+function checkSection(check: CheckResult, file: FileList): string {
   return `<section class="check" id="${check.id}" aria-labelledby="${check.id}-title">
     <div class="check-head">
       <h2 id="${check.id}-title">${escape(check.title)}</h2>
@@ -396,19 +444,33 @@ function checkSection(check: CheckResult): string {
       ${check.metrics.map((metric) => `<div class="metric"><dt>${escape(metric.label)}</dt><dd>${escape(String(metric.value))}</dd>${metric.hint ? `<dd class="hint">${escape(metric.hint)}</dd>` : ''}</div>`).join('\n      ')}
     </dl>`
     }
-    ${check.findings.length === 0 ? '' : `<ul class="findings">\n      ${check.findings.map(findingItem).join('\n      ')}\n    </ul>`}
+    ${check.findings.length === 0 ? '' : `<ul class="findings">\n      ${check.findings.map((finding) => findingItem(finding, file)).join('\n      ')}\n    </ul>`}
   </section>`;
 }
 
 /** One finding with its detail and example files. */
-function findingItem(finding: Finding): string {
-  const more = remainingCount(finding);
+function findingItem(finding: Finding, file: FileList): string {
   const files = finding.files ?? [];
+  // Files the run counted but did not keep (an API caller's capped report) can only be named, not opened.
+  const unlisted = remainingCount(finding);
   return `<li class="finding">
         <div class="finding-head"><span class="chip sev-${finding.severity}">${severityLabel(finding.severity)}</span><strong>${inline(finding.message)}</strong></div>
         ${finding.detail ? `<p>${inline(finding.detail)}</p>` : ''}
-        ${files.length === 0 ? '' : `<ul class="files">${files.map((file) => `<li>${escape(formatLocation(file))}</li>`).join('')}${more > 0 ? `<li class="more">and ${formatCount(more)} more</li>` : ''}</ul>`}
+        ${files.length === 0 ? '' : `<ul class="files">${files.slice(0, file.examples).map((ref) => `<li>${file.link(ref)}</li>`).join('')}${moreFiles(files.slice(file.examples), unlisted, file.link)}</ul>`}
       </li>`;
+}
+
+/**
+ * "and N more" for the files past the examples: a disclosure that opens the
+ * next `FILE_BATCH`, which ends in the next "and N more", so a long list opens
+ * a batch at a time and needs no script. A closed one prints as its line.
+ */
+function moreFiles(hidden: FileRef[], unlisted: number, link: FileRenderer): string {
+  const total = hidden.length + unlisted;
+  if (total === 0) return '';
+  if (hidden.length === 0) return `<li class="more">and ${formatCount(unlisted)} more</li>`;
+  const batch = hidden.slice(0, FILE_BATCH);
+  return `<li class="more"><details><summary>and ${formatCount(total)} more</summary><ul class="files-batch">${batch.map((ref) => `<li>${link(ref)}</li>`).join('')}${moreFiles(hidden.slice(FILE_BATCH), unlisted, link)}</ul></details></li>`;
 }
 
 /** Escapes text and turns backtick spans into `<code>`, the only markup finding text uses. */
@@ -530,6 +592,33 @@ h1 { margin: 0 0 8px; font-size: 32px; line-height: 1.15; letter-spacing: -0.01e
 .files { margin: 8px 0 0; padding: 8px 12px; list-style: none; background: var(--code-bg); border-radius: 6px; color: var(--muted); overflow-x: auto; }
 .files li { white-space: nowrap; line-height: 1.7; }
 .files .more { font-family: inherit; font-style: italic; }
+.files a { color: inherit; text-decoration: underline dotted; text-decoration-color: var(--border); text-underline-offset: 3px; }
+.files a:hover { color: var(--text); text-decoration-style: solid; text-decoration-color: currentColor; }
+.files-batch { margin: 0; padding: 0; list-style: none; }
+@media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
+:target { scroll-margin-top: 20px; }
+.toc { display: none; }
+/* Contents (224) + gap (32) + report (960) = 1216, centred together; the report moves right to make room. */
+@media (min-width: 1248px) {
+  .toc {
+    display: block; position: fixed; top: 24px; left: max(16px, calc((100vw - 1216px) / 2)); width: 224px;
+    max-height: calc(100vh - 48px); overflow-y: auto; overscroll-behavior: contain;
+    padding: 4px 4px 12px; font-size: 13.5px;
+  }
+  .toc ~ main { margin-left: max(272px, calc((100vw - 1216px) / 2 + 256px)); margin-right: auto; }
+}
+.toc-title { margin: 14px 8px 6px; color: var(--muted); font-size: 11.5px; font-weight: 650; letter-spacing: .06em; text-transform: uppercase; }
+.toc ul { margin: 0; padding: 0; list-style: none; }
+.toc a { display: flex; align-items: center; gap: 8px; padding: 5px 8px; border-radius: 6px; color: var(--muted); text-decoration: none; line-height: 1.35; }
+.toc a:hover { color: var(--text); background: var(--surface); }
+.toc a:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.toc .ov-glyph { font-size: 11px; }
+@media print { .toc { display: none !important; } }
+.files details > summary { display: inline-block; cursor: pointer; list-style: none; color: var(--accent); font-style: normal; text-decoration: underline; text-underline-offset: 2px; }
+.files details > summary::-webkit-details-marker { display: none; }
+.files details > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+.files details[open] > summary { display: none; }
+.files .more:has(> details) { font-style: normal; }
 footer { margin-top: 48px; padding-top: 20px; border-top: 1px solid var(--border); color: var(--muted); font-size: 13px; }
 footer p { margin: 4px 0; }
 @media (max-width: 600px) {

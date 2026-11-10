@@ -10,7 +10,9 @@ import { CONFIG_FILE, isReportPath, loadConfig, mergeConfig, parseInlineConfig, 
 import { BUNDLED_LATEST_ANGULAR_MAJOR, CHECK_IDS, fetchLatestAngularMajor, ProjectNotFoundError, runCheckup, SinceError, TOOL, UNCAPPED_EXAMPLES, UnknownCheckError } from './index.js';
 import { planInit, type CiChoice, type InitPlan } from './init.js';
 import { cloneRemote, describeCheckout, parseRemote, type RemoteRepository } from './remote.js';
-import { renderHtml } from './report/html.js';
+import { renderHtml, type HtmlOptions } from './report/html.js';
+import { detectEditor, EDITORS, isEditor, type Editor } from './report/editor.js';
+import { isOverviewVariant, OVERVIEW_VARIANTS, type OverviewVariant } from './report/overview.js';
 import { renderCodeQuality } from './report/codequality.js';
 import { renderComment } from './report/comment.js';
 import { renderMarkdown } from './report/markdown.js';
@@ -96,6 +98,15 @@ Options:
                          (security,testing); the rest stay out of the score
       --skip <ids>       Leave these areas out of the report and the score
       --max-examples <n> Example files listed per finding (default 5)
+      --editor <name>    Where file links in the HTML report open: vscode,
+                         cursor, windsurf, idea, webstorm, file (the system's
+                         app, no line) or none. Default: $NG_CHECKUP_EDITOR,
+                         else the editor whose terminal runs it, else vscode;
+                         none on CI, where the paths are the runner's
+      --overview <layout>
+                         Layout of the HTML overview: base, ledger (one row
+                         per area), tiles, columns (by grade) or changes
+                         (what moved since the baseline first)
       --since <ref>      Keep only the findings in files changed since the merge
                          base of <ref> and HEAD (origin/main); grades, score
                          and baseline stay the whole repository's
@@ -219,6 +230,10 @@ export interface CliArguments {
   history?: boolean;
   /** `--trend <file>` and `--trend-record`: compare with a trend file, and add this run to it. */
   trend?: { path: string; record: boolean };
+  /** `--editor`, or what `detectEditor` found: where the HTML report's file links open. */
+  editor: Editor;
+  /** `--overview`: the layout of the HTML overview. */
+  overview: OverviewVariant;
   watch: boolean;
   color: boolean;
   config?: string;
@@ -264,6 +279,8 @@ export interface RunSettings {
   only?: string[];
   skip?: string[];
   rules?: CheckupConfig['rules'];
+  /** Editor links and overview layout of the HTML report. */
+  html: Required<HtmlOptions>;
 }
 
 /**
@@ -297,6 +314,8 @@ export function parseCliArguments(argv: string[], environment: NodeJS.ProcessEnv
       history: { type: 'boolean' },
       trend: { type: 'string' },
       'trend-record': { type: 'boolean' },
+      editor: { type: 'string' },
+      overview: { type: 'string' },
       config: { type: 'string' },
       'config-json': { type: 'string' },
       interactive: { type: 'boolean', short: 'i' },
@@ -330,6 +349,11 @@ export function parseCliArguments(argv: string[], environment: NodeJS.ProcessEnv
   if (values.history && remote) throw new Error('--history reads the git history, which the shallow clone of a remote repository does not have; clone it in full and run it there');
   const preparedBy = values['prepared-by'] ?? environment['NG_CHECKUP_PREPARED_BY'];
 
+  const editor = values.editor?.trim().toLowerCase();
+  if (editor !== undefined && !isEditor(editor)) throw new Error(`--editor takes ${EDITORS.join(', ')}, got ${values.editor}`);
+  const overview = values.overview?.trim().toLowerCase();
+  if (overview !== undefined && !isOverviewVariant(overview)) throw new Error(`--overview takes ${OVERVIEW_VARIANTS.join(', ')}, got ${values.overview}`);
+
   let maxExamples: number | undefined;
   if (values['max-examples'] !== undefined) {
     maxExamples = Number(values['max-examples']);
@@ -355,6 +379,8 @@ export function parseCliArguments(argv: string[], environment: NodeJS.ProcessEnv
     ...(values.client !== undefined ? { client: { name: values.client.trim(), ...(preparedBy ? { preparedBy } : {}), ...(values.notes !== undefined ? { notes: resolve(values.notes) } : {}) } } : {}),
     ...(values.history ? { history: true } : {}),
     ...(values.trend !== undefined ? { trend: { path: resolve(values.trend), record: values['trend-record'] ?? false } } : {}),
+    editor: (editor as Editor | undefined) ?? detectEditor(environment),
+    overview: (overview as OverviewVariant | undefined) ?? 'base',
     watch: values.watch ?? false,
     color: !values['no-color'] && environment['NO_COLOR'] === undefined && isTty,
     config: values.config,
@@ -401,6 +427,7 @@ export function resolveSettings(args: CliArguments, config: CheckupConfig, confi
     skip: args.skip ?? config.skip,
     ...(config.rules ? { rules: config.rules } : {}),
     baselinePath: config.baseline ? resolve(configDirectory, config.baseline) : join(args.root, BASELINE_FILE),
+    html: { editor: args.editor, overview: args.overview, examples: args.maxExamples ?? config.maxExamples ?? 5 },
   };
 }
 
@@ -494,7 +521,7 @@ function assertReportFormat(path: string): void {
 }
 
 /** Renders a report in the format its file extension names. */
-export function renderForFile(report: Report, path: string): string {
+export function renderForFile(report: Report, path: string, html: HtmlOptions = {}): string {
   const extension = extname(path).toLowerCase();
   if (path.toLowerCase().endsWith('.issues.csv')) return renderIssuesCsv(report);
   if (path.toLowerCase().endsWith('.issues.md')) return renderIssuesMarkdown(report);
@@ -505,7 +532,7 @@ export function renderForFile(report: Report, path: string): string {
   if (extension === '.json') return `${JSON.stringify(report, null, 2)}\n`;
   if (extension === '.md') return renderMarkdown(report);
   if (extension === '.sarif') return renderSarif(report);
-  return renderHtml(report);
+  return renderHtml(report, html);
 }
 
 /**
@@ -706,7 +733,7 @@ async function mainCheckup(parsed: CliArguments, rootLabel?: string): Promise<nu
     if (summary) report.trend = summary;
     if (parsed.trend.record) recordTrend(parsed.trend.path, points, point);
   }
-  writeReports(report, settings.reports, full);
+  writeReports(report, settings.reports, full, settings.html);
 
   if (parsed.json) {
     process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
@@ -732,14 +759,17 @@ export function analysisIgnores(root: string, settings: Pick<RunSettings, 'ignor
 
 /** How many example files a run collects: all of them when a backlog export needs them, and `capExamples` cuts them again for every other report. */
 function examplesToCollect(settings: Pick<RunSettings, 'maxExamples' | 'reports'>): number {
-  return settings.reports.some(isIssuesReport) ? UNCAPPED_EXAMPLES : settings.maxExamples;
+  // The HTML report keeps every file too, folded behind "and N more" past the examples.
+  return settings.reports.some((report) => isIssuesReport(report) || /\.html?$/i.test(report)) ? UNCAPPED_EXAMPLES : settings.maxExamples;
 }
 
 /** Writes `report` to every target, in the format its extension names; a backlog export gets `full`, which has every file. */
-function writeReports(report: Report, targets: string[], full: Report): void {
+function writeReports(report: Report, targets: string[], full: Report, html: HtmlOptions): void {
   for (const target of targets) {
     mkdirSync(dirname(target), { recursive: true });
-    writeFileSync(target, renderForFile(isIssuesReport(target) ? full : report, target));
+    // The HTML report takes the capped report's extras (baseline, client, trend) with every file of `full`.
+    const source = isIssuesReport(target) ? full : /\.html?$/i.test(target) ? { ...report, checks: full.checks } : report;
+    writeFileSync(target, renderForFile(source, target, html));
   }
 }
 
@@ -769,7 +799,7 @@ async function mainWatch(parsed: CliArguments, initial: RunSettings): Promise<nu
       const report = capExamples(full, settings.maxExamples);
       const baseline = applicableBaseline(readBaseline(settings.baselinePath), parsed.project);
       if (baseline) report.baseline = compareWithBaseline(report, baseline, settings.baselinePath, parsed.project);
-      writeReports(report, settings.reports, full);
+      writeReports(report, settings.reports, full, settings.html);
       first ??= report;
       const time = new Date().toLocaleTimeString();
       process.stdout.write(

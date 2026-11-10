@@ -83,7 +83,7 @@ describe('the client report', () => {
     expect(html).toContain('<dt>Known vulnerabilities</dt><dd>7</dd>');
     expect(html).toContain('<dt>Next: Angular 16</dt><dd>2 removed</dd>');
     expect(html).toContain('Where refactoring pays off first');
-    expect(html).toContain('<code>src/app/app.component.ts</code>');
+    expect(html).toMatch(/<a class="ov-path" href="vscode:\/\/file[^"]*\/src\/app\/app\.component\.ts"[^>]*>.*app\.component\.ts<\/span><\/a>/);
     // The story comes before the action list, the hotspots after the roadmap.
     expect(html.indexOf('How the code got here')).toBeLessThan(html.indexOf('id="actions-title"'));
     expect(html.indexOf('id="roadmap-title"')).toBeLessThan(html.indexOf('Where refactoring pays off first'));
