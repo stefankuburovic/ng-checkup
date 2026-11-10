@@ -18,7 +18,9 @@
       "measures": {
         "end-of-life-packages": 1,
         "webpack-builders": 1,
-        "mismatched-angular-packages": 0
+        "mismatched-angular-packages": 0,
+        "production-build-issues": 0,
+        "duplicate-packages": 1
       },
       "findings": [
         {
@@ -32,6 +34,13 @@
         {
           "severity": "medium",
           "message": "`protractor` is end of life"
+        },
+        {
+          "severity": "low",
+          "message": "1 package installed in more than one major: `rxjs` 6.6.7 and 7.8.1",
+          "files": [
+            "package-lock.json"
+          ]
         }
       ]
     },

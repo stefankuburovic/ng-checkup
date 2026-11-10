@@ -18,7 +18,9 @@
       "measures": {
         "end-of-life-packages": 3,
         "webpack-builders": 1,
-        "mismatched-angular-packages": 0
+        "mismatched-angular-packages": 0,
+        "production-build-issues": 3,
+        "duplicate-packages": 0
       },
       "findings": [
         {
@@ -40,6 +42,27 @@
         {
           "severity": "medium",
           "message": "`codelyzer` is end of life"
+        },
+        {
+          "severity": "low",
+          "message": "Production build publishes its source maps",
+          "files": [
+            "angular.json"
+          ]
+        },
+        {
+          "severity": "low",
+          "message": "Production build without budgets",
+          "files": [
+            "angular.json"
+          ]
+        },
+        {
+          "severity": "low",
+          "message": "Production build without hashed file names",
+          "files": [
+            "angular.json"
+          ]
         }
       ]
     },

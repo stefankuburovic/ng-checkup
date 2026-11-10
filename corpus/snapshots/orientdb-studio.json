@@ -119,7 +119,8 @@
       "measures": {
         "end-of-life-packages": 1,
         "webpack-builders": 0,
-        "mismatched-angular-packages": 0
+        "mismatched-angular-packages": 0,
+        "duplicate-packages": 0
       },
       "findings": [
         {

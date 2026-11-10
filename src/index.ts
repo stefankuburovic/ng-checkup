@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { ANGULAR_VERSIONS } from './angular-versions.js';
-import { dirname, resolve } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { assembleAngularJs, scanAngularJsFile } from './angularjs.js';
 import { readBundleStats } from './bundle.js';
 import { angularJsCheck, hasAngularJs, summarizeAngularJs } from './checks/angularjs.js';
@@ -22,6 +22,7 @@ import { accessibilityCheck } from './checks/accessibility.js';
 import { ssrCheck } from './checks/ssr.js';
 import { customRulesCheck } from './checks/rules.js';
 import { importViolations, patternViolations } from './rules.js';
+import { readDuplicatePackages } from './lockfile.js';
 import { typeSafetyCheck } from './checks/type-safety.js';
 import { versionCheck } from './checks/version.js';
 import { cachedFacts, dependencyStamp } from './cache.js';
@@ -349,6 +350,8 @@ export async function buildContext(root: string, options: CheckupOptions): Promi
   const bindings = options.attributeSelectors ? unusedBindings(sources, templates, workspace, declarables, unimported) : undefined;
   const translations = readTranslations(root, workspace, files.translationBundles, sources, templates);
   const i18n = readI18n(root, workspace);
+  const lockedDuplicates = readDuplicatePackages(workspace.root, productionDependencies(workspace.root));
+  const duplicatePackages = lockedDuplicates && workspace.subfolder ? { ...lockedDuplicates, file: `${workspace.subfolder}/${lockedDuplicates.file}` } : lockedDuplicates;
   // Not cached between watch runs: the rules come from the config, which every run re-reads.
   const rules = options.rules ?? [];
   const generated = new Set(sources.filter((file) => file.isGenerated).map((file) => file.path));
@@ -386,6 +389,7 @@ export async function buildContext(root: string, options: CheckupOptions): Promi
     ...(translations ? { translations } : {}),
     ...(i18n ? { i18n } : {}),
     ...(customRules ? { customRules } : {}),
+    ...(duplicatePackages ? { duplicatePackages } : {}),
     latestAngular,
     ...(nextMajor ? { nextMajor } : {}),
     compatibility: dependencies.compatibility,
@@ -480,4 +484,10 @@ function readToolInfo(): { name: string; version: string } {
   } catch {
     return { name: 'ng-checkup', version: '0.0.0' };
   }
+}
+
+/** The `dependencies` of a `package.json`, without `devDependencies`; empty when there is none to read. */
+function productionDependencies(directory: string): Record<string, string> {
+  const record = asRecord(readJson(join(directory, 'package.json'))?.['dependencies']);
+  return Object.fromEntries(Object.entries(record).filter((entry): entry is [string, string] => typeof entry[1] === 'string'));
 }

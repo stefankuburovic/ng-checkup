@@ -113,3 +113,158 @@ function fromPnpm(text: string, names: string[]): Record<string, string> {
   }
   return versions;
 }
+
+/** Packages installed in more than one major, and the lockfile that says so. */
+export interface DuplicatePackages {
+  /** The lockfile, relative to the workspace root. */
+  file: string;
+  /** Sorted by name; each with its locked versions, lowest first, one per major. */
+  packages: Array<{ name: string; versions: string[] }>;
+}
+
+/**
+ * The runtime packages two copies of which break each other: `rxjs`,
+ * `zone.js`, Angular's own packages and NgRx. Tooling (`@angular/cli`, the
+ * compiler CLI, the builders) never reaches the browser, and a second `tslib`
+ * costs a few kilobytes and breaks nothing, so they are not listed.
+ */
+export function isSingletonPackage(name: string): boolean {
+  if (name === 'rxjs' || name === 'zone.js') return true;
+  if (name.startsWith('@ngrx/')) return true;
+  return name.startsWith('@angular/') && !['@angular/cli', '@angular/compiler-cli', '@angular/build', '@angular/language-service', '@angular/ssr', '@angular/fire'].includes(name);
+}
+
+/**
+ * Every locked version of the packages `isSingletonPackage` names, from the
+ * whole tree and not only the top level, and those in two majors or more.
+ * Copies only development needs are left out: `package-lock.json` marks
+ * them, and in `yarn.lock` only what the app's `dependencies` reach counts.
+ * A copy only a build tool pulls in never reaches the browser.
+ *
+ * @param production The `dependencies` of `package.json`, without the dev ones.
+ * @returns Undefined without a lockfile this reads (pnpm is not read).
+ */
+export function readDuplicatePackages(root: string, production: Record<string, string>): DuplicatePackages | undefined {
+  let file: string | undefined;
+  let versions: Map<string, Set<string>> | undefined;
+  for (const name of ['package-lock.json', 'npm-shrinkwrap.json']) {
+    if (existsSync(join(root, name))) {
+      file = name;
+      versions = allFromNpm(readFileSync(join(root, name), 'utf8'));
+      break;
+    }
+  }
+  // pnpm-lock.yaml from v9 on keeps no mark of what only development needs, and its tree is not read here, so a pnpm repository says nothing rather than guess.
+  if (!versions && !existsSync(join(root, 'pnpm-lock.yaml')) && existsSync(join(root, 'yarn.lock'))) {
+    file = 'yarn.lock';
+    versions = allFromYarn(readFileSync(join(root, file), 'utf8'), production);
+  }
+  if (!versions || !file) return undefined;
+  const packages: DuplicatePackages['packages'] = [];
+  for (const [name, set] of [...versions].sort(([left], [right]) => left.localeCompare(right))) {
+    const byMajor = new Map<string, string>();
+    for (const version of [...set].sort(compareVersions)) {
+      const major = version.split('.')[0]!;
+      if (!byMajor.has(major)) byMajor.set(major, version);
+    }
+    if (byMajor.size > 1) packages.push({ name, versions: [...byMajor.values()] });
+  }
+  return { file, packages };
+}
+
+function add(into: Map<string, Set<string>>, name: string, version: string | undefined): void {
+  if (!version || !/^\d/.test(version) || !isSingletonPackage(name)) return;
+  const set = into.get(name) ?? new Set<string>();
+  set.add(version);
+  into.set(name, set);
+}
+
+/** Every `node_modules/…/name` of lockfile v2 and v3, else the nested `dependencies` of v1; `dev: true` entries left out. */
+function allFromNpm(text: string): Map<string, Set<string>> {
+  const into = new Map<string, Set<string>>();
+  let lock: { packages?: Record<string, { version?: string; dev?: boolean; link?: boolean }>; dependencies?: Record<string, NpmV1Entry> };
+  try {
+    lock = JSON.parse(text) as typeof lock;
+  } catch {
+    return into;
+  }
+  if (lock.packages) {
+    for (const [key, entry] of Object.entries(lock.packages)) {
+      const at = key.lastIndexOf('node_modules/');
+      if (at < 0 || entry.dev || entry.link) continue;
+      add(into, key.slice(at + 'node_modules/'.length), entry.version);
+    }
+    return into;
+  }
+  const walk = (dependencies: Record<string, NpmV1Entry> | undefined): void => {
+    for (const [name, entry] of Object.entries(dependencies ?? {})) {
+      if (entry.dev) continue;
+      add(into, name, entry.version);
+      walk(entry.dependencies);
+    }
+  };
+  walk(lock.dependencies);
+  return into;
+}
+
+interface NpmV1Entry {
+  version?: string;
+  dev?: boolean;
+  dependencies?: Record<string, NpmV1Entry>;
+}
+
+/**
+ * The packages of `yarn.lock` that the app's own `dependencies` reach,
+ * classic and Berry. The lockfile does not mark what only development needs,
+ * so the tree is walked from `package.json`: a block lists the descriptors it
+ * satisfies, and its `dependencies:` lines the descriptors it needs.
+ */
+function allFromYarn(text: string, production: Record<string, string>): Map<string, Set<string>> {
+  const into = new Map<string, Set<string>>();
+  const blocks = new Map<string, { name: string; version?: string; needs: string[] }>();
+  let current: { name: string; version?: string; needs: string[] } | undefined;
+  let inDependencies = false;
+  const descriptorKey = (name: string, range: string): string => `${name}@${range.replace(/^npm:/, '')}`;
+  for (const line of text.split('\n')) {
+    if (line.length > 0 && !line.startsWith(' ') && !line.startsWith('#') && line.endsWith(':')) {
+      const descriptors = line.slice(0, -1).split(/,\s*/).map((descriptor) => descriptor.replace(/^"|"$/g, ''));
+      const first = descriptors[0]!;
+      current = { name: first.slice(0, first.indexOf('@', 1)), needs: [] };
+      for (const descriptor of descriptors) {
+        const at = descriptor.indexOf('@', 1);
+        blocks.set(descriptorKey(descriptor.slice(0, at), descriptor.slice(at + 1)), current);
+      }
+      inDependencies = false;
+      continue;
+    }
+    if (!current) continue;
+    const version = /^ {2}version:?\s+"?([^"\s]+)"?\s*$/.exec(line);
+    if (version) {
+      current.version = version[1];
+      continue;
+    }
+    if (/^ {2}\S/.test(line)) {
+      inDependencies = /^ {2}dependencies:\s*$/.test(line);
+      continue;
+    }
+    const dependency = inDependencies ? /^ {4}"?((?:@[^/"\s]+\/)?[^"\s:]+)"?:?\s+"?([^"\s]+)"?\s*$/.exec(line) : null;
+    if (dependency) current.needs.push(descriptorKey(dependency[1]!, dependency[2]!));
+  }
+  const seen = new Set<object>();
+  const queue = Object.entries(production).map(([name, range]) => descriptorKey(name, range));
+  while (queue.length > 0) {
+    const block = blocks.get(queue.pop()!);
+    if (!block || seen.has(block)) continue;
+    seen.add(block);
+    add(into, block.name, block.version);
+    queue.push(...block.needs);
+  }
+  return into;
+}
+
+/** Numeric order of `x.y.z` versions; a prerelease sorts by its numeric part. */
+function compareVersions(left: string, right: string): number {
+  const parts = (version: string): number[] => version.split(/[.-]/).slice(0, 3).map((part) => Number.parseInt(part, 10) || 0);
+  const [a, b] = [parts(left), parts(right)];
+  return a[0]! - b[0]! || a[1]! - b[1]! || a[2]! - b[2]!;
+}

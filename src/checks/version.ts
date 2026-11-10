@@ -1,5 +1,5 @@
 import type { CheckResult, Finding, Grade } from '../types.js';
-import { majorOf } from '../workspace.js';
+import { majorOf, type TargetInfo, type WorkspaceInfo } from '../workspace.js';
 import { plural, type AnalysisContext } from './context.js';
 
 /**
@@ -107,6 +107,28 @@ export function versionCheck(context: AnalysisContext): CheckResult {
     findings.push({ severity: entry.runtime ? 'high' : 'medium', message: `\`${entry.name}\` is end of life`, detail: entry.note });
   }
 
+  const production = productionBuildIssues(workspace);
+  for (const issue of PRODUCTION_ISSUES) {
+    const hits = production.filter((entry) => entry.issue === issue.id);
+    if (hits.length === 0) continue;
+    const files = [...new Set(hits.map((entry) => entry.file))];
+    findings.push({
+      severity: issue.severity,
+      message: `${issue.message}${hits.length > 1 || workspace.projects.length > 1 ? ` (${hits.map((entry) => entry.project).join(', ')})` : ''}`,
+      detail: issue.detail,
+      files: files.map((path) => ({ path })),
+    });
+  }
+  const duplicates = context.duplicatePackages;
+  if (duplicates && duplicates.packages.length > 0) {
+    findings.push({
+      severity: 'low',
+      message: `${plural(duplicates.packages.length, 'package')} installed in more than one major: ${duplicates.packages.map((entry) => `\`${entry.name}\` ${entry.versions.join(' and ')}`).join(', ')}`,
+      detail: `Two majors of \`rxjs\` or an Angular package mean two copies in the bundle when both reach the browser, and \`instanceof\` or dependency injection that fails between them: an \`Observable\` of one is not one of the other. Usually a library pins the older major; \`npm ls ${duplicates.packages[0]!.name}\` shows which, and an update of that library or an \`overrides\` entry removes it. A copy only a build tool uses never reaches the browser${duplicates.file === 'package-lock.json' ? ', and those are left out here' : ', which this lockfile cannot tell apart'}.`,
+      files: [{ path: duplicates.file }],
+    });
+  }
+
   const grade: Grade =
     gap >= 3 || endOfLife.some((entry) => entry.runtime) ? 'poor' : gap === 2 || mismatched.length > 0 || webpackProjects.length > 0 || endOfLife.length > 0 ? 'fair' : 'good';
   const usesApplicationBuilder = workspace.targets.some((target) => /:(application|browser-esbuild)$/.test(target.builder));
@@ -127,6 +149,96 @@ export function versionCheck(context: AnalysisContext): CheckResult {
       { id: 'end-of-life-packages', label: 'End-of-life packages', value: endOfLife.length },
       { id: 'webpack-builders', label: 'Projects on the webpack builder', value: webpackProjects.length },
       { id: 'mismatched-angular-packages', label: 'Angular packages on another major', value: mismatched.length },
+      ...(production.length > 0 || hasProductionBuild(workspace) ? [{ id: 'production-build-issues', label: 'Production build settings that cost users', value: production.length }] : []),
+      ...(duplicates ? [{ id: 'duplicate-packages', label: 'Packages installed in more than one major', value: duplicates.packages.length }] : []),
     ],
   };
+}
+
+/** What each production-build issue says. Severity follows what users pay: a slower app is medium, the rest low. */
+const PRODUCTION_ISSUES: Array<{ id: string; severity: 'medium' | 'low'; message: string; detail: string }> = [
+  {
+    id: 'optimization',
+    severity: 'medium',
+    message: 'Production build without optimization',
+    detail: '`optimization: false` in the production configuration ships unminified scripts and styles with dead code left in, often several times the size. Remove the setting, or set it to true.',
+  },
+  {
+    id: 'aot',
+    severity: 'medium',
+    message: 'Production build without ahead-of-time compilation',
+    detail: '`aot: false` ships the Angular compiler and compiles every template in the browser at startup. AOT has been the default since Angular 9; remove the setting.',
+  },
+  {
+    id: 'build-optimizer',
+    severity: 'low',
+    message: 'Production build with the build optimizer off',
+    detail: '`buildOptimizer: false` on the webpack builder leaves Angular decorators and dead code in the bundle. Remove the setting; the esbuild `application` builder does this by itself.',
+  },
+  {
+    id: 'source-maps',
+    severity: 'low',
+    message: 'Production build publishes its source maps',
+    detail: 'With `sourceMap: true` the browser downloads the original TypeScript, comments included, for anyone to read in the developer tools. If an error tracker needs the maps, `"sourceMap": { "scripts": true, "hidden": true }` writes them without the reference in the bundle, so they can be uploaded and kept off the server.',
+  },
+  {
+    id: 'budgets',
+    severity: 'low',
+    message: 'Production build without budgets',
+    detail: 'Without `budgets` the build never warns when the initial bundle grows. New projects get an `initial` budget of 500 kB to warn and 1 MB to fail; set one near today\'s size so the next large dependency is noticed in review.',
+  },
+  {
+    id: 'output-hashing',
+    severity: 'low',
+    message: 'Production build without hashed file names',
+    detail: 'Without `outputHashing: "all"` the file names stay the same between releases, so a browser or CDN can keep serving yesterday\'s `main.js` with today\'s `index.html`. New projects set it in the production configuration.',
+  },
+];
+
+/** The builders of an application build, CLI and Nx, webpack and esbuild. Libraries build with ng-packagr and are left out. */
+const APPLICATION_BUILDER = /:(application|browser|browser-esbuild|webpack-browser)$/;
+
+/** The `build` targets of applications that declare a production configuration. Without one, what `ng build` uses cannot be told. */
+function productionTargets(workspace: WorkspaceInfo): Array<{ target: TargetInfo; settings: Record<string, unknown> }> {
+  return workspace.targets
+    .filter((target) => target.target === 'build' && APPLICATION_BUILDER.test(target.builder))
+    .flatMap((target) => {
+      const production = target.configurations?.['production'];
+      if (typeof production !== 'object' || production === null || Array.isArray(production)) return [];
+      return [{ target, settings: { ...target.options, ...(production as Record<string, unknown>) } }];
+    });
+}
+
+/** True when some application declares a production build, so the measure means something. */
+function hasProductionBuild(workspace: WorkspaceInfo): boolean {
+  return productionTargets(workspace).length > 0;
+}
+
+/**
+ * Settings of the production configuration, laid over the target's options,
+ * that cost the users of the app. Only what is written counts: a setting the
+ * builder defaults is left alone, except `outputHashing`, which defaults to
+ * `none` and so has to be written.
+ */
+export function productionBuildIssues(workspace: WorkspaceInfo): Array<{ issue: string; project: string; file: string }> {
+  const issues: Array<{ issue: string; project: string; file: string }> = [];
+  for (const { target, settings } of productionTargets(workspace)) {
+    const file = `${workspace.subfolder ? `${workspace.subfolder}/` : ''}${target.configFile ?? 'angular.json'}`;
+    const add = (issue: string): void => {
+      issues.push({ issue, project: target.project, file });
+    };
+    const optimization = settings['optimization'];
+    if (optimization === false || (isRecord(optimization) && optimization['scripts'] === false)) add('optimization');
+    if (settings['aot'] === false) add('aot');
+    if (settings['buildOptimizer'] === false && /webpack|:browser$/.test(target.builder)) add('build-optimizer');
+    const sourceMap = settings['sourceMap'];
+    if (sourceMap === true || (isRecord(sourceMap) && sourceMap['scripts'] !== false && sourceMap['hidden'] !== true)) add('source-maps');
+    if (!Array.isArray(settings['budgets']) || settings['budgets'].length === 0) add('budgets');
+    if (settings['outputHashing'] !== 'all' && settings['outputHashing'] !== 'bundles') add('output-hashing');
+  }
+  return issues;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }

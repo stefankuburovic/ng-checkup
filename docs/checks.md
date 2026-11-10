@@ -73,6 +73,13 @@ Angular releases a major roughly every six months and supports each for 18 month
 
 **Fixing it:** `ng update @angular/core@<next> @angular/cli@<next>`, one major at a time, reviewing each step's migrations. For the builder: `ng update @angular/cli --name use-application-builder`.
 
+**Outside the grade:**
+
+- *Production build settings* (`production-build-issues`): the `production` configuration of each application's `build` target, laid over its options, as `ng build` reads them. Only what is written counts, except `outputHashing`, which defaults to `none`: `optimization: false` and `aot: false` (medium), `buildOptimizer: false` on the webpack builder, `sourceMap` on without `hidden: true`, no `budgets`, and `outputHashing` other than `all` or `bundles` (low). An application without a `production` configuration says nothing, since what its build uses cannot be told. Source maps are not called a mistake: the finding shows how to keep them for an error tracker and off the server.
+- *Packages in more than one major* (`duplicate-packages`): `rxjs`, `zone.js`, Angular's runtime packages and NgRx locked in two majors anywhere in the tree, from `package-lock.json` or `yarn.lock`, without installing anything. Only what reaches the app counts: npm marks what development needs, and in `yarn.lock` the tree is walked from the `dependencies` of `package.json`. A `pnpm-lock.yaml` is not read, since it does not say what only development needs. Two `rxjs` majors are two copies in the bundle and an `Observable` that is not one to the other.
+
+On the corpus: the source maps, budgets and file names of beaconchain-app, the source maps of ionic-conference-app (set in the options, which production inherits), and airgap-wallet's `rxjs` 6, which Ledger's libraries pull into the app beside its own 7. An Nx example's `rxjs` 6, which only a CLI prompt library uses, is left out.
+
 ---
 
 ## Deprecated APIs (`deprecated-apis`) <a id="deprecated-apis"></a>
@@ -490,6 +497,8 @@ By default a rule reads application code: no specs, e2e or mock files, and no ge
 | `type-safety.template-any-casts` | `$any()` casts in templates |
 | `type-safety.ts-suppressions` | `@ts-ignore` / `@ts-expect-error` comments |
 | `type-safety.untyped-form-files` | Files importing `UntypedForm*` |
+| `version.duplicate-packages` | Runtime packages locked in more than one major |
 | `version.end-of-life-packages` | End-of-life packages |
 | `version.mismatched-angular-packages` | Angular packages on another major |
+| `version.production-build-issues` | Production build settings that cost users |
 | `version.webpack-builders` | Projects on the webpack builder |

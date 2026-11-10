@@ -11,6 +11,7 @@ import type { VulnerabilityScan } from '../vulnerabilities.js';
 import type { SourceFileFacts, TemplateFact } from '../scan.js';
 import type { I18nFacts } from '../i18n.js';
 import type { RuleFacts } from '../rules.js';
+import type { DuplicatePackages } from '../lockfile.js';
 import type { TranslationFacts } from '../translations.js';
 import type { StylesheetFact } from '../stylesheets.js';
 import type { CheckResult, FileRef } from '../types.js';
@@ -87,6 +88,8 @@ export interface AnalysisContext {
   i18n?: I18nFacts;
   /** The config's own rules and what breaks them (see `CustomRule`). Undefined when no rule is configured. */
   customRules?: RuleFacts;
+  /** Runtime packages the lockfile holds in more than one major (see `readDuplicatePackages`). Undefined without a lockfile. */
+  duplicatePackages?: DuplicatePackages;
   maxExamples: number;
 }
 

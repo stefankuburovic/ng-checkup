@@ -16,6 +16,8 @@ export interface TargetInfo {
   configurations?: Record<string, unknown>;
   /** Absolute directory the project's relative option paths resolve against. */
   baseDirectory: string;
+  /** The file that declares the target, relative to the workspace root: `angular.json` or a `project.json`. */
+  configFile?: string;
 }
 
 /** One application or library of the workspace, from `angular.json` or its `project.json`. */
@@ -178,7 +180,7 @@ export function readWorkspace(root: string, projectJsons: string[]): WorkspaceIn
   const isNx = existsSync(join(root, 'nx.json'));
   const kind: WorkspaceKind = angularJson ? 'angular-cli' : isNx ? 'nx' : 'unknown';
 
-  const targets = angularJson ? readAngularJsonTargets(root, angularJson) : readProjectJsonTargets(projectJsons);
+  const targets = angularJson ? readAngularJsonTargets(root, angularJson) : readProjectJsonTargets(root, projectJsons);
   const projects = angularJson ? readAngularJsonProjects(root, angularJson, targets) : readProjectJsonProjects(root, projectJsons, targets);
   const installedCore = readInstalledVersion(root, '@angular/core');
   const declared = dependencies['@angular/core'];
@@ -431,14 +433,14 @@ function readAngularJsonTargets(root: string, angularJson: Record<string, unknow
       const builder = asRecord(target)['builder'];
       if (typeof builder !== 'string') continue;
       // angular.json resolves option paths against the workspace root, not the project root.
-      targets.push({ project: projectName || projectRoot, target: targetName, builder, options: asRecord(asRecord(target)['options']), configurations: asRecord(asRecord(target)['configurations']), baseDirectory: root });
+      targets.push({ project: projectName || projectRoot, target: targetName, builder, options: asRecord(asRecord(target)['options']), configurations: asRecord(asRecord(target)['configurations']), baseDirectory: root, configFile: 'angular.json' });
     }
   }
   return targets;
 }
 
 /** Targets from Nx `project.json` files, which name the builder `executor`. */
-function readProjectJsonTargets(projectJsons: string[]): TargetInfo[] {
+function readProjectJsonTargets(root: string, projectJsons: string[]): TargetInfo[] {
   const targets: TargetInfo[] = [];
   for (const path of projectJsons) {
     const project = readJson(path);
@@ -450,7 +452,7 @@ function readProjectJsonTargets(projectJsons: string[]): TargetInfo[] {
       if (typeof builder !== 'string') continue;
       // Nx resolves option paths against the workspace root as well, which is
       // two or more levels above the project.json in a typical apps/ layout.
-      targets.push({ project: projectName, target: targetName, builder, options: asRecord(record['options']), configurations: asRecord(record['configurations']), baseDirectory: findWorkspaceRoot(path) });
+      targets.push({ project: projectName, target: targetName, builder, options: asRecord(record['options']), configurations: asRecord(record['configurations']), baseDirectory: findWorkspaceRoot(path), configFile: relative(root, path).split('\\').join('/') });
     }
   }
   return targets;
