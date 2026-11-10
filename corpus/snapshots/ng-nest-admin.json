@@ -1,0 +1,454 @@
+{
+  "repo": "NG-NEST/ng-nest-admin",
+  "commit": "747baa1bb12996a4ad5dea1c31380c8fa077d089",
+  "project": {
+    "name": "ui",
+    "kind": "angular-cli",
+    "angularVersion": "21.1.1",
+    "sourceFiles": 701,
+    "templateFiles": 58,
+    "linesOfCode": 23799,
+    "generatedFiles": 2,
+    "workspaceFolder": "ui"
+  },
+  "score": 68,
+  "checks": [
+    {
+      "id": "version",
+      "grade": "good",
+      "summary": "Angular 21.1.1, 1 major behind 22.",
+      "measures": {
+        "end-of-life-packages": 0,
+        "webpack-builders": 0,
+        "mismatched-angular-packages": 0
+      },
+      "findings": [
+        {
+          "severity": "low",
+          "message": "One major behind (21 → 22)"
+        }
+      ]
+    },
+    {
+      "id": "deprecated-apis",
+      "grade": "fair",
+      "summary": "1 `.toPromise()` call.",
+      "measures": {
+        "deprecated-usages": 0,
+        "legacy-template-directives": 0,
+        "to-promise-calls": 1
+      },
+      "findings": [
+        {
+          "severity": "medium",
+          "message": "1 `.toPromise()` call in 1 file",
+          "files": [
+            "api/src/services/aigc/aigc.service.ts:30"
+          ],
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "dependencies",
+      "grade": "info",
+      "summary": "Dependencies are not installed and the npm registry was not used, so the packages that depend on Angular could not be read.",
+      "measures": {},
+      "findings": [
+        {
+          "severity": "info",
+          "message": "Install the dependencies, or run without --offline to read each package from the npm registry"
+        }
+      ]
+    },
+    {
+      "id": "change-detection",
+      "grade": "good",
+      "summary": "Zoneless, with 7% of components on OnPush.",
+      "measures": {
+        "eager-components": 52,
+        "ngzone-files": 0,
+        "zone-test-helpers": 0
+      },
+      "findings": [
+        {
+          "severity": "medium",
+          "message": "52 components use eager change detection (93%)",
+          "files": [
+            "ui/src/app/app.component.ts:4",
+            "ui/src/app/core/components/ai-dialog/ai-dialog.component.ts:8",
+            "ui/src/app/core/components/editor/editor.component.ts:15"
+          ],
+          "count": 52
+        }
+      ]
+    },
+    {
+      "id": "components",
+      "grade": "good",
+      "summary": "56 components: 100% standalone, 100% signal inputs, 100% built-in control flow.",
+      "measures": {
+        "module-components": 0,
+        "decorator-inputs-outputs": 0,
+        "legacy-control-flow": 0,
+        "manual-subscriptions": 137,
+        "hardcoded-colors": 33,
+        "unended-subscriptions": 30,
+        "untracked-ngfor": 0,
+        "track-by-index": 0,
+        "template-method-calls": 7,
+        "impure-pipes": 0
+      },
+      "findings": [
+        {
+          "severity": "low",
+          "message": "137 manual `.subscribe()` calls in components and directives, 110 not tied to the component's lifetime",
+          "files": [
+            "ui/src/app/pages/code-generate/code-generate.component.ts:119",
+            "ui/src/app/pages/schema-data/schema-data.component.ts:130",
+            "ui/src/app/core/components/json-schema/node/node.component.ts:76"
+          ],
+          "count": 45
+        },
+        {
+          "severity": "low",
+          "message": "30 `.subscribe()` calls in components and directives that nothing ever ends",
+          "files": [
+            "ui/src/app/pages/prompt/prompt.component.ts:96",
+            "ui/src/app/pages/subject/subject.component.ts:116",
+            "ui/src/app/pages/cache/cache.component.ts:68"
+          ],
+          "count": 12
+        },
+        {
+          "severity": "low",
+          "message": "33 colour literals outside the design tokens",
+          "files": [
+            "ui/src/styles.scss:34",
+            "ui/src/app/pages/aigc/aigc.component.scss:3",
+            "ui/src/app/core/components/json-schema/node/node.component.scss:168"
+          ],
+          "count": 8
+        },
+        {
+          "severity": "low",
+          "message": "7 method calls in template bindings",
+          "files": [
+            "ui/src/app/core/components/schema-form/schema-form.component.html:114",
+            "ui/src/app/core/components/json-schema/json-schema.component.html:11",
+            "ui/src/app/core/components/json-schema/node/node.component.html:40"
+          ],
+          "count": 5
+        }
+      ]
+    },
+    {
+      "id": "state",
+      "grade": "good",
+      "summary": "No classic NgRx, 275 signal()/computed() calls, 0 signal-store files.",
+      "measures": {
+        "classic-ngrx-files": 0,
+        "behaviorsubject-services": 0,
+        "effect-decorators": 0
+      },
+      "findings": []
+    },
+    {
+      "id": "architecture",
+      "grade": "good",
+      "summary": "100% of 28 routes lazy, 1 file over 500 lines, 1 class with constructor injection.",
+      "measures": {
+        "eager-routes": 0,
+        "very-large-files": 0,
+        "constructor-injection": 1,
+        "class-guards": 0,
+        "unused-files": 8,
+        "unused-components": 1,
+        "unused-pipes": 1
+      },
+      "findings": [
+        {
+          "severity": "low",
+          "message": "1 file over 500 lines",
+          "files": [
+            "api/src/services/catalogue/catalogue.service.ts"
+          ],
+          "count": 1
+        },
+        {
+          "severity": "low",
+          "message": "8 files nothing imports",
+          "files": [
+            "ui/src/app/core/components/schema-form/schema-form.function.ts",
+            "ui/src/app/pages/model/model.resover.ts",
+            "ui/src/app/pages/prompt/prompt.resover.ts"
+          ],
+          "count": 8
+        },
+        {
+          "severity": "low",
+          "message": "1 component and 1 pipe no template uses",
+          "files": [
+            "ui/src/app/core/components/ai-dialog/ai-dialog.component.ts:8",
+            "ui/src/app/core/pipes/zero-prefix.pipe.ts:3"
+          ],
+          "count": 2
+        },
+        {
+          "severity": "low",
+          "message": "1 class injects through the constructor",
+          "files": [
+            "ui/src/app/api/openai/openai.service.ts:43"
+          ],
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "testing",
+      "grade": "poor",
+      "summary": "Karma, 0 spec files, 0% of components and services with a spec.",
+      "measures": {
+        "untested-files": 82,
+        "tests-without-assertions": 0,
+        "unawaited-subscribe-assertions": 0,
+        "schema-suppressed-specs": 0
+      },
+      "findings": [
+        {
+          "severity": "high",
+          "message": "Unit tests run on Karma, which is deprecated"
+        },
+        {
+          "severity": "high",
+          "message": "No unit tests found"
+        },
+        {
+          "severity": "info",
+          "message": "No end-to-end test setup found"
+        }
+      ]
+    },
+    {
+      "id": "type-safety",
+      "grade": "fair",
+      "summary": "strictNullChecks on, strictTemplates on, 156 explicit any.",
+      "measures": {
+        "strict-flags-off": 0,
+        "explicit-any": 156,
+        "non-null-assertions": 164,
+        "ts-suppressions": 0,
+        "template-any-casts": 0,
+        "untyped-form-files": 0
+      },
+      "findings": [
+        {
+          "severity": "medium",
+          "message": "156 explicit `any` in application code (6.6 per 1 000 lines)",
+          "files": [
+            "api/src/services/catalogue/catalogue.service.ts:136",
+            "ui/src/app/core/services/prism.service.ts:10",
+            "api/src/core/adapters/websocket.adapter.ts:24"
+          ],
+          "count": 70
+        },
+        {
+          "severity": "low",
+          "message": "164 non-null assertions (`x!`) in application code"
+        }
+      ]
+    },
+    {
+      "id": "security",
+      "grade": "poor",
+      "summary": "2 direct DOM HTML writes, 0 evals, 3 sanitizer bypasses.",
+      "measures": {
+        "unsafe-dom-writes": 2,
+        "dynamic-code": 0,
+        "sanitizer-bypasses": 3,
+        "inner-html-bindings": 1
+      },
+      "findings": [
+        {
+          "severity": "high",
+          "message": "HTML is written into the DOM past Angular's sanitizer in 2 places",
+          "files": [
+            "ui/src/app/pages/aigc/aigc.component.ts:230",
+            "ui/src/app/pages/login/login.component.ts:93"
+          ],
+          "count": 2
+        },
+        {
+          "severity": "medium",
+          "message": "Angular's sanitization is bypassed in 3 places (`bypassSecurityTrust*`)",
+          "files": [
+            "ui/src/app/pages/aigc/aigc.component.ts:164",
+            "ui/src/app/pages/aigc/aigc.component.ts:176",
+            "ui/src/app/pages/aigc/aigc.component.ts:208"
+          ],
+          "count": 3
+        },
+        {
+          "severity": "low",
+          "message": "1 `[innerHTML]` binding in 1 template",
+          "files": [
+            "ui/src/app/pages/aigc/aigc.component.html"
+          ],
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "translations",
+      "grade": "info",
+      "summary": "No ngx-translate or Transloco bundle and no `i18n` locales found to check translations against.",
+      "measures": {},
+      "findings": []
+    },
+    {
+      "id": "accessibility",
+      "grade": "info",
+      "summary": "3 accessibility defects in 3 templates.",
+      "measures": {
+        "unlabelled-controls": 1,
+        "unnamed-buttons": 0,
+        "click-without-keyboard": 2,
+        "images-without-alt": 0,
+        "positive-tabindex": 0
+      },
+      "findings": [
+        {
+          "severity": "medium",
+          "message": "1 form control without a label",
+          "files": [
+            "ui/src/app/pages/code-generate/code-generate.component.html:42"
+          ],
+          "count": 1
+        },
+        {
+          "severity": "medium",
+          "message": "2 `(click)` handlers on a `div`, `span` or similar with no key handler",
+          "files": [
+            "ui/src/app/pages/code-generate/variable-setting/variable-setting.component.html:47",
+            "ui/src/app/pages/login/login.component.html:61"
+          ],
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "ssr",
+      "grade": "info",
+      "summary": "0 browser globals and 1 native DOM change in code that runs on the server, and hydration is not on.",
+      "measures": {
+        "browser-globals": 0,
+        "dom-mutations": 1,
+        "skip-hydration": 10,
+        "missing-hydration": 1
+      },
+      "findings": [
+        {
+          "severity": "medium",
+          "message": "Server-rendered, but `provideClientHydration()` is missing"
+        },
+        {
+          "severity": "low",
+          "message": "1 native DOM change in code that runs during rendering",
+          "files": [
+            "ui/src/app/core/directives/auth.directive.ts:34"
+          ],
+          "count": 1
+        },
+        {
+          "severity": "low",
+          "message": "10 uses of `ngSkipHydration`",
+          "files": [
+            "ui/src/app/pages/cache/cache.component.html:23",
+            "ui/src/app/pages/code-generate/select-schema-data/select-schema-data.component.html:14",
+            "ui/src/app/pages/model/model.component.html:36"
+          ],
+          "count": 10
+        }
+      ]
+    },
+    {
+      "id": "circular-deps",
+      "grade": "poor",
+      "summary": "4 groups of files importing each other in a loop, 155 files in total.",
+      "measures": {
+        "files-in-cycles": 155
+      },
+      "findings": [
+        {
+          "severity": "high",
+          "message": "135 files import each other in a loop",
+          "files": [
+            "ui/src/app/api/catalogue/catalogue.model.ts",
+            "ui/src/app/api/catalogue/catalogue.output.ts",
+            "ui/src/app/api/catalogue/index.ts"
+          ],
+          "count": 135
+        },
+        {
+          "severity": "medium",
+          "message": "7 files import each other in a loop",
+          "files": [
+            "api/src/core/common/base.model.ts",
+            "api/src/core/common/index.ts",
+            "api/src/core/config/graphql.config.ts"
+          ],
+          "count": 7
+        },
+        {
+          "severity": "medium",
+          "message": "7 files import each other in a loop",
+          "files": [
+            "ui/src/app/core/components/json-schema/setting/array/array.component.ts",
+            "ui/src/app/core/components/json-schema/setting/boolean/boolean.component.ts",
+            "ui/src/app/core/components/json-schema/setting/integer/integer.component.ts"
+          ],
+          "count": 7
+        },
+        {
+          "severity": "medium",
+          "message": "6 files import each other in a loop",
+          "files": [
+            "api/src/services/permission/create.input.ts",
+            "api/src/services/permission/index.ts",
+            "api/src/services/resource/include.ts"
+          ],
+          "count": 6
+        }
+      ]
+    },
+    {
+      "id": "bundle",
+      "grade": "info",
+      "summary": "No build stats found, so the bundle size is not part of this report.",
+      "measures": {
+        "heavy-packages": 0
+      },
+      "findings": [
+        {
+          "severity": "info",
+          "message": "Run `ng build --stats-json` (or `nx build <app> --stats-json`) and re-run to include the bundle size"
+        }
+      ]
+    }
+  ],
+  "plan": {
+    "from": 21,
+    "to": 22,
+    "before": [
+      "Break the import cycles (155)"
+    ],
+    "steps": [
+      {
+        "to": 22,
+        "items": [
+          "Move unit tests from Karma to Vitest"
+        ]
+      }
+    ]
+  }
+}

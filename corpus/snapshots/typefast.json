@@ -1,0 +1,370 @@
+{
+  "repo": "CasperVerswijvelt/TypeFast",
+  "commit": "d7bd66469dbdedd16109a4679d4ee47b55309f38",
+  "project": {
+    "name": "type-fast",
+    "kind": "angular-cli",
+    "angularVersion": "21.2.11",
+    "sourceFiles": 60,
+    "templateFiles": 28,
+    "linesOfCode": 2677,
+    "generatedFiles": 1
+  },
+  "score": 84,
+  "checks": [
+    {
+      "id": "version",
+      "grade": "good",
+      "summary": "Angular 21.2.11, 1 major behind 22.",
+      "measures": {
+        "end-of-life-packages": 0,
+        "webpack-builders": 0,
+        "mismatched-angular-packages": 0
+      },
+      "findings": [
+        {
+          "severity": "low",
+          "message": "One major behind (21 → 22)"
+        }
+      ]
+    },
+    {
+      "id": "deprecated-apis",
+      "grade": "fair",
+      "summary": "2 deprecated symbols in 1 file.",
+      "measures": {
+        "deprecated-usages": 2,
+        "legacy-template-directives": 0,
+        "to-promise-calls": 0
+      },
+      "findings": [
+        {
+          "severity": "medium",
+          "message": "`BrowserDynamicTestingModule` from @angular/platform-browser-dynamic/testing, used in 1 file",
+          "files": [
+            "src/test.ts:5"
+          ],
+          "count": 1
+        },
+        {
+          "severity": "medium",
+          "message": "`platformBrowserDynamicTesting` from @angular/platform-browser-dynamic/testing, used in 1 file",
+          "files": [
+            "src/test.ts:5"
+          ],
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "dependencies",
+      "grade": "info",
+      "summary": "Dependencies are not installed and the npm registry was not used, so the packages that depend on Angular could not be read.",
+      "measures": {},
+      "findings": [
+        {
+          "severity": "info",
+          "message": "Install the dependencies, or run without --offline to read each package from the npm registry"
+        }
+      ]
+    },
+    {
+      "id": "change-detection",
+      "grade": "fair",
+      "summary": "Runs on zone.js; 96% of 27 components use OnPush.",
+      "measures": {
+        "eager-components": 1,
+        "ngzone-files": 1,
+        "zone-test-helpers": 0
+      },
+      "findings": [
+        {
+          "severity": "medium",
+          "message": "Change detection still runs on zone.js"
+        },
+        {
+          "severity": "low",
+          "message": "1 component uses eager change detection (4%)",
+          "files": [
+            "src/app/components/preferences/preferences.component.ts:27"
+          ],
+          "count": 1
+        },
+        {
+          "severity": "low",
+          "message": "1 file injects `NgZone`",
+          "files": [
+            "src/app/components/preferences/preferences.component.ts:1"
+          ],
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "components",
+      "grade": "good",
+      "summary": "27 components: 100% standalone, 97% signal inputs, 100% built-in control flow.",
+      "measures": {
+        "module-components": 0,
+        "decorator-inputs-outputs": 1,
+        "legacy-control-flow": 0,
+        "manual-subscriptions": 10,
+        "hardcoded-colors": 3,
+        "unended-subscriptions": 0,
+        "untracked-ngfor": 0,
+        "track-by-index": 3,
+        "template-method-calls": 5,
+        "impure-pipes": 0
+      },
+      "findings": [
+        {
+          "severity": "low",
+          "message": "1 `@Input()` decorator and 0 `@Output()` decorators left",
+          "count": 1
+        },
+        {
+          "severity": "low",
+          "message": "10 manual `.subscribe()` calls in components and directives",
+          "files": [
+            "src/app/components/typer/typer.component.ts:113",
+            "src/app/components/app.component.ts:51",
+            "src/app/components/preferences/preferences.component.ts:68"
+          ],
+          "count": 3
+        },
+        {
+          "severity": "low",
+          "message": "3 colour literals outside the design tokens",
+          "files": [
+            "src/app/components/ad-placeholder/ad-placeholder.component.scss:39",
+            "src/app/components/typer/typer.component.scss:469",
+            "src/styles.scss:304"
+          ],
+          "count": 3
+        },
+        {
+          "severity": "low",
+          "message": "3 `@for` loops with `track $index`",
+          "files": [
+            "src/app/components/typer/typer.component.html:12",
+            "src/app/components/incorrect-word/incorrect-word.component.html:4"
+          ],
+          "count": 2
+        },
+        {
+          "severity": "low",
+          "message": "5 method calls in template bindings",
+          "files": [
+            "src/app/components/preferences/preferences.component.html:84"
+          ],
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "state",
+      "grade": "good",
+      "summary": "No classic NgRx, 24 signal()/computed() calls, 0 signal-store files.",
+      "measures": {
+        "classic-ngrx-files": 0,
+        "behaviorsubject-services": 0,
+        "effect-decorators": 0
+      },
+      "findings": []
+    },
+    {
+      "id": "architecture",
+      "grade": "good",
+      "summary": "100% of 2 routes lazy, 0 files over 500 lines, 0 classes with constructor injection.",
+      "measures": {
+        "eager-routes": 0,
+        "very-large-files": 0,
+        "constructor-injection": 0,
+        "class-guards": 0,
+        "unused-files": 0,
+        "unused-components": 0,
+        "unused-pipes": 0
+      },
+      "findings": []
+    },
+    {
+      "id": "testing",
+      "grade": "poor",
+      "summary": "Karma, 7 spec files, 12% of components and services with a spec.",
+      "measures": {
+        "untested-files": 30,
+        "tests-without-assertions": 0,
+        "unawaited-subscribe-assertions": 0,
+        "schema-suppressed-specs": 0
+      },
+      "findings": [
+        {
+          "severity": "high",
+          "message": "Unit tests run on Karma, which is deprecated"
+        },
+        {
+          "severity": "medium",
+          "message": "88% of components and services have no spec",
+          "files": [
+            "src/app/components/ad-placeholder/ad-placeholder.component.ts",
+            "src/app/components/app.component.ts",
+            "src/app/components/footer/footer.component.ts"
+          ],
+          "count": 30
+        },
+        {
+          "severity": "info",
+          "message": "No end-to-end test setup found"
+        }
+      ]
+    },
+    {
+      "id": "type-safety",
+      "grade": "good",
+      "summary": "strictNullChecks on, strictTemplates on, 0 explicit any.",
+      "measures": {
+        "strict-flags-off": 0,
+        "explicit-any": 0,
+        "non-null-assertions": 0,
+        "ts-suppressions": 0,
+        "template-any-casts": 0,
+        "untyped-form-files": 0
+      },
+      "findings": []
+    },
+    {
+      "id": "security",
+      "grade": "good",
+      "summary": "No sanitizer bypasses, direct DOM HTML writes or eval in 52 files; 1 sanitized [innerHTML] binding.",
+      "measures": {
+        "unsafe-dom-writes": 0,
+        "dynamic-code": 0,
+        "sanitizer-bypasses": 0,
+        "inner-html-bindings": 1
+      },
+      "findings": [
+        {
+          "severity": "low",
+          "message": "1 `[innerHTML]` binding in 1 template",
+          "files": [
+            "src/app/components/pages/changelog-page/changelog-page.component.html"
+          ],
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "translations",
+      "grade": "info",
+      "summary": "No ngx-translate or Transloco bundle and no `i18n` locales found to check translations against.",
+      "measures": {},
+      "findings": []
+    },
+    {
+      "id": "accessibility",
+      "grade": "info",
+      "summary": "6 accessibility defects in 4 templates.",
+      "measures": {
+        "unlabelled-controls": 1,
+        "unnamed-buttons": 0,
+        "click-without-keyboard": 4,
+        "images-without-alt": 1,
+        "positive-tabindex": 0
+      },
+      "findings": [
+        {
+          "severity": "medium",
+          "message": "1 form control without a label",
+          "files": [
+            "src/app/components/typer/typer.component.html:18"
+          ],
+          "count": 1
+        },
+        {
+          "severity": "medium",
+          "message": "4 `(click)` handlers on a `div`, `span` or similar with no key handler",
+          "files": [
+            "src/app/components/nav/nav.component.html:92",
+            "src/app/components/preferences/preferences.component.html:19"
+          ],
+          "count": 2
+        },
+        {
+          "severity": "medium",
+          "message": "1 image without `alt`",
+          "files": [
+            "src/index.html:238"
+          ],
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "ssr",
+      "grade": "info",
+      "summary": "0 browser globals and 1 native DOM change in code that runs on the server.",
+      "measures": {
+        "browser-globals": 0,
+        "dom-mutations": 1,
+        "skip-hydration": 1,
+        "missing-hydration": 0
+      },
+      "findings": [
+        {
+          "severity": "low",
+          "message": "1 native DOM change in code that runs during rendering",
+          "files": [
+            "src/app/directives/popper.directive.ts:36"
+          ],
+          "count": 1
+        },
+        {
+          "severity": "low",
+          "message": "1 use of `ngSkipHydration`",
+          "files": [
+            "src/app/components/pages/test-page/test-page.component.html:6"
+          ],
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "circular-deps",
+      "grade": "good",
+      "summary": "No import cycles between application files.",
+      "measures": {
+        "files-in-cycles": 0
+      },
+      "findings": []
+    },
+    {
+      "id": "bundle",
+      "grade": "info",
+      "summary": "No build stats found, so the bundle size is not part of this report.",
+      "measures": {
+        "heavy-packages": 0
+      },
+      "findings": [
+        {
+          "severity": "info",
+          "message": "Run `ng build --stats-json` (or `nx build <app> --stats-json`) and re-run to include the bundle size"
+        }
+      ]
+    }
+  ],
+  "plan": {
+    "from": 21,
+    "to": 22,
+    "before": [],
+    "steps": [
+      {
+        "to": 22,
+        "items": [
+          "Convert @Input() and @Output() to signal inputs and outputs (1)",
+          "Move unit tests from Karma to Vitest",
+          "Prepare for zoneless: move components to OnPush, then drop zone.js (1)"
+        ]
+      }
+    ]
+  }
+}

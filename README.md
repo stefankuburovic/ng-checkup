@@ -850,7 +850,7 @@ node dist/cli.js path/to/some/angular/app
 
 Each check is one file in `src/checks/` and a pure function of the analysis context, so a new check is a new file plus a fixture that shows it.
 
-**The corpus.** `npm run corpus` runs ng-checkup on 19 public repositories pinned to one commit each (`corpus/repos.json`: Angular 12 to 22, AngularJS and hybrid apps, two Primo VE packages, CLI and Nx workspaces, Ionic, a 180 000-line app) and compares the result with `corpus/snapshots/`. CI runs it on every push. A rule change that moves any number shows up as a diff; read it, and run `npm run corpus -- --update` only when every changed line is an improvement. The repositories are fetched shallow into `.corpus/` and their dependencies are never installed.
+**The corpus.** `npm run corpus` runs ng-checkup on 23 public repositories pinned to one commit each (`corpus/repos.json`: Angular 12 to 22, server-rendered apps, Angular i18n with 29 locales, AngularJS and hybrid apps, two Primo VE packages, CLI and Nx workspaces, Ionic, a 180 000-line app) and compares the result with `corpus/snapshots/`. CI runs it on every push. A rule change that moves any number shows up as a diff; read it, and run `npm run corpus -- --update` only when every changed line is an improvement. The repositories are fetched shallow into `.corpus/` and their dependencies are never installed.
 
 ## Need help acting on the report?
 

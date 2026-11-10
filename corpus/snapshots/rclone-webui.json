@@ -1,0 +1,426 @@
+{
+  "repo": "yuudi/rclone-webui-angular",
+  "commit": "09c136cc53cfa361131e662b7122be64390833e4",
+  "project": {
+    "name": "rclone-webui-angular",
+    "kind": "angular-cli",
+    "angularVersion": "16.2.12",
+    "sourceFiles": 115,
+    "templateFiles": 26,
+    "linesOfCode": 4395
+  },
+  "score": 68,
+  "checks": [
+    {
+      "id": "version",
+      "grade": "poor",
+      "summary": "Angular 16.2.12, 6 majors behind 22.",
+      "measures": {
+        "end-of-life-packages": 0,
+        "webpack-builders": 1,
+        "mismatched-angular-packages": 0
+      },
+      "findings": [
+        {
+          "severity": "high",
+          "message": "Angular 16 is 6 majors behind 22 and out of support"
+        },
+        {
+          "severity": "medium",
+          "message": "1 project still built with the webpack builder"
+        }
+      ]
+    },
+    {
+      "id": "deprecated-apis",
+      "grade": "good",
+      "summary": "Nothing deprecated as of Angular 16 is in use; APIs deprecated in later versions surface at each upgrade step.",
+      "measures": {
+        "deprecated-usages": 0,
+        "legacy-template-directives": 87,
+        "to-promise-calls": 0
+      },
+      "findings": []
+    },
+    {
+      "id": "dependencies",
+      "grade": "info",
+      "summary": "Dependencies are not installed and the npm registry was not used, so the packages that depend on Angular could not be read.",
+      "measures": {},
+      "findings": [
+        {
+          "severity": "info",
+          "message": "Install the dependencies, or run without --offline to read each package from the npm registry"
+        }
+      ]
+    },
+    {
+      "id": "change-detection",
+      "grade": "poor",
+      "summary": "Runs on zone.js; 0% of 24 components use OnPush.",
+      "measures": {
+        "eager-components": 24,
+        "ngzone-files": 0,
+        "zone-test-helpers": 0
+      },
+      "findings": [
+        {
+          "severity": "info",
+          "message": "Zoneless change detection needs Angular 20.2 or newer"
+        },
+        {
+          "severity": "medium",
+          "message": "24 components use eager change detection (100%)",
+          "files": [
+            "src/app/app.component.ts:11",
+            "src/app/cores/not-found/not-found.component.ts:3",
+            "src/app/features/connection/connection-editor/connection-editor.component.ts:22"
+          ],
+          "count": 24
+        }
+      ]
+    },
+    {
+      "id": "components",
+      "grade": "poor",
+      "summary": "24 components: 8% standalone, 0% signal inputs, 0% built-in control flow.",
+      "measures": {
+        "module-components": 22,
+        "decorator-inputs-outputs": 24,
+        "legacy-control-flow": 87,
+        "manual-subscriptions": 4,
+        "hardcoded-colors": 1,
+        "unended-subscriptions": 0,
+        "untracked-ngfor": 15,
+        "track-by-index": 0,
+        "template-method-calls": 0,
+        "impure-pipes": 0
+      },
+      "findings": [
+        {
+          "severity": "medium",
+          "message": "22 components still declared in NgModules (21 NgModules in total)",
+          "files": [
+            "src/app/app.component.ts:11",
+            "src/app/features/connection/connection-editor/connection-editor.component.ts:22",
+            "src/app/features/connection/connection.component.ts:15"
+          ],
+          "count": 22
+        },
+        {
+          "severity": "medium",
+          "message": "12 `@Input()` decorators and 12 `@Output()` decorators left",
+          "count": 24
+        },
+        {
+          "severity": "low",
+          "message": "87 uses of `*ngIf`, `*ngFor` and `[ngSwitch]`",
+          "count": 87
+        },
+        {
+          "severity": "low",
+          "message": "4 manual `.subscribe()` calls in components and directives, 3 not tied to the component's lifetime",
+          "files": [
+            "src/app/features/functions/backend/new-backend/new-backend.component.ts:100",
+            "src/app/features/functions/cron/cron-editor/cron-editor.component.ts:68",
+            "src/app/features/functions/explorer/explorer.component.ts:50"
+          ],
+          "count": 4
+        },
+        {
+          "severity": "low",
+          "message": "1 colour literal outside the design tokens",
+          "files": [
+            "src/material.scss:38"
+          ],
+          "count": 1
+        },
+        {
+          "severity": "low",
+          "message": "15 `*ngFor` loops without `trackBy`",
+          "files": [
+            "src/app/features/functions/explorer/explorer.component.html:4",
+            "src/app/features/functions/backend/new-backend/new-backend.component.html:34",
+            "src/app/features/connection/connection.component.html:7"
+          ],
+          "count": 10
+        }
+      ]
+    },
+    {
+      "id": "state",
+      "grade": "fair",
+      "summary": "No classic NgRx, 0 signal()/computed() calls, 0 signal-store files.",
+      "measures": {
+        "classic-ngrx-files": 0,
+        "behaviorsubject-services": 3,
+        "effect-decorators": 0
+      },
+      "findings": [
+        {
+          "severity": "low",
+          "message": "3 services hold state in a `BehaviorSubject`",
+          "files": [
+            "src/app/cores/remote-control/connection.service.ts:38",
+            "src/app/features/functions/job/job.service.ts:30",
+            "src/app/features/functions/mount/mount.service.ts:40"
+          ],
+          "count": 3
+        }
+      ]
+    },
+    {
+      "id": "architecture",
+      "grade": "good",
+      "summary": "100% of 20 routes lazy, 0 files over 500 lines, 28 classes with constructor injection.",
+      "measures": {
+        "eager-routes": 0,
+        "very-large-files": 0,
+        "constructor-injection": 28,
+        "class-guards": 0,
+        "unused-files": 1,
+        "unused-components": 1,
+        "unused-pipes": 0
+      },
+      "findings": [
+        {
+          "severity": "low",
+          "message": "1 file nothing imports",
+          "files": [
+            "src/app/features/functions/serve/serve.module.ts"
+          ],
+          "count": 1
+        },
+        {
+          "severity": "low",
+          "message": "1 component no template uses",
+          "files": [
+            "src/app/features/functions/cron/cron-editor/cron-editor.component.ts:28"
+          ],
+          "count": 1
+        },
+        {
+          "severity": "low",
+          "message": "28 classes inject through the constructor",
+          "files": [
+            "src/app/app.component.ts:175",
+            "src/app/cores/remote-control/connection.service.ts:41",
+            "src/app/cores/remote-control/remote-control.service.ts:19"
+          ],
+          "count": 28
+        }
+      ]
+    },
+    {
+      "id": "testing",
+      "grade": "good",
+      "summary": "Jest, 39 spec files, 97% of components and services with a spec.",
+      "measures": {
+        "untested-files": 1,
+        "tests-without-assertions": 0,
+        "unawaited-subscribe-assertions": 0,
+        "schema-suppressed-specs": 0
+      },
+      "findings": [
+        {
+          "severity": "info",
+          "message": "No end-to-end test setup found"
+        }
+      ]
+    },
+    {
+      "id": "type-safety",
+      "grade": "good",
+      "summary": "strictNullChecks on, strictTemplates on, 0 explicit any.",
+      "measures": {
+        "strict-flags-off": 0,
+        "explicit-any": 0,
+        "non-null-assertions": 0,
+        "ts-suppressions": 2,
+        "template-any-casts": 0,
+        "untyped-form-files": 0
+      },
+      "findings": [
+        {
+          "severity": "info",
+          "message": "1 more `any` on lines with an eslint-disable for `no-explicit-any`",
+          "files": [
+            "src/app/features/functions/job/job.model.ts:34"
+          ],
+          "count": 1
+        },
+        {
+          "severity": "low",
+          "message": "2 `@ts-ignore` / `@ts-expect-error` comments"
+        }
+      ]
+    },
+    {
+      "id": "security",
+      "grade": "fair",
+      "summary": "0 direct DOM HTML writes, 0 evals, 2 sanitizer bypasses.",
+      "measures": {
+        "unsafe-dom-writes": 0,
+        "dynamic-code": 0,
+        "sanitizer-bypasses": 2,
+        "inner-html-bindings": 0
+      },
+      "findings": [
+        {
+          "severity": "medium",
+          "message": "Angular's sanitization is bypassed in 2 places (`bypassSecurityTrust*`)",
+          "files": [
+            "src/app/app.component.ts:182",
+            "src/app/features/functions/explorer/explorer.component.ts:39"
+          ],
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "translations",
+      "grade": "info",
+      "summary": "101 translations missing or not done across 29 locales.",
+      "measures": {
+        "i18n-missing": 52,
+        "i18n-not-done": 49,
+        "i18n-obsolete": 52
+      },
+      "findings": [
+        {
+          "severity": "medium",
+          "message": "52 messages without a translation (af, ar, ca, cs, da, de-DE, el, es-ES, fi, fr, he, hu, it, ja, ko, nl, no, pl, pt-BR, pt-PT, ro, ru, sr, sv-SE, tr-TR, uk, vi, zh-CN, zh-TW)",
+          "files": [
+            "src/locale/AI-translations/messages.af.xlf",
+            "src/locale/AI-translations/messages.ar.xlf",
+            "src/locale/AI-translations/messages.ca.xlf"
+          ],
+          "count": 26
+        },
+        {
+          "severity": "low",
+          "message": "49 translations marked as not done",
+          "files": [
+            "src/locale/messages.tr-TR.xlf:675",
+            "src/locale/messages.de-DE.xlf:771",
+            "src/locale/AI-translations/messages.pl.xlf:575"
+          ],
+          "count": 3
+        },
+        {
+          "severity": "low",
+          "message": "52 translations of messages no longer in the source file",
+          "files": [
+            "src/locale/AI-translations/messages.af.xlf:374",
+            "src/locale/AI-translations/messages.ar.xlf:374",
+            "src/locale/AI-translations/messages.ca.xlf:374"
+          ],
+          "count": 26
+        }
+      ]
+    },
+    {
+      "id": "accessibility",
+      "grade": "info",
+      "summary": "25 accessibility defects in 7 templates.",
+      "measures": {
+        "unlabelled-controls": 3,
+        "unnamed-buttons": 22,
+        "click-without-keyboard": 0,
+        "images-without-alt": 0,
+        "positive-tabindex": 0
+      },
+      "findings": [
+        {
+          "severity": "medium",
+          "message": "3 form controls without a label",
+          "files": [
+            "src/app/features/functions/cron/cron-editor/easy-cron/easy-cron.component.html:2"
+          ],
+          "count": 1
+        },
+        {
+          "severity": "medium",
+          "message": "22 buttons without a name",
+          "files": [
+            "src/app/app.component.html:2",
+            "src/app/features/functions/explorer/explorer-viewer/path-splitter/path-splitter.component.html:11",
+            "src/app/features/functions/explorer/explorer.component.html:9"
+          ],
+          "count": 6
+        }
+      ]
+    },
+    {
+      "id": "ssr",
+      "grade": "info",
+      "summary": "This project does not render on the server, so nothing here applies.",
+      "measures": {},
+      "findings": []
+    },
+    {
+      "id": "circular-deps",
+      "grade": "good",
+      "summary": "No import cycles between application files.",
+      "measures": {
+        "files-in-cycles": 0
+      },
+      "findings": []
+    },
+    {
+      "id": "bundle",
+      "grade": "info",
+      "summary": "No build stats found, so the bundle size is not part of this report.",
+      "measures": {
+        "heavy-packages": 0
+      },
+      "findings": [
+        {
+          "severity": "info",
+          "message": "Run `ng build --stats-json` (or `nx build <app> --stats-json`) and re-run to include the bundle size"
+        }
+      ]
+    }
+  ],
+  "plan": {
+    "from": 16,
+    "to": 22,
+    "before": [],
+    "steps": [
+      {
+        "to": 17,
+        "items": [
+          "The MatLegacy* components are removed",
+          "Convert NgModule components to standalone (22)",
+          "Move templates to built-in control flow (87)"
+        ]
+      },
+      {
+        "to": 18,
+        "items": [
+          "Switch to the esbuild application builder (1)"
+        ]
+      },
+      {
+        "to": 19,
+        "items": [
+          "Convert @Input() and @Output() to signal inputs and outputs (24)"
+        ]
+      },
+      {
+        "to": 20,
+        "items": []
+      },
+      {
+        "to": 21,
+        "items": [
+          "Prepare for zoneless: move components to OnPush, then drop zone.js (24)"
+        ]
+      },
+      {
+        "to": 22,
+        "items": []
+      }
+    ]
+  }
+}

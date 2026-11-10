@@ -1,0 +1,353 @@
+{
+  "repo": "viniciusschuelter/dattebayo",
+  "commit": "e25fbd1c43e83524ede990cbd19c45fec38827c0",
+  "project": {
+    "name": "dattebayo",
+    "kind": "angular-cli",
+    "angularVersion": "17.0.1",
+    "sourceFiles": 36,
+    "templateFiles": 5,
+    "linesOfCode": 819
+  },
+  "score": 64,
+  "checks": [
+    {
+      "id": "version",
+      "grade": "poor",
+      "summary": "Angular 17.0.1, 5 majors behind 22.",
+      "measures": {
+        "end-of-life-packages": 0,
+        "webpack-builders": 1,
+        "mismatched-angular-packages": 0
+      },
+      "findings": [
+        {
+          "severity": "high",
+          "message": "Angular 17 is 5 majors behind 22 and out of support"
+        },
+        {
+          "severity": "medium",
+          "message": "1 project still built with the webpack builder"
+        }
+      ]
+    },
+    {
+      "id": "deprecated-apis",
+      "grade": "good",
+      "summary": "Nothing deprecated as of Angular 17 is in use; APIs deprecated in later versions surface at each upgrade step.",
+      "measures": {
+        "deprecated-usages": 0,
+        "legacy-template-directives": 7,
+        "to-promise-calls": 0
+      },
+      "findings": []
+    },
+    {
+      "id": "dependencies",
+      "grade": "info",
+      "summary": "Dependencies are not installed and the npm registry was not used, so the packages that depend on Angular could not be read.",
+      "measures": {},
+      "findings": [
+        {
+          "severity": "info",
+          "message": "Install the dependencies, or run without --offline to read each package from the npm registry"
+        }
+      ]
+    },
+    {
+      "id": "change-detection",
+      "grade": "poor",
+      "summary": "Runs on zone.js; 0% of 11 components use OnPush.",
+      "measures": {
+        "eager-components": 11,
+        "ngzone-files": 0,
+        "zone-test-helpers": 0
+      },
+      "findings": [
+        {
+          "severity": "info",
+          "message": "Zoneless change detection needs Angular 20.2 or newer"
+        },
+        {
+          "severity": "medium",
+          "message": "11 components use eager change detection (100%)",
+          "files": [
+            "src/app/app.component.ts:3",
+            "src/app/components/collection-card/collection-card.component.ts:5",
+            "src/app/components/collection-loading/collection-loading.component.ts:3"
+          ],
+          "count": 11
+        }
+      ]
+    },
+    {
+      "id": "components",
+      "grade": "poor",
+      "summary": "11 components: 55% standalone, 0% signal inputs, 0% built-in control flow.",
+      "measures": {
+        "module-components": 5,
+        "decorator-inputs-outputs": 7,
+        "legacy-control-flow": 7,
+        "manual-subscriptions": 0,
+        "hardcoded-colors": 0,
+        "unended-subscriptions": 0,
+        "untracked-ngfor": 4,
+        "track-by-index": 0,
+        "template-method-calls": 0,
+        "impure-pipes": 0
+      },
+      "findings": [
+        {
+          "severity": "low",
+          "message": "5 components still declared in NgModules (7 NgModules in total)",
+          "files": [
+            "src/app/app.component.ts:3",
+            "src/app/pages/about/about.component.ts:3",
+            "src/app/pages/cards/cards.component.ts:14"
+          ],
+          "count": 5
+        },
+        {
+          "severity": "medium",
+          "message": "4 `@Input()` decorators and 3 `@Output()` decorators left",
+          "count": 7
+        },
+        {
+          "severity": "low",
+          "message": "7 uses of `*ngIf`, `*ngFor` and `[ngSwitch]`",
+          "count": 7
+        },
+        {
+          "severity": "low",
+          "message": "4 `*ngFor` loops without `trackBy`",
+          "files": [
+            "src/app/pages/docs/docs.component.html:21",
+            "src/app/components/collection-search/collection-search.component.ts:31",
+            "src/app/pages/cards/cards.component.ts:29"
+          ],
+          "count": 3
+        }
+      ]
+    },
+    {
+      "id": "state",
+      "grade": "good",
+      "summary": "No classic NgRx, 4 signal()/computed() calls, 0 signal-store files.",
+      "measures": {
+        "classic-ngrx-files": 0,
+        "behaviorsubject-services": 0,
+        "effect-decorators": 0
+      },
+      "findings": []
+    },
+    {
+      "id": "architecture",
+      "grade": "good",
+      "summary": "100% of 8 routes lazy, 0 files over 500 lines, 0 classes with constructor injection.",
+      "measures": {
+        "eager-routes": 0,
+        "very-large-files": 0,
+        "constructor-injection": 0,
+        "class-guards": 0,
+        "unused-files": 9,
+        "unused-components": 0,
+        "unused-pipes": 0
+      },
+      "findings": [
+        {
+          "severity": "low",
+          "message": "9 files nothing imports",
+          "files": [
+            "src/app/interfaces/akatsuki.interface.ts",
+            "src/app/interfaces/clan.interface.ts",
+            "src/app/interfaces/kara.interface.ts"
+          ],
+          "count": 9
+        }
+      ]
+    },
+    {
+      "id": "testing",
+      "grade": "poor",
+      "summary": "Karma, 0 spec files, 0% of components and services with a spec.",
+      "measures": {
+        "untested-files": 13,
+        "tests-without-assertions": 0,
+        "unawaited-subscribe-assertions": 0,
+        "schema-suppressed-specs": 0
+      },
+      "findings": [
+        {
+          "severity": "high",
+          "message": "Unit tests run on Karma, which is deprecated"
+        },
+        {
+          "severity": "high",
+          "message": "No unit tests found"
+        },
+        {
+          "severity": "info",
+          "message": "No end-to-end test setup found"
+        }
+      ]
+    },
+    {
+      "id": "type-safety",
+      "grade": "fair",
+      "summary": "strictNullChecks on, strictTemplates on, 9 explicit any.",
+      "measures": {
+        "strict-flags-off": 0,
+        "explicit-any": 9,
+        "non-null-assertions": 0,
+        "ts-suppressions": 1,
+        "template-any-casts": 0,
+        "untyped-form-files": 0
+      },
+      "findings": [
+        {
+          "severity": "medium",
+          "message": "9 explicit `any` in application code (11.0 per 1 000 lines)",
+          "files": [
+            "src/app/components/collection-search/collection-search.component.ts:42",
+            "src/app/directives/infinite-scroller/infinite-scroller.directive.ts:16",
+            "src/app/pages/cards/cards.component.ts:67"
+          ],
+          "count": 4
+        },
+        {
+          "severity": "low",
+          "message": "1 `@ts-ignore` / `@ts-expect-error` comment"
+        }
+      ]
+    },
+    {
+      "id": "security",
+      "grade": "good",
+      "summary": "No sanitizer bypasses, direct DOM HTML writes or eval in 35 files.",
+      "measures": {
+        "unsafe-dom-writes": 0,
+        "dynamic-code": 0,
+        "sanitizer-bypasses": 0,
+        "inner-html-bindings": 0
+      },
+      "findings": []
+    },
+    {
+      "id": "translations",
+      "grade": "info",
+      "summary": "No ngx-translate or Transloco bundle and no `i18n` locales found to check translations against.",
+      "measures": {},
+      "findings": []
+    },
+    {
+      "id": "accessibility",
+      "grade": "info",
+      "summary": "2 accessibility defects in 2 templates.",
+      "measures": {
+        "unlabelled-controls": 1,
+        "unnamed-buttons": 1,
+        "click-without-keyboard": 0,
+        "images-without-alt": 0,
+        "positive-tabindex": 0
+      },
+      "findings": [
+        {
+          "severity": "medium",
+          "message": "1 form control without a label",
+          "files": [
+            "src/app/components/collection-search/collection-search.component.ts:25"
+          ],
+          "count": 1
+        },
+        {
+          "severity": "medium",
+          "message": "1 button without a name",
+          "files": [
+            "src/app/layout/nav/nav.component.ts:46"
+          ],
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "ssr",
+      "grade": "info",
+      "summary": "1 browser global and 0 native DOM changes in code that runs on the server.",
+      "measures": {
+        "browser-globals": 1,
+        "dom-mutations": 0,
+        "skip-hydration": 0,
+        "missing-hydration": 0
+      },
+      "findings": [
+        {
+          "severity": "medium",
+          "message": "1 browser global in code that runs on the server (`document`)",
+          "files": [
+            "src/app/directives/infinite-scroller/infinite-scroller.directive.ts:28"
+          ],
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "circular-deps",
+      "grade": "good",
+      "summary": "No import cycles between application files.",
+      "measures": {
+        "files-in-cycles": 0
+      },
+      "findings": []
+    },
+    {
+      "id": "bundle",
+      "grade": "info",
+      "summary": "No build stats found, so the bundle size is not part of this report.",
+      "measures": {
+        "heavy-packages": 0
+      },
+      "findings": [
+        {
+          "severity": "info",
+          "message": "Run `ng build --stats-json` (or `nx build <app> --stats-json`) and re-run to include the bundle size"
+        }
+      ]
+    }
+  ],
+  "plan": {
+    "from": 17,
+    "to": 22,
+    "before": [],
+    "steps": [
+      {
+        "to": 18,
+        "items": [
+          "Convert NgModule components to standalone (5)",
+          "Move templates to built-in control flow (7)",
+          "Switch to the esbuild application builder (1)"
+        ]
+      },
+      {
+        "to": 19,
+        "items": [
+          "Convert @Input() and @Output() to signal inputs and outputs (7)"
+        ]
+      },
+      {
+        "to": 20,
+        "items": []
+      },
+      {
+        "to": 21,
+        "items": [
+          "Move unit tests from Karma to Vitest",
+          "Prepare for zoneless: move components to OnPush, then drop zone.js (11)"
+        ]
+      },
+      {
+        "to": 22,
+        "items": []
+      }
+    ]
+  }
+}

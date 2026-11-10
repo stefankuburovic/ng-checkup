@@ -310,7 +310,7 @@ On the corpus, airgap-wallet has 5 (`walletconnect.error` where the bundle has `
 - *Translations marked as not done* (`i18n-not-done`, low): state `new` or `needs-translation` (`initial` in 2.0), and the target is still the source text, as merge tools leave it. A different text under such a state was translated by someone who kept the state, and is left out.
 - *Obsolete translations* (`i18n-obsolete`, low): in a locale, and no longer in the source file.
 
-The comparison runs on the source file and not on the code, since an id without `@@` is a hash of the message. That file can be out of date, and the findings say so: run `ng extract-i18n` first. Without a source file only the states are read, and an info finding says what was not compared. A file that is missing or in a format this does not read (XMB and XTB) is listed, never treated as empty. On public repositories, the counts of missing and obsolete translations matched an independent count across 70 locales of three repositories (PeerTube, rclone-webui-angular, angular-example-app). No repository of the corpus has locales, so the snapshots do not cover this.
+The comparison runs on the source file and not on the code, since an id without `@@` is a hash of the message. That file can be out of date, and the findings say so: run `ng extract-i18n` first. Without a source file only the states are read, and an info finding says what was not compared. A file that is missing or in a format this does not read (XMB and XTB) is listed, never treated as empty. On public repositories, the counts of missing and obsolete translations matched an independent count across 70 locales of three repositories (PeerTube, rclone-webui-angular, angular-example-app). The corpus covers it with rclone-webui-angular: 52 missing, 49 not done and 52 obsolete across 29 locales, each count matched by an XML parser.
 
 ## Accessibility (`accessibility`) <a id="accessibility"></a>
 
@@ -347,7 +347,7 @@ Every attribute counts in Angular's spellings (`alt`, `[alt]`, `[attr.alt]`), co
 
 **Grading:** none. Always `info`, so it changes no score; the measures sit in the baseline, so `--fail-on regression` fails on a new one.
 
-**Checked on:** the SSR apps of the corpus (vendure-storefront, rx-angular: 0 hits, all guarded or in callbacks) and eight other public SSR repositories, where each of the hits was read by hand.
+**Checked on:** the SSR apps of the corpus, where every hit was read by hand: vendure-storefront and rx-angular (0 hits, all guarded or in callbacks), TypeFast (an `appendChild` in `ngOnInit`, one `ngSkipHydration`; its `localStorage` read sits behind `isBrowser` and stays silent), dattebayo (a `document` listener its directive's constructor adds) and ng-nest-admin (hydration commented out, a `removeChild` in `ngOnInit`, ten `ngSkipHydration`). Six more public SSR repositories gave 0 hits.
 
 ---
 
