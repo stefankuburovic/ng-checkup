@@ -182,11 +182,15 @@ export async function probeSite(address: string, options: ProbeOptions = {}): Pr
       skipped++;
     }
   }
-  return { url, finalUrl, ...(title ? { title } : {}), ...merge(found), scripts, skipped };
+  return { url, finalUrl, ...(title ? { title } : {}), ...mergeSignals(found), scripts, skipped };
 }
 
-/** The frameworks of all signals together, each once, with the best version and the first place it was seen. */
-function merge(found: Array<{ signals: Signals; evidence: string }>): Pick<SiteProbe, 'frameworks' | 'zoneJs'> {
+/**
+ * The frameworks of all signals together, each once, with the best version
+ * and the first place it was seen. Exported for the browser extension, which
+ * collects the same signals from a running page and must merge them the same way.
+ */
+export function mergeSignals(found: Array<{ signals: Signals; evidence: string }>): Pick<SiteProbe, 'frameworks' | 'zoneJs'> {
   const frameworks: DetectedFramework[] = [];
   const add = (name: DetectedFramework['name'], pick: (signals: Signals) => { version?: string } | boolean | undefined): void => {
     const hits = found.filter(({ signals }) => pick(signals));
