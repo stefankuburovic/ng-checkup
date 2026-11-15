@@ -78,6 +78,8 @@ Angular releases a major roughly every six months and supports each for 18 month
 - *Production build settings* (`production-build-issues`): the `production` configuration of each application's `build` target, laid over its options, as `ng build` reads them. Only what is written counts, except `outputHashing`, which defaults to `none`: `optimization: false` and `aot: false` (medium), `buildOptimizer: false` on the webpack builder, `sourceMap` on without `hidden: true`, no `budgets`, and `outputHashing` other than `all` or `bundles` (low). An application without a `production` configuration says nothing, since what its build uses cannot be told. Source maps are not called a mistake: the finding shows how to keep them for an error tracker and off the server.
 - *Packages in more than one major* (`duplicate-packages`): `rxjs`, `zone.js`, Angular's runtime packages and NgRx locked in two majors anywhere in the tree, from `package-lock.json` or `yarn.lock`, without installing anything. Only what reaches the app counts: npm marks what development needs, and in `yarn.lock` the tree is walked from the `dependencies` of `package.json`. A `pnpm-lock.yaml` is not read, since it does not say what only development needs. Two `rxjs` majors are two copies in the bundle and an `Observable` that is not one to the other.
 
+- *Lint setup* (`lint-setup-issues`, low): a `tslint.json` at the root or in a project when TSLint is no longer a dependency (with TSLint still installed, its end-of-life finding says it), angular-eslint on another major than Angular, whose releases follow Angular's one for one, and an ESLint setup with angular-eslint that turns on none of its template accessibility rules (`angular.configs.templateAccessibility`, `plugin:@angular-eslint/template/accessibility`, or one of those rules by name). The configs are read as text, so rules that come from a shared package the config imports are not seen.
+
 On the corpus: the source maps, budgets and file names of beaconchain-app, the source maps of ionic-conference-app (set in the options, which production inherits), and airgap-wallet's `rxjs` 6, which Ledger's libraries pull into the app beside its own 7. An Nx example's `rxjs` 6, which only a CLI prompt library uses, is left out.
 
 ---
@@ -162,6 +164,8 @@ From Angular 22, OnPush is the default, so a component without `changeDetection`
 - *Method calls in template bindings* (`template-method-calls`): a call of a method the class itself declares, or a field holding a function, in an interpolation, property binding, structural directive, block condition or `@let`. Signals (`signal`, `computed`, `input`, ...) are not methods and are not counted, nor are event handlers, `track` expressions, calls on another object (`form.get('x')`), template variables, getters or inherited methods. A cheap read costs nothing, so this is the list to look through, not to empty.
 - *Impure pipes* (`impure-pipes`): `pure: false` on a pipe this repository declares and a template uses. Some pipes need it, `push` from rx-angular for one.
 
+**The animations package** (`animations-package`, low, outside the grade): application files that import `@angular/animations` for its code (`import type` and `@angular/platform-browser/animations` do not count). Deprecated since Angular 20.2 in favour of CSS with `animate.enter` and `animate.leave`; the finding appears from Angular 20, where the replacement exists, and the measure is counted on every version. On the corpus: a `trigger()` in one component each of ng-nest-admin and scion-workbench.
+
 A literal array, and a field of the class that keeps the same items (a non-empty array literal nothing in the class writes to or mutates, or a `readonly` field holding a named constant), is left out of both loop rules. On the corpus, per repository: 0 to 80 `*ngFor`, 0 to 12 `track $index`, 0 to 41 method calls, 0 to 2 impure pipes.
 
 **Grading:** the average adoption of standalone, signal inputs and built-in control flow, counting only the areas the code uses: 80% or more is good, 40% or more is fair, below that is poor.
@@ -243,6 +247,7 @@ A file or class loaded in a way the analysis cannot see (a path built at runtime
 - **Tests that assert nothing** (`tests-without-assertions`, medium): an `it` / `test` body that calls no `expect`, no `expect*` / `assert*` / `verify*` / `check*` / `should*` helper, no function of the same file that asserts, no namespace assertion (`expect.element`, `assert.equal`), no `@ts-expect-error` (a type test asserts at compile time) and no Cypress command. `xit`, `.skip` and `.todo` are not counted.
 - **Assertions in a subscribe the test does not wait for** (`unawaited-subscribe-assertions`, low): the `expect` sits in a `.subscribe()` callback and the test takes no `done`, returns nothing (a test that returns a promise, such as `() => new Promise((done) => ...)`, is awaited by the runner), runs in no `fakeAsync` / `waitForAsync`, awaits nothing and flushes nothing (`flush`, `tick`, `expectOne`, `whenStable`, fake timers, `testScheduler.run`). With an asynchronous source the test ends first and passes without asserting; a synchronous one runs it, which the syntax cannot show.
 - **Spec files with `NO_ERRORS_SCHEMA` or `CUSTOM_ELEMENTS_SCHEMA`** (`schema-suppressed-specs`, low): a misspelt input or a component missing from `imports` passes; in `configureTestingModule` neither even applies to a standalone component's own template.
+- **Jasmine-only APIs** (`jasmine-only-apis`, low): spec lines with `jasmine.*` (`createSpy`, `createSpyObj`, `objectContaining`, the `jasmine.SpyObj<T>` type), `spyOn(...).and` or a `done` callback, which the move from Karma to Vitest rewrites by hand. Counted always, a finding only on Karma, where that move is due. On the corpus: 323 lines in scion-workbench, 3 to 8 in three others.
 
 Zone-based helpers in a zoneless app (`fakeAsync`, `waitForAsync`) are counted by [change detection](#change-detection) already. On the corpus: 3 empty tests and 16 unwaited assertions in rx-angular, 0 to 3 elsewhere.
 
@@ -459,6 +464,7 @@ By default a rule reads application code: no specs, e2e or mock files, and no ge
 | `components.decorator-inputs-outputs` | `@Input()` / `@Output()` decorators |
 | `components.hardcoded-colors` | Colour literals outside the design tokens |
 | `components.impure-pipes` | Impure pipes |
+| `components.animations-package` | Files using the `@angular/animations` package |
 | `components.legacy-control-flow` | `*ngIf` / `*ngFor` / `[ngSwitch]` uses |
 | `components.manual-subscriptions` | Manual `.subscribe()` in components and directives |
 | `components.module-components` | Components declared in NgModules |
@@ -483,6 +489,7 @@ By default a rule reads application code: no specs, e2e or mock files, and no ge
 | `state.classic-ngrx-files` | Files on classic NgRx |
 | `state.effect-decorators` | Removed `@Effect()` decorators |
 | `rules.<id>` | Places that break the config's rule `<id>` |
+| `testing.jasmine-only-apis` | Spec lines using Jasmine-only APIs |
 | `testing.schema-suppressed-specs` | Spec files with `NO_ERRORS_SCHEMA` or `CUSTOM_ELEMENTS_SCHEMA` |
 | `testing.tests-without-assertions` | Tests that assert nothing |
 | `testing.unawaited-subscribe-assertions` | Assertions in a subscribe the test does not wait for |
@@ -501,4 +508,5 @@ By default a rule reads application code: no specs, e2e or mock files, and no ge
 | `version.end-of-life-packages` | End-of-life packages |
 | `version.mismatched-angular-packages` | Angular packages on another major |
 | `version.production-build-issues` | Production build settings that cost users |
+| `version.lint-setup-issues` | TSLint leftovers, angular-eslint on another major, no template accessibility rules |
 | `version.webpack-builders` | Projects on the webpack builder |

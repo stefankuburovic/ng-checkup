@@ -20,7 +20,8 @@
         "webpack-builders": 0,
         "mismatched-angular-packages": 0,
         "production-build-issues": 0,
-        "duplicate-packages": 0
+        "duplicate-packages": 0,
+        "lint-setup-issues": 0
       },
       "findings": []
     },
@@ -116,7 +117,8 @@
         "untracked-ngfor": 0,
         "track-by-index": 12,
         "template-method-calls": 5,
-        "impure-pipes": 0
+        "impure-pipes": 0,
+        "animations-package": 1
       },
       "findings": [
         {
@@ -164,6 +166,14 @@
             "apps/workbench-testing-app/src/app/start-page/start-page.component.html:3"
           ],
           "count": 3
+        },
+        {
+          "severity": "low",
+          "message": "1 file uses the `@angular/animations` package",
+          "files": [
+            "projects/scion/workbench/src/lib/dialog/workbench-dialog.component.ts:17"
+          ],
+          "count": 1
         }
       ]
     },
@@ -230,7 +240,8 @@
         "untested-files": 216,
         "tests-without-assertions": 0,
         "unawaited-subscribe-assertions": 0,
-        "schema-suppressed-specs": 0
+        "schema-suppressed-specs": 0,
+        "jasmine-only-apis": 323
       },
       "findings": [
         {
@@ -246,6 +257,16 @@
             "apps/workbench-client-testing-app-common/src/lib/messaging-page/messaging-page.component.ts"
           ],
           "count": 216
+        },
+        {
+          "severity": "low",
+          "message": "323 lines of specs use what only Jasmine has",
+          "files": [
+            "projects/scion/workbench/src/lib/common/class-list.spec.ts:25",
+            "projects/scion/workbench/src/lib/common/dom.util.spec.ts:38",
+            "projects/scion/workbench/src/lib/desktop/desktop.spec.ts:29"
+          ],
+          "count": 35
         }
       ]
     },

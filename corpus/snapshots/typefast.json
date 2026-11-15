@@ -21,12 +21,20 @@
         "webpack-builders": 0,
         "mismatched-angular-packages": 0,
         "production-build-issues": 0,
-        "duplicate-packages": 0
+        "duplicate-packages": 0,
+        "lint-setup-issues": 1
       },
       "findings": [
         {
           "severity": "low",
           "message": "One major behind (21 → 22)"
+        },
+        {
+          "severity": "low",
+          "message": "ESLint runs angular-eslint without its template accessibility rules",
+          "files": [
+            "eslint.config.js"
+          ]
         }
       ]
     },
@@ -116,7 +124,8 @@
         "untracked-ngfor": 0,
         "track-by-index": 3,
         "template-method-calls": 5,
-        "impure-pipes": 0
+        "impure-pipes": 0,
+        "animations-package": 0
       },
       "findings": [
         {
@@ -197,7 +206,8 @@
         "untested-files": 30,
         "tests-without-assertions": 0,
         "unawaited-subscribe-assertions": 0,
-        "schema-suppressed-specs": 0
+        "schema-suppressed-specs": 0,
+        "jasmine-only-apis": 3
       },
       "findings": [
         {
@@ -217,6 +227,14 @@
         {
           "severity": "info",
           "message": "No end-to-end test setup found"
+        },
+        {
+          "severity": "low",
+          "message": "3 lines of specs use what only Jasmine has",
+          "files": [
+            "src/app/services/word.service.spec.ts:14"
+          ],
+          "count": 1
         }
       ]
     },

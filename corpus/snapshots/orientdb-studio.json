@@ -120,7 +120,8 @@
         "end-of-life-packages": 1,
         "webpack-builders": 0,
         "mismatched-angular-packages": 0,
-        "duplicate-packages": 0
+        "duplicate-packages": 0,
+        "lint-setup-issues": 1
       },
       "findings": [
         {
@@ -130,6 +131,13 @@
         {
           "severity": "high",
           "message": "`@angular/http` is end of life"
+        },
+        {
+          "severity": "low",
+          "message": "1 `tslint.json` left over without TSLint",
+          "files": [
+            "tslint.json"
+          ]
         }
       ]
     },
@@ -206,7 +214,8 @@
         "untracked-ngfor": 80,
         "track-by-index": 0,
         "template-method-calls": 37,
-        "impure-pipes": 0
+        "impure-pipes": 0,
+        "animations-package": 0
       },
       "findings": [
         {
@@ -329,7 +338,8 @@
         "untested-files": 80,
         "tests-without-assertions": 0,
         "unawaited-subscribe-assertions": 0,
-        "schema-suppressed-specs": 0
+        "schema-suppressed-specs": 0,
+        "jasmine-only-apis": 0
       },
       "findings": [
         {

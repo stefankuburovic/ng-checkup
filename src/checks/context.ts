@@ -12,6 +12,7 @@ import type { SourceFileFacts, TemplateFact } from '../scan.js';
 import type { I18nFacts } from '../i18n.js';
 import type { RuleFacts } from '../rules.js';
 import type { DuplicatePackages } from '../lockfile.js';
+import type { LintFacts } from '../lint.js';
 import type { TranslationFacts } from '../translations.js';
 import type { StylesheetFact } from '../stylesheets.js';
 import type { CheckResult, FileRef } from '../types.js';
@@ -90,6 +91,8 @@ export interface AnalysisContext {
   customRules?: RuleFacts;
   /** Runtime packages the lockfile holds in more than one major (see `readDuplicatePackages`). Undefined without a lockfile. */
   duplicatePackages?: DuplicatePackages;
+  /** TSLint and ESLint config files of the workspace (see `readLintFacts`). Absent in contexts built by hand. */
+  lint?: LintFacts;
   maxExamples: number;
 }
 

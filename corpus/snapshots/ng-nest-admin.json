@@ -22,7 +22,8 @@
         "webpack-builders": 0,
         "mismatched-angular-packages": 0,
         "production-build-issues": 0,
-        "duplicate-packages": 0
+        "duplicate-packages": 0,
+        "lint-setup-issues": 0
       },
       "findings": [
         {
@@ -99,7 +100,8 @@
         "untracked-ngfor": 0,
         "track-by-index": 0,
         "template-method-calls": 7,
-        "impure-pipes": 0
+        "impure-pipes": 0,
+        "animations-package": 1
       },
       "findings": [
         {
@@ -141,6 +143,14 @@
             "ui/src/app/core/components/json-schema/node/node.component.html:40"
           ],
           "count": 5
+        },
+        {
+          "severity": "low",
+          "message": "1 file uses the `@angular/animations` package",
+          "files": [
+            "ui/src/app/pages/aigc/aigc.component.ts:17"
+          ],
+          "count": 1
         }
       ]
     },
@@ -214,7 +224,8 @@
         "untested-files": 82,
         "tests-without-assertions": 0,
         "unawaited-subscribe-assertions": 0,
-        "schema-suppressed-specs": 0
+        "schema-suppressed-specs": 0,
+        "jasmine-only-apis": 0
       },
       "findings": [
         {

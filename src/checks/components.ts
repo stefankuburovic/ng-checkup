@@ -139,6 +139,22 @@ export function componentsCheck(context: AnalysisContext): CheckResult {
   const average = shares.reduce((sum, share) => sum + share, 0) / shares.length;
   const grade: Grade = average >= 80 ? 'good' : average >= 40 ? 'fair' : 'poor';
 
+  // `@angular/animations`, deprecated in 20.2 for CSS with `animate.enter` / `animate.leave`. Outside the grade; a finding only from Angular 20, where the replacement exists.
+  const animationFiles = application.flatMap((file) => {
+    const fact = file.imports.find((entry) => entry.specifier === '@angular/animations' && !entry.typeOnly);
+    return fact ? [{ path: file.path, line: fact.line }] : [];
+  });
+  if (animationFiles.length > 0 && major !== undefined && major >= 20) {
+    findings.push({
+      severity: 'low',
+      message: `${plural(animationFiles.length, 'file')} ${animationFiles.length === 1 ? 'uses' : 'use'} the \`@angular/animations\` package`,
+      detail:
+        'The package is deprecated since Angular 20.2. Enter and leave animations move to plain CSS with `animate.enter` and `animate.leave` in the template, and state transitions to CSS classes; without the package the animation code no longer ships to the browser. Angular\'s guide on migrating away from the animations package covers each `trigger()` shape; take it one component at a time, since each needs a look at what the animation does.',
+      files: animationFiles.slice(0, context.maxExamples),
+      count: animationFiles.length,
+    });
+  }
+
   const metrics: Metric[] = [
     { label: 'Components', value: formatCount(components.length) },
     { label: 'Standalone', value: `${standaloneShare}%`, hint: `${formatCount(ngModules)} NgModules` },
@@ -164,6 +180,7 @@ export function componentsCheck(context: AnalysisContext): CheckResult {
       { id: 'hardcoded-colors', label: 'Colour literals outside the design tokens', value: hardcodedColors },
       { id: 'unended-subscriptions', label: '.subscribe() in components and directives that nothing ends', value: unended },
       ...SPEED_RULES.map((rule) => ({ id: rule.measure, label: rule.label, value: speed[rule.key].reduce((sum, hit) => sum + hit.lines.length, 0) })),
+      { id: 'animations-package', label: 'Files using the @angular/animations package', value: animationFiles.length },
     ],
   };
 }

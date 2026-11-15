@@ -34,10 +34,21 @@ export interface TestQuality {
    * does not give.
    */
   schemaSuppressions: number[];
+  /**
+   * Lines that use what only Jasmine has, which the move from Karma to Vitest
+   * rewrites by hand: `jasmine.*` (`createSpy`, `createSpyObj`,
+   * `objectContaining`, the `jasmine.SpyObj<T>` type), `spyOn(...).and`, and
+   * a `done` callback, which Vitest does not support. Optional, so facts
+   * cached by an older version still read.
+   */
+  jasmineOnly?: number[];
 }
 
 const TEST_FUNCTIONS = new Set(['it', 'test', 'fit']);
 const SKIPPED_MODIFIERS = new Set(['skip', 'todo']);
+
+/** Tests and hooks that may take a `done` callback. */
+const DONE_CALLERS = new Set(['it', 'fit', 'test', 'beforeEach', 'afterEach', 'beforeAll', 'afterAll']);
 
 /** Helper names that assert by convention: `expect`, `expectAsync`, `assertValid`, `verify`, `checkRow`, `shouldShow`, `expectOne`. */
 const ASSERTING_NAME = /^(expect|assert|verify|check|should)/i;
@@ -106,7 +117,11 @@ export function testQualityOf(source: ts.SourceFile): TestQuality {
     return found;
   };
 
-  const quality: TestQuality = { withoutAssertions: [], unawaitedSubscribeAssertions: [], schemaSuppressions: [] };
+  const quality: TestQuality = { withoutAssertions: [], unawaitedSubscribeAssertions: [], schemaSuppressions: [], jasmineOnly: [] };
+  const jasmineLine = (node: ts.Node): void => {
+    const line = lineOf(node);
+    if (!quality.jasmineOnly!.includes(line)) quality.jasmineOnly!.push(line);
+  };
 
   const judgeTest = (call: ts.CallExpression): void => {
     const last = call.arguments[call.arguments.length - 1];
@@ -151,6 +166,16 @@ export function testQualityOf(source: ts.SourceFile): TestQuality {
       const callee = node.expression;
       if (ts.isIdentifier(callee) && TEST_FUNCTIONS.has(callee.text)) judgeTest(node);
       else if (ts.isPropertyAccessExpression(callee) && ts.isIdentifier(callee.expression) && TEST_FUNCTIONS.has(callee.expression.text) && !SKIPPED_MODIFIERS.has(callee.name.text)) judgeTest(node);
+    }
+    // `jasmine.createSpy(...)`, `jasmine.SpyObj<T>` and `spyOn(x, 'y').and.returnValue(...)`.
+    if (ts.isPropertyAccessExpression(node) && ts.isIdentifier(node.expression) && node.expression.text === 'jasmine') jasmineLine(node);
+    if (ts.isQualifiedName(node) && ts.isIdentifier(node.left) && node.left.text === 'jasmine') jasmineLine(node);
+    if (ts.isPropertyAccessExpression(node) && node.name.text === 'and' && ts.isCallExpression(node.expression) && ts.isIdentifier(node.expression.expression) && node.expression.expression.text === 'spyOn') jasmineLine(node);
+    // A `done` parameter of a test or a hook: Vitest has no such callback.
+    if (ts.isCallExpression(node) && ts.isIdentifier(node.expression) && DONE_CALLERS.has(node.expression.text)) {
+      const callback = node.arguments[node.arguments.length - 1];
+      const first = callback && (ts.isArrowFunction(callback) || ts.isFunctionExpression(callback)) ? callback.parameters[0] : undefined;
+      if (first && ts.isIdentifier(first.name) && first.name.text === 'done') jasmineLine(node);
     }
     if (ts.isIdentifier(node) && (node.text === 'NO_ERRORS_SCHEMA' || node.text === 'CUSTOM_ELEMENTS_SCHEMA') && !ts.isImportSpecifier(node.parent)) {
       const line = lineOf(node);

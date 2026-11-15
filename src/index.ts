@@ -23,6 +23,7 @@ import { ssrCheck } from './checks/ssr.js';
 import { customRulesCheck } from './checks/rules.js';
 import { importViolations, patternViolations } from './rules.js';
 import { readDuplicatePackages } from './lockfile.js';
+import { readLintFacts } from './lint.js';
 import { typeSafetyCheck } from './checks/type-safety.js';
 import { versionCheck } from './checks/version.js';
 import { cachedFacts, dependencyStamp } from './cache.js';
@@ -390,6 +391,7 @@ export async function buildContext(root: string, options: CheckupOptions): Promi
     ...(i18n ? { i18n } : {}),
     ...(customRules ? { customRules } : {}),
     ...(duplicatePackages ? { duplicatePackages } : {}),
+    lint: readLintFacts(workspace),
     latestAngular,
     ...(nextMajor ? { nextMajor } : {}),
     compatibility: dependencies.compatibility,

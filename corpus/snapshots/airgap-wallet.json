@@ -20,7 +20,8 @@
         "webpack-builders": 1,
         "mismatched-angular-packages": 0,
         "production-build-issues": 0,
-        "duplicate-packages": 1
+        "duplicate-packages": 1,
+        "lint-setup-issues": 1
       },
       "findings": [
         {
@@ -34,6 +35,13 @@
         {
           "severity": "medium",
           "message": "`protractor` is end of life"
+        },
+        {
+          "severity": "low",
+          "message": "ESLint runs angular-eslint without its template accessibility rules",
+          "files": [
+            ".eslintrc.js"
+          ]
         },
         {
           "severity": "low",
@@ -138,7 +146,8 @@
         "untracked-ngfor": 52,
         "track-by-index": 0,
         "template-method-calls": 4,
-        "impure-pipes": 1
+        "impure-pipes": 1,
+        "animations-package": 1
       },
       "findings": [
         {
@@ -316,7 +325,8 @@
         "untested-files": 101,
         "tests-without-assertions": 0,
         "unawaited-subscribe-assertions": 0,
-        "schema-suppressed-specs": 0
+        "schema-suppressed-specs": 0,
+        "jasmine-only-apis": 6
       },
       "findings": [
         {
@@ -336,6 +346,16 @@
         {
           "severity": "high",
           "message": "End-to-end tests use Protractor, which is end of life"
+        },
+        {
+          "severity": "low",
+          "message": "6 lines of specs use what only Jasmine has",
+          "files": [
+            "src/app/pages/transaction-prepare/transaction-prepare.spec.ts:165",
+            "src/app/services/account/account.provider.spec.ts:137",
+            "src/app/services/iac/custom-handlers/beacon-handler.spec.ts:9"
+          ],
+          "count": 3
         }
       ]
     },

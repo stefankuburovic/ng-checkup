@@ -20,12 +20,22 @@
         "webpack-builders": 0,
         "mismatched-angular-packages": 0,
         "production-build-issues": 0,
-        "duplicate-packages": 0
+        "duplicate-packages": 0,
+        "lint-setup-issues": 1
       },
       "findings": [
         {
           "severity": "low",
           "message": "One major behind (21 → 22)"
+        },
+        {
+          "severity": "low",
+          "message": "ESLint runs angular-eslint without its template accessibility rules",
+          "files": [
+            ".eslintrc.json",
+            "apps/rebundle-demo-e2e/.eslintrc.json",
+            "apps/rebundle-demo/.eslintrc.json"
+          ]
         }
       ]
     },
@@ -219,7 +229,8 @@
         "untracked-ngfor": 0,
         "track-by-index": 2,
         "template-method-calls": 24,
-        "impure-pipes": 2
+        "impure-pipes": 2,
+        "animations-package": 0
       },
       "findings": [
         {
@@ -381,7 +392,8 @@
         "untested-files": 1114,
         "tests-without-assertions": 3,
         "unawaited-subscribe-assertions": 16,
-        "schema-suppressed-specs": 0
+        "schema-suppressed-specs": 0,
+        "jasmine-only-apis": 31
       },
       "findings": [
         {

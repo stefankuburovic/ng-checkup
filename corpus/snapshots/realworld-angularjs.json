@@ -147,7 +147,8 @@
         "untested-files": 0,
         "tests-without-assertions": 0,
         "unawaited-subscribe-assertions": 0,
-        "schema-suppressed-specs": 0
+        "schema-suppressed-specs": 0,
+        "jasmine-only-apis": 0
       },
       "findings": []
     },

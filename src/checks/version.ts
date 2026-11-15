@@ -119,6 +119,8 @@ export function versionCheck(context: AnalysisContext): CheckResult {
       files: files.map((path) => ({ path })),
     });
   }
+  const lint = lintIssues(context);
+  for (const issue of lint) findings.push(issue.finding);
   const duplicates = context.duplicatePackages;
   if (duplicates && duplicates.packages.length > 0) {
     findings.push({
@@ -151,6 +153,7 @@ export function versionCheck(context: AnalysisContext): CheckResult {
       { id: 'mismatched-angular-packages', label: 'Angular packages on another major', value: mismatched.length },
       ...(production.length > 0 || hasProductionBuild(workspace) ? [{ id: 'production-build-issues', label: 'Production build settings that cost users', value: production.length }] : []),
       ...(duplicates ? [{ id: 'duplicate-packages', label: 'Packages installed in more than one major', value: duplicates.packages.length }] : []),
+      ...(context.lint ? [{ id: 'lint-setup-issues', label: 'Lint setup issues (TSLint leftovers, angular-eslint on another major, no template accessibility rules)', value: lint.reduce((sum, issue) => sum + issue.weight, 0) }] : []),
     ],
   };
 }
@@ -241,4 +244,62 @@ export function productionBuildIssues(workspace: WorkspaceInfo): Array<{ issue: 
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+/** The angular-eslint packages whose major follows Angular's: the umbrella package and the scoped ones. */
+const ANGULAR_ESLINT = ['angular-eslint', '@angular-eslint/eslint-plugin', '@angular-eslint/eslint-plugin-template', '@angular-eslint/builder', '@angular-eslint/schematics', '@angular-eslint/template-parser'];
+
+/**
+ * What is off in the lint setup, outside the grade: a `tslint.json` left
+ * behind after the move to ESLint (the `tslint` package itself is an
+ * end-of-life finding of its own), angular-eslint on another major than
+ * Angular, whose releases follow Angular's one for one, and an ESLint setup
+ * with angular-eslint that turns on none of its template accessibility rules.
+ * `weight` is what each adds to the measure: one per leftover file, one per
+ * other issue.
+ */
+function lintIssues(context: AnalysisContext): Array<{ finding: Finding; weight: number }> {
+  const { workspace, lint } = context;
+  if (!lint) return [];
+  const issues: Array<{ finding: Finding; weight: number }> = [];
+  if (lint.tslintConfigs.length > 0 && !('tslint' in workspace.dependencies)) {
+    issues.push({
+      weight: lint.tslintConfigs.length,
+      finding: {
+        severity: 'low',
+        message: `${plural(lint.tslintConfigs.length, '`tslint.json`', '`tslint.json` files')} left over without TSLint`,
+        detail: 'TSLint is not a dependency any more, so nothing reads these files; they only suggest rules that are not checked. Delete them, and move any rule still wanted to the ESLint config.',
+        files: lint.tslintConfigs.map((path) => ({ path })),
+      },
+    });
+  }
+  const angular = workspace.angular.major;
+  const eslintPackages = ANGULAR_ESLINT.filter((name) => name in workspace.dependencies);
+  const offMajor = eslintPackages
+    .map((name) => ({ name, major: majorOf(workspace.versions[name] ?? workspace.dependencies[name]) }))
+    .filter((entry) => entry.major !== undefined && angular !== undefined && entry.major !== angular);
+  if (offMajor.length > 0) {
+    issues.push({
+      weight: 1,
+      finding: {
+        severity: 'low',
+        message: `angular-eslint on another major than Angular ${angular}: ${offMajor.map((entry) => `\`${entry.name}\` ${entry.major}`).join(', ')}`,
+        detail: `angular-eslint releases one major per Angular major and is tested against that one, so an older one may not parse newer template syntax (control flow, \`@let\`, signal inputs) and its rules miss the newer APIs. \`ng update angular-eslint\` (or \`@angular-eslint/schematics\` on older setups) moves it with Angular.`,
+        files: [{ path: `${workspace.subfolder ? `${workspace.subfolder}/` : ''}package.json` }],
+      },
+    });
+  }
+  const eslintConfigs = lint.eslintConfigs;
+  if (eslintPackages.length > 0 && eslintConfigs.length > 0 && !eslintConfigs.some((config) => config.templateAccessibility)) {
+    issues.push({
+      weight: 1,
+      finding: {
+        severity: 'low',
+        message: 'ESLint runs angular-eslint without its template accessibility rules',
+        detail: 'angular-eslint ships rules that catch in the editor what the accessibility area finds afterwards: images without `alt`, controls without a label, click handlers without a key handler. Add `angular.configs.templateAccessibility` to the HTML block of a flat config, or `plugin:@angular-eslint/template/accessibility` to the `extends` of an `.eslintrc`. A config that takes its rules from a shared package cannot be read here, so check that package if it is one.',
+        files: eslintConfigs.slice(0, context.maxExamples).map((config) => ({ path: config.path })),
+      },
+    });
+  }
+  return issues;
 }

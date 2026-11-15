@@ -20,7 +20,8 @@
         "webpack-builders": 1,
         "mismatched-angular-packages": 0,
         "production-build-issues": 0,
-        "duplicate-packages": 0
+        "duplicate-packages": 0,
+        "lint-setup-issues": 1
       },
       "findings": [
         {
@@ -34,6 +35,13 @@
         {
           "severity": "high",
           "message": "`@angular/flex-layout` is end of life"
+        },
+        {
+          "severity": "low",
+          "message": "ESLint runs angular-eslint without its template accessibility rules",
+          "files": [
+            ".eslintrc.js"
+          ]
         }
       ]
     },
@@ -100,7 +108,8 @@
         "untracked-ngfor": 70,
         "track-by-index": 0,
         "template-method-calls": 41,
-        "impure-pipes": 0
+        "impure-pipes": 0,
+        "animations-package": 0
       },
       "findings": [
         {
@@ -259,7 +268,8 @@
         "untested-files": 357,
         "tests-without-assertions": 0,
         "unawaited-subscribe-assertions": 0,
-        "schema-suppressed-specs": 0
+        "schema-suppressed-specs": 0,
+        "jasmine-only-apis": 0
       },
       "findings": [
         {

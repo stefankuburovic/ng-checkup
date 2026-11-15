@@ -20,7 +20,8 @@
         "webpack-builders": 1,
         "mismatched-angular-packages": 0,
         "production-build-issues": 3,
-        "duplicate-packages": 0
+        "duplicate-packages": 0,
+        "lint-setup-issues": 0
       },
       "findings": [
         {
@@ -150,7 +151,8 @@
         "untracked-ngfor": 6,
         "track-by-index": 0,
         "template-method-calls": 2,
-        "impure-pipes": 0
+        "impure-pipes": 0,
+        "animations-package": 5
       },
       "findings": [
         {
@@ -277,7 +279,8 @@
         "untested-files": 15,
         "tests-without-assertions": 0,
         "unawaited-subscribe-assertions": 0,
-        "schema-suppressed-specs": 1
+        "schema-suppressed-specs": 1,
+        "jasmine-only-apis": 0
       },
       "findings": [
         {

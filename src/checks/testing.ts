@@ -107,6 +107,20 @@ export function testingCheck(context: AnalysisContext): CheckResult {
     'Both schemas turn an unknown element or property into silence, so a misspelt input or a component missing from `imports` passes the spec and fails in the app. In `configureTestingModule` they do not even apply to a standalone component\'s own template; there they only look like protection. Stub the child components or import the real ones instead.',
   );
 
+  // Jasmine-only APIs: what a move from Karma to Vitest rewrites by hand. Counted always, a finding only on Karma, where that move is due.
+  const jasmineLines = quality.reduce((sum, entry) => sum + (entry.jasmineOnly?.length ?? 0), 0);
+  if (runners.has('Karma') && jasmineLines > 0) {
+    const hits = quality.filter((entry) => (entry.jasmineOnly?.length ?? 0) > 0);
+    findings.push({
+      severity: 'low',
+      message: `${plural(jasmineLines, 'line')} of specs ${verb(jasmineLines, 'uses', 'use')} what only Jasmine has`,
+      detail:
+        '`jasmine.createSpy`, `jasmine.createSpyObj`, `jasmine.objectContaining`, the `jasmine.SpyObj<T>` type, `spyOn(...).and` and a `done` callback have no Vitest equivalent of the same name, so the move from Karma rewrites them by hand: `vi.fn()`, `vi.spyOn(...).mockReturnValue()`, `expect.objectContaining()`, `Mocked<T>`, and an `async` test instead of `done`. If the installed Angular offers a schematic for the move, run it first; this count is what to review after it.',
+      files: hits.slice(0, context.maxExamples).map((entry) => ({ path: entry.path, line: entry.jasmineOnly![0] })),
+      count: hits.length,
+    });
+  }
+
   const grade: Grade = testable.length === 0 ? 'info' : runners.has('Karma') || protractor || specs.length === 0 ? 'poor' : overall < 30 ? 'fair' : 'good';
 
   return {
@@ -127,6 +141,7 @@ export function testingCheck(context: AnalysisContext): CheckResult {
       { id: 'tests-without-assertions', label: 'Tests that assert nothing', value: withoutAssertions },
       { id: 'unawaited-subscribe-assertions', label: 'Assertions in a subscribe the test does not wait for', value: unawaited },
       { id: 'schema-suppressed-specs', label: 'Spec files with NO_ERRORS_SCHEMA or CUSTOM_ELEMENTS_SCHEMA', value: schemaSuppressed },
+      { id: 'jasmine-only-apis', label: 'Spec lines using Jasmine-only APIs', value: jasmineLines },
     ],
   };
 }

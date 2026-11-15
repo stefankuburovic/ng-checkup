@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+No score or grade changes: three new findings and measures, all outside the grade.
+
+- **Lint setup** in Angular version & tooling (`lint-setup-issues`): a `tslint.json` nothing reads any more, angular-eslint on another major than Angular, and angular-eslint without its template accessibility rules. On the corpus: orientdb-studio's leftover `tslint.json`, and seven repositories whose ESLint runs no template accessibility rule.
+- **The `@angular/animations` package** in Components & templates (`animations-package`): files that import it, deprecated since Angular 20.2; a finding from Angular 20 on.
+- **Jasmine-only APIs** in Testing (`jasmine-only-apis`): `jasmine.*`, `spyOn(...).and` and `done` callbacks, what the move from Karma to Vitest rewrites by hand; a finding on Karma projects. Every hit on the corpus was read by hand, including one a plain text search misses.
+
 ## 2.3.1 (2026-11-11)
 
 No change to any check, score or report. One addition for the browser extension:
