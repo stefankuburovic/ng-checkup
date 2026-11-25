@@ -22,12 +22,13 @@ function script(answers: string[]): { ask: (question: string) => Promise<string>
 
 describe('the settings wizard', () => {
   it('keeps every current value on Enter and offers to save', async () => {
-    const current = parseConfig({ failOn: 'regression', ignore: ['src/legacy'], rules: [{ id: 'no-moment', forbidImport: 'moment' }] }, 'f');
-    // fail-on, offline, plan, only, skip, ignore, examples, reports, remove rules, add rule, save
-    const { ask, say, transcript } = script(['', '', '', '', '', '', '', '', '', '', 'y']);
+    const current = parseConfig({ failOn: 'regression', ignore: ['src/legacy'], ignoreDependencies: ['lodash'], rules: [{ id: 'no-moment', forbidImport: 'moment' }] }, 'f');
+    // fail-on, offline, plan, only, skip, ignore, ignored dependencies, examples, reports, remove rules, add rule, save
+    const { ask, say, transcript } = script(['', '', '', '', '', '', '', '', '', '', '', 'y']);
     const result = await runWizard(current, CHECK_IDS, ask, say, 'ng-checkup.config.json');
     expect(result).toEqual({ config: current, save: true });
     expect(transcript).toContain('Paths to leave out of the analysis (src/legacy, **/generated) [src/legacy] ');
+    expect(transcript).toContain('Runtime dependencies the unused-dependencies finding leaves out (lodash, @capawesome/*) [lodash] ');
     expect(transcript.at(-1)).toBe('Save these settings to ng-checkup.config.json for the next runs? [y/N] y');
   });
 
@@ -39,6 +40,7 @@ describe('the settings wizard', () => {
       'securty', 'security,testing', // only: unknown id, then right
       '', // skip
       'src/legacy, **/generated', // ignore
+      '@capawesome/*', // ignored dependencies
       'many', '20', // examples
       'out/x.pdf', 'out/checkup.html', // reports
       'y', // add a rule
@@ -55,6 +57,7 @@ describe('the settings wizard', () => {
       offline: true,
       only: ['security', 'testing'],
       ignore: ['src/legacy', '**/generated'],
+      ignoreDependencies: ['@capawesome/*'],
       maxExamples: 20,
       reports: ['out/checkup.html'],
       rules: parseRules(
@@ -73,7 +76,7 @@ describe('the settings wizard', () => {
 
   it('removes rules and clears a list with -, and writes what it saves the way a person would', async () => {
     const current = parseConfig({ offline: true, ignore: ['x'], rules: [{ id: 'a', forbidImport: 'x' }, { id: 'b', pattern: 'y', severity: 'low' }] }, 'f');
-    const { ask, say } = script(['', 'n', '', '', '', '-', '', '', 'a', '', 'y']);
+    const { ask, say } = script(['', 'n', '', '', '', '-', '', '', '', 'a', '', 'y']);
     const { config } = await runWizard(current, CHECK_IDS, ask, say, 'c.json');
     expect(config).toEqual({ offline: false, rules: [{ id: 'b', pattern: 'y', severity: 'low' }] });
     expect(toJson(parseConfig({ rules: [{ id: 'a', forbidImport: 'x' }, { id: 'b', forbidImport: ['x', 'y'], severity: 'high' }] }, 'f'))).toEqual({

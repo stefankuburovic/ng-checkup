@@ -113,7 +113,7 @@ function unusedDependencies(context: AnalysisContext): { findings: Finding[]; me
       {
         severity: 'low',
         message: `${plural(unused.packages.length, 'runtime dependency', 'runtime dependencies')} nothing uses: ${unused.packages.map((name) => `\`${name}\``).join(', ')}`,
-        detail: 'No file imports or requires them, and neither the workspace config, a stylesheet, an HTML file, a `package.json` script nor a root config file names them. Each one still installs on every CI run and every machine, and a library left behind can hold back an upgrade. Check before removing: something may load it by a name built at runtime, or a tool may need it without saying so. A package only tests or tools use belongs in `devDependencies`. Angular\'s own packages, `tslib`, `zone.js`, `@types/*` and packages another one declares as a peer are left out.',
+        detail: 'No file imports or requires them, and neither the workspace config, a stylesheet, an HTML file, a `package.json` script nor a root config file names them. Each one still installs on every CI run and every machine, and a library left behind can hold back an upgrade. Check before removing: something may load it by a name built at runtime, or a tool may need it without saying so; leave such a package out with `ignoreDependencies` in `ng-checkup.config.json`. A package only tests or tools use belongs in `devDependencies`. Angular\'s own packages, `tslib`, `zone.js`, `@types/*` and packages another one declares as a peer are left out.',
         files: [{ path: unused.file }],
       },
     ],

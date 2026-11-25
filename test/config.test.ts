@@ -14,16 +14,17 @@ describe('loadConfig', () => {
   });
 
   it('reads every supported key', () => {
-    root = writeTemp({ 'ng-checkup.config.json': JSON.stringify({ $schema: 'x', reports: ['out/checkup.html'], failOn: 'fair', maxExamples: 2, offline: true, ignore: ['src/legacy'] }) });
-    expect(loadConfig(root).config).toEqual({ reports: ['out/checkup.html'], failOn: 'fair', maxExamples: 2, offline: true, ignore: ['src/legacy'] });
+    root = writeTemp({ 'ng-checkup.config.json': JSON.stringify({ $schema: 'x', reports: ['out/checkup.html'], failOn: 'fair', maxExamples: 2, offline: true, ignore: ['src/legacy'], ignoreDependencies: ['lodash', '@capawesome/*'] }) });
+    expect(loadConfig(root).config).toEqual({ reports: ['out/checkup.html'], failOn: 'fair', maxExamples: 2, offline: true, ignore: ['src/legacy'], ignoreDependencies: ['lodash', '@capawesome/*'] });
   });
 
   it('fails loudly on a typo, a wrong type, bad JSON or a missing --config file', () => {
-    root = writeTemp({ 'ng-checkup.config.json': '{"failon":"poor"}', 'bad.json': '{"failOn":"never"}', 'broken.json': '{', 'ext.json': '{"reports":["x.pdf"]}' });
+    root = writeTemp({ 'ng-checkup.config.json': '{"failon":"poor"}', 'bad.json': '{"failOn":"never"}', 'broken.json': '{', 'ext.json': '{"reports":["x.pdf"]}', 'deps.json': '{"ignoreDependencies":"lodash"}' });
     expect(() => loadConfig(root)).toThrow('unknown key failon');
     expect(() => loadConfig(root, join(root, 'bad.json'))).toThrow('failOn must be "poor", "fair" or "regression"');
     expect(() => loadConfig(root, join(root, 'broken.json'))).toThrow('is not valid JSON');
     expect(() => loadConfig(root, join(root, 'ext.json'))).toThrow('unknown report format for x.pdf');
+    expect(() => loadConfig(root, join(root, 'deps.json'))).toThrow('ignoreDependencies must be an array of package names');
     expect(() => loadConfig(root, join(root, 'missing.json'))).toThrow('Config file not found');
   });
 });

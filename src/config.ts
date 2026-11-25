@@ -34,6 +34,12 @@ export interface CheckupConfig {
    * everything below it; `*` stops at `/`, `**` does not.
    */
   ignore?: string[];
+  /**
+   * Runtime dependencies the unused-dependencies finding leaves out, because
+   * something loads them in a way the code does not show: `lodash`, or a whole
+   * scope, `@capawesome/*`.
+   */
+  ignoreDependencies?: string[];
   /** The baseline file, relative to the config file. Defaults to `ng-checkup.baseline.json` in the root. */
   baseline?: string;
   /** As `--plan`: add the upgrade plan to every report. */
@@ -49,7 +55,7 @@ export interface CheckupConfig {
 }
 
 /** Keys the file may contain. `$schema` is accepted so editors can attach one later. */
-const KNOWN_KEYS = new Set(['$schema', 'reports', 'failOn', 'maxExamples', 'offline', 'ignore', 'baseline', 'plan', 'attributeSelectors', 'only', 'skip', 'rules']);
+const KNOWN_KEYS = new Set(['$schema', 'reports', 'failOn', 'maxExamples', 'offline', 'ignore', 'ignoreDependencies', 'baseline', 'plan', 'attributeSelectors', 'only', 'skip', 'rules']);
 
 /**
  * Reads and validates the config file.
@@ -118,6 +124,11 @@ export function parseConfig(record: Record<string, unknown>, label: string): Che
     const ignore = record['ignore'];
     if (!Array.isArray(ignore) || !ignore.every((entry) => typeof entry === 'string')) throw new Error(`${label}: ignore must be an array of paths`);
     config.ignore = ignore;
+  }
+  if (record['ignoreDependencies'] !== undefined) {
+    const names = record['ignoreDependencies'];
+    if (!Array.isArray(names) || !names.every((entry) => typeof entry === 'string' && entry.trim() !== '')) throw new Error(`${label}: ignoreDependencies must be an array of package names`);
+    config.ignoreDependencies = names;
   }
   if (record['baseline'] !== undefined) {
     if (typeof record['baseline'] !== 'string' || record['baseline'].trim() === '') throw new Error(`${label}: baseline must be a file path`);

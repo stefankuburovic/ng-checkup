@@ -168,6 +168,8 @@ export interface CheckupOptions {
   maxExamples?: number;
   /** Paths to leave out, as in the config file's `ignore` (see `ignoreMatcher`). */
   ignore?: string[];
+  /** Package names the unused-dependencies finding leaves out, as in the config file's `ignoreDependencies`; `@scope/*` names a scope. */
+  ignoreDependencies?: string[];
   /** Add an upgrade plan from the installed Angular to the latest major. */
   plan?: boolean;
   /**

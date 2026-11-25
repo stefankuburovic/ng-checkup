@@ -126,6 +126,7 @@ npx ng-checkup-cli init --ci gitlab    # pick the CI instead of detecting it (gi
 | `maxExamples` | example files listed per finding | `--max-examples` |
 | `offline` | skip the npm lookup of the latest Angular version | `--offline` |
 | `ignore` | paths left out of the analysis; a path matches everything below it, `*` stays within a folder, `**` crosses folders | |
+| `ignoreDependencies` | runtime dependencies the unused-dependencies finding leaves out, because something loads them in a way the code does not show; a name, or `@scope/*` for a whole scope | |
 | `baseline` | the baseline file, relative to the config file (default `ng-checkup.baseline.json` in the root) | |
 | `plan` | add the upgrade plan to every run | `--plan` |
 | `attributeSelectors` | also list directives, and components with an attribute selector, that no template matches, and inputs and outputs no template binds | `--attribute-selectors` |
@@ -798,7 +799,7 @@ for (const check of report.checks) {
 await writeFile('checkup.md', renderMarkdown(report));
 ```
 
-`runCheckup` never writes anything. Its options mirror the flags (`offline`, `plan`, `attributeSelectors`, `project`, `ignore`, `only`, `skip`, `maxExamples`) and the config's `rules` (validate raw input with `parseRules`), plus `cache` from `createAnalysisCache()` to make repeated runs incremental. `renderHtml`, `renderMarkdown`, `renderSarif`, `overallScore`, `topPriorities`, `loadConfig`, `planInit` (what `init` would change, without writing it), `collectHistory` with `renderHistoryHtml` and `renderHistoryMarkdown`, and the baseline functions (`createBaseline`, `compareWithBaseline`, `baselineMeasures`, `readBaseline`, `serializeBaseline`) are exported too, along with the `Report`, `CheckResult`, `Finding` and `Grade` types. `Report` is also the schema of the JSON output.
+`runCheckup` never writes anything. Its options mirror the flags (`offline`, `plan`, `attributeSelectors`, `project`, `ignore`, `only`, `skip`, `maxExamples`) and the config's `rules` (validate raw input with `parseRules`) and `ignoreDependencies`, plus `cache` from `createAnalysisCache()` to make repeated runs incremental. `renderHtml`, `renderMarkdown`, `renderSarif`, `overallScore`, `topPriorities`, `loadConfig`, `planInit` (what `init` would change, without writing it), `collectHistory` with `renderHistoryHtml` and `renderHistoryMarkdown`, and the baseline functions (`createBaseline`, `compareWithBaseline`, `baselineMeasures`, `readBaseline`, `serializeBaseline`) are exported too, along with the `Report`, `CheckResult`, `Finding` and `Grade` types. `Report` is also the schema of the JSON output.
 
 ## What leaves your machine
 

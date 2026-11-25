@@ -394,7 +394,7 @@ export async function buildContext(root: string, options: CheckupOptions): Promi
     ...(duplicatePackages ? { duplicatePackages } : {}),
     lint: readLintFacts(workspace),
     ...((): { unusedDependencies?: ReturnType<typeof readUnusedDependencies> } => {
-      const unusedDependencies = readUnusedDependencies(workspace, sources, [...files.stylesheets, ...files.html, ...files.javascript]);
+      const unusedDependencies = readUnusedDependencies(workspace, sources, [...files.stylesheets, ...files.html, ...files.javascript], options.ignoreDependencies);
       return unusedDependencies ? { unusedDependencies } : {};
     })(),
     latestAngular,

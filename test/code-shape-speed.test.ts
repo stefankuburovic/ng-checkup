@@ -108,9 +108,9 @@ describe('unused dependencies', () => {
   let root = '';
   afterEach(() => root && removeTemp(root));
 
-  const dependencies = async (files: Record<string, string>) => {
+  const dependencies = async (files: Record<string, string>, ignoreDependencies?: string[]) => {
     root = writeTemp({ 'angular.json': angularJson, 'src/main.ts': "import { a } from 'used-lib/sub';\nconsole.log(a);\n", ...files });
-    return (await runCheckup(root, { offline: true })).checks.find((entry) => entry.id === 'dependencies')!;
+    return (await runCheckup(root, { offline: true, ...(ignoreDependencies ? { ignoreDependencies } : {}) })).checks.find((entry) => entry.id === 'dependencies')!;
   };
 
   const declared = {
@@ -142,6 +142,14 @@ describe('unused dependencies', () => {
     const lock = JSON.stringify({ packages: { '': {}, 'node_modules/host-lib': { peerDependencies: { 'peer-lib': '*' } } } });
     const check = await dependencies({ ...workspace, 'package-lock.json': lock });
     expect(check.measures).toContainEqual(expect.objectContaining({ id: 'unused-dependencies', value: 1 }));
+  });
+
+  it('leaves out what the config names, by package or by scope', async () => {
+    const files = { ...workspace, 'package.json': JSON.stringify({ dependencies: { ...declared, '@capawesome/badge': '1.0.0' } }), 'node_modules/host-lib/package.json': JSON.stringify({ peerDependencies: { 'peer-lib': '*' } }) };
+    expect((await dependencies(files)).measures).toContainEqual(expect.objectContaining({ id: 'unused-dependencies', value: 2 }));
+    removeTemp(root);
+    const check = await dependencies(files, ['left-over', '@capawesome/*']);
+    expect(check.measures).toContainEqual(expect.objectContaining({ id: 'unused-dependencies', value: 0 }));
   });
 
   it('says nothing when the peers cannot be read', async () => {

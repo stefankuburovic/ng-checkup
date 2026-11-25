@@ -87,9 +87,10 @@ function peersOf(root: string, declared: string[]): Set<string> | undefined {
  * so the finding says to check before removing.
  *
  * @param texts Every stylesheet, HTML and JavaScript file the walk found, as absolute paths.
+ * @param ignored Names the config leaves out (`ignoreDependencies`); `@scope/*` names a whole scope.
  * @returns Undefined without a `package.json`, or when the peers cannot be read.
  */
-export function readUnusedDependencies(workspace: WorkspaceInfo, sources: SourceFileFacts[], texts: string[]): UnusedDependencies | undefined {
+export function readUnusedDependencies(workspace: WorkspaceInfo, sources: SourceFileFacts[], texts: string[], ignored: string[] = []): UnusedDependencies | undefined {
   const root = workspace.root;
   const packageJson = readJson(join(root, 'package.json'));
   if (!packageJson) return undefined;
@@ -99,7 +100,7 @@ export function readUnusedDependencies(workspace: WorkspaceInfo, sources: Source
   if (!peers) return undefined;
   // In a Capacitor project its own packages are the platforms and the native plugins `cap sync` links.
   const capacitor = CAPACITOR_CONFIG.some((name) => existsSync(join(root, name)));
-  let candidates = production.filter((name) => !isImplicit(name) && !peers.has(name) && !(capacitor && name.startsWith('@capacitor/')));
+  let candidates = production.filter((name) => !isImplicit(name) && !peers.has(name) && !(capacitor && name.startsWith('@capacitor/')) && !isIgnored(name, ignored));
   if (candidates.length === 0) return { file: report(workspace, 'package.json'), packages: [] };
 
   const imported = (name: string): boolean => sources.some((file) => file.imports.some((fact) => fact.specifier === name || fact.specifier.startsWith(`${name}/`) || fact.specifier.endsWith(`/node_modules/${name}`) || fact.specifier.includes(`/node_modules/${name}/`)));
@@ -120,6 +121,11 @@ export function readUnusedDependencies(workspace: WorkspaceInfo, sources: Source
     return named.some((text) => pattern.test(text));
   };
   return { file: report(workspace, 'package.json'), packages: candidates.filter((name) => !mentions(name)).sort() };
+}
+
+/** Whether the config leaves a package out: by its name, or by its scope as `@scope/*`. */
+function isIgnored(name: string, ignored: string[]): boolean {
+  return ignored.some((entry) => entry === name || (entry.endsWith('/*') && name.startsWith(entry.slice(0, -1))));
 }
 
 function readdirSafe(directory: string): string[] {

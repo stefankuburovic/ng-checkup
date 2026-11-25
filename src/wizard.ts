@@ -41,6 +41,7 @@ export async function runWizard(current: CheckupConfig, checkIds: readonly strin
   const only = await list(ask, say, 'Report only these areas (empty for all)', current.only, (id) => (checkIds.includes(id) ? undefined : `no area named ${id}`));
   const skip = await list(ask, say, 'Leave out these areas', current.skip, (id) => (checkIds.includes(id) ? undefined : `no area named ${id}`));
   const ignore = await list(ask, say, 'Paths to leave out of the analysis (src/legacy, **/generated)', current.ignore);
+  const ignoreDependencies = await list(ask, say, 'Runtime dependencies the unused-dependencies finding leaves out (lodash, @capawesome/*)', current.ignoreDependencies);
   const maxExamples = await whole(ask, say, 'Example files per finding', current.maxExamples ?? 5);
   const reports = await list(ask, say, 'Report files to write (checkup.html, checkup.md, checkup.json)', current.reports, (path) => (isReportPath(path) ? undefined : `${path} names no report format`));
   const rules = await editRules(ask, say, current.rules ?? []);
@@ -54,6 +55,7 @@ export async function runWizard(current: CheckupConfig, checkIds: readonly strin
   assign(config, 'only', only);
   assign(config, 'skip', skip);
   assign(config, 'ignore', ignore);
+  assign(config, 'ignoreDependencies', ignoreDependencies);
   assign(config, 'reports', reports);
   assign(config, 'rules', rules.length > 0 ? rules : undefined);
   // The same validation as the file, so a saved config always loads.

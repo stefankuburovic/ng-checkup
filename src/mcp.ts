@@ -100,8 +100,8 @@ export function serveMcp(input: Readable, output: Writable, log: (line: string) 
     let cache = caches.get(root);
     if (!cache) caches.set(root, (cache = createAnalysisCache()));
     // The config's rules belong to the project, so an agent sees the same custom-rules area as the CLI; it is re-read on every call.
-    const { rules } = loadConfig(root).config;
-    return runCheckup(root, { offline: args['online'] !== true, maxExamples: AGENT_EXAMPLES, cache, ...(rules ? { rules } : {}), ...extra });
+    const { rules, ignoreDependencies } = loadConfig(root).config;
+    return runCheckup(root, { offline: args['online'] !== true, maxExamples: AGENT_EXAMPLES, cache, ...(rules ? { rules } : {}), ...(ignoreDependencies ? { ignoreDependencies } : {}), ...extra });
   };
 
   const call = async (name: string, args: Record<string, unknown>): Promise<string> => {

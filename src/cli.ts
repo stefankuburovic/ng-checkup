@@ -276,6 +276,7 @@ export interface RunSettings {
   plan: boolean;
   attributeSelectors: boolean;
   ignore?: string[];
+  ignoreDependencies?: string[];
   only?: string[];
   skip?: string[];
   rules?: CheckupConfig['rules'];
@@ -423,6 +424,7 @@ export function resolveSettings(args: CliArguments, config: CheckupConfig, confi
     plan: args.plan || (config.plan ?? false),
     attributeSelectors: args.attributeSelectors || (config.attributeSelectors ?? false),
     ignore: config.ignore,
+    ...(config.ignoreDependencies ? { ignoreDependencies: config.ignoreDependencies } : {}),
     only: args.only ?? config.only,
     skip: args.skip ?? config.skip,
     ...(config.rules ? { rules: config.rules } : {}),
@@ -682,7 +684,7 @@ async function mainCheckup(parsed: CliArguments, rootLabel?: string): Promise<nu
   let report: Report;
   let full: Report;
   try {
-    full = await runCheckup(parsed.root, { offline: settings.offline, maxExamples: examplesToCollect(settings), ignore: analysisIgnores(parsed.root, settings), plan: settings.plan, attributeSelectors: settings.attributeSelectors, project: parsed.project, only: settings.only, skip: settings.skip, since: parsed.since, ...(settings.rules ? { rules: settings.rules } : {}) });
+    full = await runCheckup(parsed.root, { offline: settings.offline, maxExamples: examplesToCollect(settings), ignore: analysisIgnores(parsed.root, settings), plan: settings.plan, attributeSelectors: settings.attributeSelectors, project: parsed.project, only: settings.only, skip: settings.skip, since: parsed.since, ...(settings.rules ? { rules: settings.rules } : {}), ...(settings.ignoreDependencies ? { ignoreDependencies: settings.ignoreDependencies } : {}) });
   } catch (error) {
     if (error instanceof ProjectNotFoundError || error instanceof UnknownCheckError || error instanceof SinceError || error instanceof RuleTimeoutError) return usageError(error);
     throw error;
@@ -715,6 +717,7 @@ async function mainCheckup(parsed: CliArguments, rootLabel?: string): Promise<nu
         ignore: analysisIgnores(parsed.root, settings),
         only: settings.only,
         skip: settings.skip,
+        ...(settings.ignoreDependencies ? { ignoreDependencies: settings.ignoreDependencies } : {}),
         onProgress: (done, total, label) => {
           if (progress) process.stderr.write(`\r\u001b[2KHistory ${done + 1}/${total}: ${label}`);
         },
@@ -795,7 +798,7 @@ async function mainWatch(parsed: CliArguments, initial: RunSettings): Promise<nu
     run: async () => {
       const { config, directory } = loadRunConfig(parsed.root, parsed.config, parsed.inlineConfig, parsed.configOverride);
       const settings = resolveSettings(parsed, config, directory);
-      const full = await runCheckup(parsed.root, { offline: settings.offline, maxExamples: examplesToCollect(settings), ignore: analysisIgnores(parsed.root, settings), plan: settings.plan, attributeSelectors: settings.attributeSelectors, project: parsed.project, only: settings.only, skip: settings.skip, since: parsed.since, cache, ...(settings.rules ? { rules: settings.rules } : {}) });
+      const full = await runCheckup(parsed.root, { offline: settings.offline, maxExamples: examplesToCollect(settings), ignore: analysisIgnores(parsed.root, settings), plan: settings.plan, attributeSelectors: settings.attributeSelectors, project: parsed.project, only: settings.only, skip: settings.skip, since: parsed.since, cache, ...(settings.rules ? { rules: settings.rules } : {}), ...(settings.ignoreDependencies ? { ignoreDependencies: settings.ignoreDependencies } : {}) });
       const report = capExamples(full, settings.maxExamples);
       const baseline = applicableBaseline(readBaseline(settings.baselinePath), parsed.project);
       if (baseline) report.baseline = compareWithBaseline(report, baseline, settings.baselinePath, parsed.project);
@@ -859,7 +862,7 @@ export async function writeBaseline(args: BaselineArguments): Promise<string> {
   const { config, directory } = loadRunConfig(args.root, args.config, args.inlineConfig);
   const path = config.baseline ? resolve(directory, config.baseline) : join(args.root, BASELINE_FILE);
   const previous = readBaseline(path);
-  const report = await runCheckup(args.root, { offline: true, ignore: config.ignore, only: config.only, skip: config.skip, attributeSelectors: config.attributeSelectors ?? false, ...(config.rules ? { rules: config.rules } : {}) });
+  const report = await runCheckup(args.root, { offline: true, ignore: config.ignore, only: config.only, skip: config.skip, attributeSelectors: config.attributeSelectors ?? false, ...(config.rules ? { rules: config.rules } : {}), ...(config.ignoreDependencies ? { ignoreDependencies: config.ignoreDependencies } : {}) });
   const next = createBaseline(report);
   const increases = baselineIncreases(previous, next);
   if (increases.length > 0 && !args.force) {
@@ -991,6 +994,7 @@ async function mainHistory(argv: string[]): Promise<number> {
       only: config.only,
       skip: config.skip,
       ...(config.rules ? { rules: config.rules } : {}),
+      ...(config.ignoreDependencies ? { ignoreDependencies: config.ignoreDependencies } : {}),
       onProgress: (done, total, label) => {
         if (progress) process.stderr.write(`\r\u001b[2KChecking ${done + 1}/${total}: ${label}`);
       },
