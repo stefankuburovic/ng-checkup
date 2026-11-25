@@ -70,7 +70,9 @@
       "id": "dependencies",
       "grade": "info",
       "summary": "Dependencies are not installed and the npm registry was not used, so the packages that depend on Angular could not be read.",
-      "measures": {},
+      "measures": {
+        "unused-dependencies": 0
+      },
       "findings": [
         {
           "severity": "info",
@@ -124,7 +126,10 @@
         "untracked-ngfor": 0,
         "track-by-index": 3,
         "template-method-calls": 5,
+        "template-getter-calls": 0,
         "impure-pipes": 0,
+        "unoptimized-images": 2,
+        "nested-subscriptions": 0,
         "animations-package": 0
       },
       "findings": [
@@ -169,6 +174,15 @@
             "src/app/components/preferences/preferences.component.html:84"
           ],
           "count": 1
+        },
+        {
+          "severity": "low",
+          "message": "2 `<img>`s without `NgOptimizedImage`",
+          "files": [
+            "src/app/components/pages/about-page/about-page.component.html:188",
+            "src/app/components/pages/feedback-page/feedback-page.component.html:28"
+          ],
+          "count": 2
         }
       ]
     },
@@ -192,11 +206,21 @@
         "very-large-files": 0,
         "constructor-injection": 0,
         "class-guards": 0,
+        "complex-functions": 1,
         "unused-files": 0,
         "unused-components": 0,
         "unused-pipes": 0
       },
-      "findings": []
+      "findings": [
+        {
+          "severity": "low",
+          "message": "1 function with a cognitive complexity above 15",
+          "files": [
+            "src/app/components/typer/typer.component.ts:221"
+          ],
+          "count": 1
+        }
+      ]
     },
     {
       "id": "testing",

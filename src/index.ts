@@ -24,6 +24,7 @@ import { customRulesCheck } from './checks/rules.js';
 import { importViolations, patternViolations } from './rules.js';
 import { readDuplicatePackages } from './lockfile.js';
 import { readLintFacts } from './lint.js';
+import { readUnusedDependencies } from './unused-deps.js';
 import { typeSafetyCheck } from './checks/type-safety.js';
 import { versionCheck } from './checks/version.js';
 import { cachedFacts, dependencyStamp } from './cache.js';
@@ -392,6 +393,10 @@ export async function buildContext(root: string, options: CheckupOptions): Promi
     ...(customRules ? { customRules } : {}),
     ...(duplicatePackages ? { duplicatePackages } : {}),
     lint: readLintFacts(workspace),
+    ...((): { unusedDependencies?: ReturnType<typeof readUnusedDependencies> } => {
+      const unusedDependencies = readUnusedDependencies(workspace, sources, [...files.stylesheets, ...files.html, ...files.javascript]);
+      return unusedDependencies ? { unusedDependencies } : {};
+    })(),
     latestAngular,
     ...(nextMajor ? { nextMajor } : {}),
     compatibility: dependencies.compatibility,

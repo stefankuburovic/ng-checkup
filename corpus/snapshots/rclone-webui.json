@@ -49,11 +49,20 @@
       "id": "dependencies",
       "grade": "info",
       "summary": "Dependencies are not installed and the npm registry was not used, so the packages that depend on Angular could not be read.",
-      "measures": {},
+      "measures": {
+        "unused-dependencies": 1
+      },
       "findings": [
         {
           "severity": "info",
           "message": "Install the dependencies, or run without --offline to read each package from the npm registry"
+        },
+        {
+          "severity": "low",
+          "message": "1 runtime dependency nothing uses: `normalize.css`",
+          "files": [
+            "package.json"
+          ]
         }
       ]
     },
@@ -97,7 +106,10 @@
         "untracked-ngfor": 15,
         "track-by-index": 0,
         "template-method-calls": 0,
+        "template-getter-calls": 0,
         "impure-pipes": 0,
+        "unoptimized-images": 0,
+        "nested-subscriptions": 0,
         "animations-package": 0
       },
       "findings": [
@@ -182,11 +194,20 @@
         "very-large-files": 0,
         "constructor-injection": 28,
         "class-guards": 0,
+        "complex-functions": 1,
         "unused-files": 1,
         "unused-components": 1,
         "unused-pipes": 0
       },
       "findings": [
+        {
+          "severity": "low",
+          "message": "1 function with a cognitive complexity above 15",
+          "files": [
+            "src/app/features/functions/mount/mount.component.ts:35"
+          ],
+          "count": 1
+        },
         {
           "severity": "low",
           "message": "1 file nothing imports",

@@ -2,11 +2,16 @@
 
 ## Unreleased
 
-No score or grade changes: three new findings and measures, all outside the grade.
+No score or grade changes: eight new findings and measures, all outside the grade.
 
 - **Lint setup** in Angular version & tooling (`lint-setup-issues`): a `tslint.json` nothing reads any more, angular-eslint on another major than Angular, and angular-eslint without its template accessibility rules. On the corpus: orientdb-studio's leftover `tslint.json`, and seven repositories whose ESLint runs no template accessibility rule.
 - **The `@angular/animations` package** in Components & templates (`animations-package`): files that import it, deprecated since Angular 20.2; a finding from Angular 20 on.
 - **Jasmine-only APIs** in Testing (`jasmine-only-apis`): `jasmine.*`, `spyOn(...).and` and `done` callbacks, what the move from Karma to Vitest rewrites by hand; a finding on Karma projects. Every hit on the corpus was read by hand, including one a plain text search misses.
+- **Cognitive complexity** in Architecture (`complex-functions`): functions above 15, the five worst named, computed exactly as eslint-plugin-sonarjs 4 computes `cognitive-complexity`, so the numbers can be checked against it; a hotspot also names its most complex function. On the corpus the counts match the plugin's function for function, apart from files that turn ESLint off with a comment.
+- **Nested subscriptions** in Components & templates (`nested-subscriptions`): a `.subscribe()` with another inside, in any application file. 181 in go-data, read by hand.
+- **Expensive getters in template bindings** (`template-getter-calls`): a getter that loops or filters, maps, sorts, reduces or finds, read from a binding, so it runs on every check.
+- **`<img>` without `NgOptimizedImage`** (`unoptimized-images`): `src` or `[src]` with no `ngSrc`, `data:` and `blob:` left out; a finding from Angular 15.
+- **Unused dependencies** in Third-party compatibility (`unused-dependencies`): runtime dependencies no file imports and no config, stylesheet, HTML, script or native Capacitor file names; peers of other packages are left out, and without `node_modules` or `package-lock.json` the check says nothing. On the corpus: 30 packages in nine repositories, each read by hand, after three kinds of false positive were fixed (Capacitor plugins the native side links, `tsconfig` path aliases, a package imported through another's `node_modules`).
 
 ## 2.3.1 (2026-11-11)
 

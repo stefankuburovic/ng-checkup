@@ -78,11 +78,20 @@
       "id": "dependencies",
       "grade": "info",
       "summary": "Dependencies are not installed and the npm registry was not used, so the packages that depend on Angular could not be read.",
-      "measures": {},
+      "measures": {
+        "unused-dependencies": 9
+      },
       "findings": [
         {
           "severity": "info",
           "message": "Install the dependencies, or run without --offline to read each package from the npm registry"
+        },
+        {
+          "severity": "low",
+          "message": "9 runtime dependencies nothing uses: `@ionic-native/barcode-scanner`, `@ionic-native/keyboard`, `@ionic-native/qr-scanner`, `@sentry/browser`, `@stablelib/utf8`, `axios`, `core-js`, `es6-promise-plugin`, `tiny-secp256k1`",
+          "files": [
+            "package.json"
+          ]
         }
       ]
     },
@@ -146,7 +155,10 @@
         "untracked-ngfor": 52,
         "track-by-index": 0,
         "template-method-calls": 4,
+        "template-getter-calls": 0,
         "impure-pipes": 1,
+        "unoptimized-images": 41,
+        "nested-subscriptions": 0,
         "animations-package": 1
       },
       "findings": [
@@ -226,6 +238,16 @@
             "src/app/pipes/fiat-currency-symbol/fiat-currency-symbol.pipe.ts:4"
           ],
           "count": 1
+        },
+        {
+          "severity": "low",
+          "message": "41 `<img>`s without `NgOptimizedImage`",
+          "files": [
+            "src/app/pages/account-import-onboarding/account-import-onboarding.html:41",
+            "src/app/pages/interaction-selection/interaction-selection.html:19",
+            "src/app/pages/introduction/introduction.html:29"
+          ],
+          "count": 22
         }
       ]
     },
@@ -270,6 +292,7 @@
         "very-large-files": 0,
         "constructor-injection": 112,
         "class-guards": 0,
+        "complex-functions": 9,
         "unused-files": 4,
         "unused-components": 5,
         "unused-pipes": 0
@@ -284,6 +307,16 @@
             "src/app/extensions/delegation/ICPDelegationExtensions.ts"
           ],
           "count": 7
+        },
+        {
+          "severity": "low",
+          "message": "9 functions with a cognitive complexity above 15",
+          "files": [
+            "src/app/extensions/delegation/PolkadotDelegationExtensions.ts:375",
+            "src/app/pages/walletconnect/walletconnect.page.ts:111",
+            "src/app/components/transaction-warning/transaction-warning.component.ts:15"
+          ],
+          "count": 9
         },
         {
           "severity": "low",

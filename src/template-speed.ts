@@ -32,7 +32,20 @@ export interface TemplateSpeedFacts {
   indexTrackedLoops: TemplateLoop[];
   /** Bare calls in interpolations, property bindings, structural directives and block conditions. */
   calls: TemplateCall[];
+  /**
+   * Bare names read, not called, in the same places: `total`, `this.total`.
+   * The components check keeps those the owning class declares as a getter
+   * that does real work. Optional for facts cached by an older version.
+   */
+  reads?: TemplateCall[];
+  /** Lines of `<img>` with `src` or `[src]` and no `ngSrc`, where the address is not a `data:` or `blob:` literal. Optional, as `reads`. */
+  images?: number[];
 }
+
+/** A root name not followed by `(`, `this.` allowed, never after a `.`, `?.` or a pipe's `|`. */
+const READ = /(?<![\w$.]|\?\.)(?:this\s*\.\s*)?([A-Za-z_$][\w$]*)\b(?!\s*[(:]|\s*=>)/g;
+/** Names that are syntax, not class members. */
+const NOT_MEMBERS = new Set(['true', 'false', 'null', 'undefined', 'this', 'typeof', 'in', 'instanceof', 'new', 'void', 'let', 'of', 'as', 'track', 'when', 'else', 'if']);
 
 /** A root call, `this.` allowed: `a.b()` and `a?.b()` are calls on something the class may not own. */
 const CALL = /(?<![\w$]|\.\s*)(?:this\s*\.\s*)?([A-Za-z_$][\w$]*)\s*\(/g;
@@ -65,14 +78,22 @@ function closingParen(text: string, from: number): number | undefined {
 export function templateSpeedOf(template: string): TemplateSpeedFacts {
   const text = withoutHtmlComments(template);
   const lineAt = (offset: number): number => text.slice(0, offset).split('\n').length;
-  const facts: TemplateSpeedFacts = { untrackedLoops: [], indexTrackedLoops: [], calls: [] };
+  const facts: TemplateSpeedFacts = { untrackedLoops: [], indexTrackedLoops: [], calls: [], reads: [], images: [] };
   // Template variables shadow the class, wherever in the template they are declared: an `item()` might be either, so it is not judged.
   const locals = new Set<string>();
 
   const readCalls = (expression: string, offset: number): void => {
-    for (const match of withoutStrings(expression).matchAll(CALL)) {
+    const masked = withoutStrings(expression);
+    for (const match of masked.matchAll(CALL)) {
       const name = match[1]!;
       if (name !== '$any') facts.calls.push({ name, line: lineAt(offset + match.index + match[0].indexOf(name)) });
+    }
+    for (const match of masked.matchAll(READ)) {
+      const name = match[1]!;
+      // A pipe name after a single `|` (`value | date`) is not a read.
+      const before = masked.slice(0, match.index).trimEnd();
+      if (NOT_MEMBERS.has(name) || /(?<!\|)\|$/.test(before) || /^\d/.test(name)) continue;
+      facts.reads!.push({ name, line: lineAt(offset + match.index + match[0].indexOf(name)) });
     }
   };
   const readLocals = (microsyntax: string): void => {
@@ -87,6 +108,12 @@ export function templateSpeedOf(template: string): TemplateSpeedFacts {
       const quoted = match[4] === undefined && (match[2] !== undefined || match[3] !== undefined);
       return { name: match[1]!, value, offset: start + match.index + match[0].length - value.length - (quoted ? 1 : 0) };
     });
+    if (tag[2]!.toLowerCase() === 'img') {
+      const names = attributes.map((attribute) => attribute.name);
+      const source = attributes.find((attribute) => attribute.name === 'src' || attribute.name === '[src]' || attribute.name === 'bind-src');
+      const inline = source && source.name === 'src' && /^\s*(?:data|blob):/i.test(source.value);
+      if (source && !inline && !names.includes('ngSrc') && !names.includes('[ngSrc]')) facts.images!.push(lineAt(tag.index));
+    }
     for (const { name, value, offset } of attributes) {
       if (name.startsWith('#')) locals.add(name.slice(1));
       else if (name.startsWith('let-')) locals.add(name.slice(4));
@@ -146,5 +173,6 @@ export function templateSpeedOf(template: string): TemplateSpeedFacts {
   }
 
   facts.calls = facts.calls.filter((call) => !locals.has(call.name));
+  facts.reads = facts.reads!.filter((read) => !locals.has(read.name));
   return facts;
 }

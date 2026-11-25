@@ -59,7 +59,9 @@
       "id": "dependencies",
       "grade": "info",
       "summary": "Dependencies are not installed and the npm registry was not used, so the packages that depend on Angular could not be read.",
-      "measures": {},
+      "measures": {
+        "unused-dependencies": 0
+      },
       "findings": [
         {
           "severity": "info",
@@ -117,7 +119,10 @@
         "untracked-ngfor": 0,
         "track-by-index": 12,
         "template-method-calls": 5,
+        "template-getter-calls": 0,
         "impure-pipes": 0,
+        "unoptimized-images": 1,
+        "nested-subscriptions": 0,
         "animations-package": 1
       },
       "findings": [
@@ -169,6 +174,14 @@
         },
         {
           "severity": "low",
+          "message": "1 `<img>` without `NgOptimizedImage`",
+          "files": [
+            "apps/workbench-testing-app/src/app/start-page/start-page.component.html:1"
+          ],
+          "count": 1
+        },
+        {
+          "severity": "low",
           "message": "1 file uses the `@angular/animations` package",
           "files": [
             "projects/scion/workbench/src/lib/dialog/workbench-dialog.component.ts:17"
@@ -206,6 +219,7 @@
         "very-large-files": 1,
         "constructor-injection": 0,
         "class-guards": 0,
+        "complex-functions": 3,
         "unused-files": 5,
         "unused-components": 0,
         "unused-pipes": 0
@@ -219,6 +233,16 @@
             "projects/scion/e2e-testing/src/matcher/to-equal-workbench-layout.matcher.ts"
           ],
           "count": 2
+        },
+        {
+          "severity": "low",
+          "message": "3 functions with a cognitive complexity above 15",
+          "files": [
+            "projects/scion/workbench/src/lib/view-dnd/view-drop-zone.directive.ts:215",
+            "projects/scion/workbench/src/lib/routing/ɵworkbench-router.service.ts:245",
+            "projects/scion/workbench/src/lib/layout/ɵworkbench-layout.ts:1158"
+          ],
+          "count": 3
         },
         {
           "severity": "low",

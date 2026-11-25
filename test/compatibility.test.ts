@@ -39,6 +39,8 @@ describe('readCompatibility (offline)', () => {
       '`ngx-broken` 3.2.1 does not accept Angular 15',
       '`ngx-old` 3.2.1 supports Angular up to 15: it blocks the step to 16',
       'Run without --offline to find the releases that support newer Angular versions',
+      // Nothing in the fixture imports them.
+      '2 runtime dependencies nothing uses: `ngx-broken`, `ngx-old`',
     ]);
     expect(check.measures).toContainEqual({ id: 'peer-mismatches', label: 'Packages that do not accept the installed Angular', value: 1 });
   });

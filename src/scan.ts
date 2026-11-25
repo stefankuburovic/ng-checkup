@@ -9,6 +9,7 @@ import { accessibilityOf, type AccessibilityFacts } from './accessibility.js';
 import { translationKeysInCode, translationKeysInTemplate, type TranslationKeyUse } from './translations.js';
 import { skipHydrationLines, ssrFactsOf, type SsrFacts } from './ssr.js';
 import { templateSpeedOf, type TemplateSpeedFacts } from './template-speed.js';
+import { COMPLEXITY_THRESHOLD, functionComplexities, nestedSubscribeLines, type FunctionComplexity } from './code-shape.js';
 import { withoutHtmlComments } from './template-text.js';
 
 /** One name brought in by an import or re-export. */
@@ -76,6 +77,8 @@ export interface ComponentFact {
   methods?: string[];
   /** Array fields that hold the same items for good (see `constantArraysOf`). */
   constantArrays?: string[];
+  /** Getters that do real work on every read: a loop, or `filter`, `map`, `flatMap`, `sort`, `reduce` or `find` in the body. */
+  expensiveGetters?: string[];
 }
 
 /**
@@ -244,6 +247,12 @@ export interface SourceFileFacts {
    * keep a destroyed component alive.
    */
   manualSubscribes: Array<{ line: number; bound: boolean; unended: boolean }>;
+  /** Lines of `.subscribe()` calls with another one in a callback (see `nestedSubscribeLines`). Optional for facts cached by an older version. */
+  nestedSubscribes?: number[];
+  /** Functions whose cognitive complexity is above `COMPLEXITY_THRESHOLD`, most complex first (see `functionComplexities`). */
+  complexFunctions?: FunctionComplexity[];
+  /** The highest cognitive complexity of any function in the file, 0 without functions. */
+  maxComplexity?: number;
   /** Lines of every `x!` non-null assertion. */
   nonNullLines: number[];
   /** `x!: T` property declarations, which skip definite-assignment checking. */
@@ -370,7 +379,13 @@ export function scanSourceFile(root: string, absolutePath: string): SourceFileFa
     translationKeys: translationKeysInCode(source),
     ssr: ssrFactsOf(source, path),
     ...(isSpecFile(path) ? { testQuality: testQualityOf(source) } : {}),
-  };  const anyExempt = lintExemptLines(text, '@typescript-eslint/no-explicit-any');
+    nestedSubscribes: nestedSubscribeLines(source),
+  };
+  {
+    const complexities = functionComplexities(source);
+    facts.maxComplexity = complexities.reduce((max, entry) => Math.max(max, entry.complexity), 0);
+    facts.complexFunctions = complexities.filter((entry) => entry.complexity > COMPLEXITY_THRESHOLD).sort((left, right) => right.complexity - left.complexity);
+  }  const anyExempt = lintExemptLines(text, '@typescript-eslint/no-explicit-any');
 
 
   /** Imported bindings by local name: what `signal` in this file actually refers to. */
@@ -970,7 +985,7 @@ function shiftLines(facts: AccessibilityFacts, offset: number): AccessibilityFac
 /** Moves every line of an inline template's speed facts by `offset`, the 0-based line its string starts on. */
 function shiftSpeedLines(facts: TemplateSpeedFacts, offset: number): TemplateSpeedFacts {
   const shift = <T extends { line: number }>(entries: T[]): T[] => entries.map((entry) => ({ ...entry, line: entry.line + offset }));
-  return { untrackedLoops: shift(facts.untrackedLoops), indexTrackedLoops: shift(facts.indexTrackedLoops), calls: shift(facts.calls) };
+  return { untrackedLoops: shift(facts.untrackedLoops), indexTrackedLoops: shift(facts.indexTrackedLoops), calls: shift(facts.calls), reads: shift(facts.reads ?? []), images: (facts.images ?? []).map((line) => line + offset) };
 }
 
 /**
@@ -979,16 +994,21 @@ function shiftSpeedLines(facts: TemplateSpeedFacts, offset: number): TemplateSpe
  * writes to or mutates, or a `readonly` field holding a named constant. A
  * decorated field is left out, since a parent may bind it.
  */
-function functionsAndConstantsOf(node: ts.ClassDeclaration, source: ts.SourceFile): Pick<ComponentFact, 'methods' | 'constantArrays'> {
+function functionsAndConstantsOf(node: ts.ClassDeclaration, source: ts.SourceFile): Pick<ComponentFact, 'methods' | 'constantArrays' | 'expensiveGetters'> {
   const text = node.getText(source);
   const methods: string[] = [];
   const constantArrays: string[] = [];
+  const expensiveGetters: string[] = [];
   for (const member of node.members) {
     if (!member.name || !ts.isIdentifier(member.name)) continue;
     if ((ts.getCombinedModifierFlags(member) & ts.ModifierFlags.Static) !== 0) continue;
     const name = member.name.text;
     if (ts.isMethodDeclaration(member)) {
       methods.push(name);
+      continue;
+    }
+    if (ts.isGetAccessorDeclaration(member)) {
+      if (member.body && doesRealWork(member.body)) expensiveGetters.push(name);
       continue;
     }
     if (!ts.isPropertyDeclaration(member) || !member.initializer) continue;
@@ -1004,7 +1024,23 @@ function functionsAndConstantsOf(node: ts.ClassDeclaration, source: ts.SourceFil
     const written = new RegExp(`\\bthis\\.${escaped}\\s*(?:=[^=]|\\.(?:push|pop|shift|unshift|splice|sort|reverse|fill|copyWithin)\\s*\\()`).test(text);
     if (!written && ((ts.isArrayLiteralExpression(value) && value.elements.length > 0) || (readonly && ts.isIdentifier(value)))) constantArrays.push(name);
   }
-  return { ...(methods.length > 0 ? { methods } : {}), ...(constantArrays.length > 0 ? { constantArrays } : {}) };
+  return { ...(methods.length > 0 ? { methods } : {}), ...(constantArrays.length > 0 ? { constantArrays } : {}), ...(expensiveGetters.length > 0 ? { expensiveGetters } : {}) };
+}
+
+/** Array methods that walk the whole collection and, but for `find`, build a new one. */
+const WALKING_METHODS = new Set(['filter', 'map', 'flatMap', 'sort', 'reduce', 'find']);
+
+/** True for a body with a loop or a call of a walking array method, outside nested functions it only defines. */
+function doesRealWork(body: ts.Node): boolean {
+  let found = false;
+  const visit = (node: ts.Node): void => {
+    if (found) return;
+    if (ts.isForStatement(node) || ts.isForOfStatement(node) || ts.isForInStatement(node) || ts.isWhileStatement(node) || ts.isDoStatement(node)) found = true;
+    else if (ts.isCallExpression(node) && ts.isPropertyAccessExpression(node.expression) && WALKING_METHODS.has(node.expression.name.text)) found = true;
+    else ts.forEachChild(node, visit);
+  };
+  visit(body);
+  return found;
 }
 
 /** Scans an external template file. */

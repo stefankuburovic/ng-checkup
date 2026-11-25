@@ -72,11 +72,20 @@
       "id": "dependencies",
       "grade": "info",
       "summary": "Dependencies are not installed and the npm registry was not used, so the packages that depend on Angular could not be read.",
-      "measures": {},
+      "measures": {
+        "unused-dependencies": 1
+      },
       "findings": [
         {
           "severity": "info",
           "message": "Install the dependencies, or run without --offline to read each package from the npm registry"
+        },
+        {
+          "severity": "low",
+          "message": "1 runtime dependency nothing uses: `compression`",
+          "files": [
+            "package.json"
+          ]
         }
       ]
     },
@@ -120,7 +129,10 @@
         "untracked-ngfor": 25,
         "track-by-index": 0,
         "template-method-calls": 16,
+        "template-getter-calls": 0,
         "impure-pipes": 1,
+        "unoptimized-images": 9,
+        "nested-subscriptions": 2,
         "animations-package": 0
       },
       "findings": [
@@ -201,6 +213,25 @@
             "src/app/shared/pipes/format-price.pipe.ts:19"
           ],
           "count": 1
+        },
+        {
+          "severity": "low",
+          "message": "9 `<img>`s without `NgOptimizedImage`",
+          "files": [
+            "src/app/core/components/asset-gallery/asset-gallery.component.html:1",
+            "src/app/app.component.html:26",
+            "src/app/core/components/collections-menu-mobile/collections-menu-mobile.component.html:18"
+          ],
+          "count": 8
+        },
+        {
+          "severity": "low",
+          "message": "2 `.subscribe()`s with another `.subscribe()` inside",
+          "files": [
+            "src/app/core/components/cart-drawer/cart-drawer.component.ts:65",
+            "src/app/core/components/product-detail/product-detail.component.ts:91"
+          ],
+          "count": 2
         }
       ]
     },
@@ -233,11 +264,21 @@
         "very-large-files": 0,
         "constructor-injection": 54,
         "class-guards": 1,
+        "complex-functions": 2,
         "unused-files": 0,
         "unused-components": 0,
         "unused-pipes": 0
       },
       "findings": [
+        {
+          "severity": "low",
+          "message": "2 functions with a cognitive complexity above 15",
+          "files": [
+            "src/app/checkout/providers/checkout.guard.ts:29",
+            "src/app/core/components/collections-menu/array-to-tree.ts:9"
+          ],
+          "count": 2
+        },
         {
           "severity": "low",
           "message": "1 class-based guard or interceptor",

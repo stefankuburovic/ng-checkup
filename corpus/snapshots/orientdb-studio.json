@@ -214,7 +214,10 @@
         "untracked-ngfor": 80,
         "track-by-index": 0,
         "template-method-calls": 37,
+        "template-getter-calls": 0,
         "impure-pipes": 0,
+        "unoptimized-images": 4,
+        "nested-subscriptions": 0,
         "animations-package": 0
       },
       "findings": [
@@ -306,7 +309,8 @@
         "eager-routes": 0,
         "very-large-files": 1,
         "constructor-injection": 66,
-        "class-guards": 0
+        "class-guards": 0,
+        "complex-functions": 9
       },
       "findings": [
         {
@@ -317,6 +321,16 @@
             "src/app/util/graph/d3-graph/OGraph.ts"
           ],
           "count": 2
+        },
+        {
+          "severity": "low",
+          "message": "9 functions with a cognitive complexity above 15",
+          "files": [
+            "src/app/administration/etl/etl.component.ts:1324",
+            "src/app/util/dual-list/dual-list.component.ts:383",
+            "src/app/administration/teleporter/detailpanel/detailpanel.component.ts:375"
+          ],
+          "count": 9
         },
         {
           "severity": "low",

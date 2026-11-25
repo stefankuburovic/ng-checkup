@@ -40,11 +40,20 @@
       "id": "dependencies",
       "grade": "info",
       "summary": "Dependencies are not installed and the npm registry was not used, so the packages that depend on Angular could not be read.",
-      "measures": {},
+      "measures": {
+        "unused-dependencies": 2
+      },
       "findings": [
         {
           "severity": "info",
           "message": "Install the dependencies, or run without --offline to read each package from the npm registry"
+        },
+        {
+          "severity": "low",
+          "message": "2 runtime dependencies nothing uses: `@softarc/native-federation-node`, `es-module-shims`",
+          "files": [
+            "package.json"
+          ]
         }
       ]
     },
@@ -84,7 +93,10 @@
         "untracked-ngfor": 0,
         "track-by-index": 4,
         "template-method-calls": 0,
+        "template-getter-calls": 0,
         "impure-pipes": 0,
+        "unoptimized-images": 1,
+        "nested-subscriptions": 0,
         "animations-package": 0
       },
       "findings": [
@@ -135,6 +147,14 @@
             "src/app/domains/ticketing/feature-booking/advanced-flight-edit/flight-form/flight-form.html:63"
           ],
           "count": 4
+        },
+        {
+          "severity": "low",
+          "message": "1 `<img>` without `NgOptimizedImage`",
+          "files": [
+            "src/app/shell/navbar/navbar.html:8"
+          ],
+          "count": 1
         }
       ]
     },
@@ -158,6 +178,7 @@
         "very-large-files": 0,
         "constructor-injection": 0,
         "class-guards": 0,
+        "complex-functions": 0,
         "unused-files": 24,
         "unused-components": 0,
         "unused-pipes": 0

@@ -60,11 +60,20 @@
       "id": "dependencies",
       "grade": "info",
       "summary": "Dependencies are not installed and the npm registry was not used, so the packages that depend on Angular could not be read.",
-      "measures": {},
+      "measures": {
+        "unused-dependencies": 1
+      },
       "findings": [
         {
           "severity": "info",
           "message": "Install the dependencies, or run without --offline to read each package from the npm registry"
+        },
+        {
+          "severity": "low",
+          "message": "1 runtime dependency nothing uses: `@popperjs/core`",
+          "files": [
+            "package.json"
+          ]
         }
       ]
     },
@@ -108,7 +117,10 @@
         "untracked-ngfor": 70,
         "track-by-index": 0,
         "template-method-calls": 41,
+        "template-getter-calls": 2,
         "impure-pipes": 0,
+        "unoptimized-images": 17,
+        "nested-subscriptions": 181,
         "animations-package": 0
       },
       "findings": [
@@ -181,6 +193,24 @@
             "src/app/features/transmission-chain/pages/transmission-chains-graph/transmission-chains-graph.component.html:95"
           ],
           "count": 8
+        },
+        {
+          "severity": "low",
+          "message": "2 reads of an expensive getter in template bindings",
+          "files": [
+            "src/app/shared/components-v2/app-create-view-modify-v2/app-create-view-modify-v2.component.html:431"
+          ],
+          "count": 1
+        },
+        {
+          "severity": "low",
+          "message": "181 `.subscribe()`s with another `.subscribe()` inside",
+          "files": [
+            "src/app/core/components/authenticated/authenticated.component.ts:170",
+            "src/app/core/components/topnav/topnav.component.ts:206",
+            "src/app/core/services/data/outbreak.data.service.ts:398"
+          ],
+          "count": 77
         }
       ]
     },
@@ -214,6 +244,7 @@
         "very-large-files": 34,
         "constructor-injection": 350,
         "class-guards": 22,
+        "complex-functions": 88,
         "unused-files": 2,
         "unused-components": 0,
         "unused-pipes": 0
@@ -228,6 +259,16 @@
             "src/app/features/import-export-data/components/import-data/import-data.component.ts"
           ],
           "count": 83
+        },
+        {
+          "severity": "low",
+          "message": "88 functions with a cognitive complexity above 15",
+          "files": [
+            "src/app/core/services/data/transmission-chain.data.service.ts:656",
+            "src/app/core/services/helper/dialog-v2.service.ts:1332",
+            "src/app/shared/components-v2/app-spreadsheet-editor-v2/app-spreadsheet-editor-v2.component.ts:2976"
+          ],
+          "count": 88
         },
         {
           "severity": "low",

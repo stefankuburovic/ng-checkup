@@ -229,7 +229,10 @@
         "untracked-ngfor": 0,
         "track-by-index": 2,
         "template-method-calls": 24,
+        "template-getter-calls": 0,
         "impure-pipes": 2,
+        "unoptimized-images": 4,
+        "nested-subscriptions": 0,
         "animations-package": 0
       },
       "findings": [
@@ -295,6 +298,16 @@
             "libs/template/push/src/lib/push.pipe.ts:89"
           ],
           "count": 2
+        },
+        {
+          "severity": "low",
+          "message": "4 `<img>`s without `NgOptimizedImage`",
+          "files": [
+            "apps/demos/src/app/features/template/rx-let/preloading-images.component.ts:55",
+            "apps/demos/src/app/features/template/virtual-view/virtual-view-cool-demo.component.ts:31",
+            "apps/demos/src/app/shared/image-array/controls/image-array.component.ts:40"
+          ],
+          "count": 3
         }
       ]
     },
@@ -329,6 +342,7 @@
         "very-large-files": 8,
         "constructor-injection": 109,
         "class-guards": 1,
+        "complex-functions": 15,
         "unused-files": 26,
         "unused-components": 11,
         "unused-pipes": 0
@@ -343,6 +357,16 @@
             "apps/rebundle-demo/src/shared/chunkers-3MB-500constants-100components/root-chunker.component.ts"
           ],
           "count": 18
+        },
+        {
+          "severity": "low",
+          "message": "15 functions with a cognitive complexity above 15",
+          "files": [
+            "libs/cdk/template/src/lib/list-reconciliation.ts:106",
+            "tools/scripts/docs/typescript-docs-parser.ts:255",
+            "libs/cdk/internals/scheduler/src/lib/scheduler.ts:211"
+          ],
+          "count": 15
         },
         {
           "severity": "low",

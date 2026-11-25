@@ -120,7 +120,10 @@
         "untracked-ngfor": 0,
         "track-by-index": 0,
         "template-method-calls": 0,
+        "template-getter-calls": 0,
         "impure-pipes": 0,
+        "unoptimized-images": 2,
+        "nested-subscriptions": 0,
         "animations-package": 0
       },
       "findings": [
@@ -141,6 +144,15 @@
             "libs/shared/header/src/lib/header/header.element.scss:5"
           ],
           "count": 1
+        },
+        {
+          "severity": "low",
+          "message": "2 `<img>`s without `NgOptimizedImage`",
+          "files": [
+            "libs/products/home-page/src/lib/home-page/home-page.component.html:6",
+            "libs/products/product-detail-page/src/lib/product-detail-page/product-detail-page.component.html:4"
+          ],
+          "count": 2
         }
       ]
     },
@@ -175,6 +187,7 @@
         "very-large-files": 0,
         "constructor-injection": 0,
         "class-guards": 0,
+        "complex-functions": 0,
         "unused-files": 0,
         "unused-components": 0,
         "unused-pipes": 0

@@ -158,7 +158,10 @@
         "untracked-ngfor": 1,
         "track-by-index": 0,
         "template-method-calls": 0,
+        "template-getter-calls": 0,
         "impure-pipes": 0,
+        "unoptimized-images": 1,
+        "nested-subscriptions": 0,
         "animations-package": 0
       },
       "findings": [
@@ -192,6 +195,14 @@
             "src/app/contacts/contactList.component.ts:28"
           ],
           "count": 1
+        },
+        {
+          "severity": "low",
+          "message": "1 `<img>` without `NgOptimizedImage`",
+          "files": [
+            "src/app/contacts/contactDetail.component.ts:26"
+          ],
+          "count": 1
         }
       ]
     },
@@ -215,6 +226,7 @@
         "very-large-files": 0,
         "constructor-injection": 2,
         "class-guards": 0,
+        "complex-functions": 0,
         "unused-files": 0,
         "unused-components": 0,
         "unused-pipes": 0

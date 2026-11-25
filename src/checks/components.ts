@@ -132,7 +132,20 @@ export function componentsCheck(context: AnalysisContext): CheckResult {
   for (const rule of SPEED_RULES) {
     const hits = speed[rule.key];
     const count = hits.reduce((sum, hit) => sum + hit.lines.length, 0);
-    if (count > 0) findings.push({ severity: 'low', message: rule.message(count), detail: rule.detail, files: hits.slice(0, context.maxExamples).map((hit): FileRef => ({ path: hit.path, line: hit.lines[0] })), count: hits.length });
+    if (count > 0 && (rule.fromMajor === undefined || (major !== undefined && major >= rule.fromMajor))) findings.push({ severity: 'low', message: rule.message(count), detail: rule.detail, files: hits.slice(0, context.maxExamples).map((hit): FileRef => ({ path: hit.path, line: hit.lines[0] })), count: hits.length });
+  }
+
+  // Subscriptions nested in subscriptions, in all application code: each value of the outer stream starts the inner one again and nothing cancels the last. Outside the grade.
+  const nested = application.filter((file) => (file.nestedSubscribes?.length ?? 0) > 0).map((file) => ({ path: file.path, lines: file.nestedSubscribes! }));
+  const nestedCount = nested.reduce((sum, entry) => sum + entry.lines.length, 0);
+  if (nestedCount > 0) {
+    findings.push({
+      severity: 'low',
+      message: `${plural(nestedCount, '\`.subscribe()\`')} with another \`.subscribe()\` inside`,
+      detail: 'Every value of the outer stream starts the inner one again, nothing cancels the previous run, and an error in the inner one is easy to lose. One pipe says what is meant: `switchMap` when only the latest matters (a search), `concatMap` to keep order, `mergeMap` to run in parallel, `forkJoin` or `combineLatest` to wait for several. Counted in components, services and guards alike; each outer call once.',
+      files: nested.slice(0, context.maxExamples).map((entry) => ({ path: entry.path, line: entry.lines[0] })),
+      count: nested.length,
+    });
   }
 
   const shares = [standaloneShare, ...(inputs > 0 ? [signalInputShare] : []), ...(controlFlow > 0 ? [controlFlowShare] : [])];
@@ -180,6 +193,7 @@ export function componentsCheck(context: AnalysisContext): CheckResult {
       { id: 'hardcoded-colors', label: 'Colour literals outside the design tokens', value: hardcodedColors },
       { id: 'unended-subscriptions', label: '.subscribe() in components and directives that nothing ends', value: unended },
       ...SPEED_RULES.map((rule) => ({ id: rule.measure, label: rule.label, value: speed[rule.key].reduce((sum, hit) => sum + hit.lines.length, 0) })),
+      { id: 'nested-subscriptions', label: '.subscribe() with another .subscribe() inside', value: nestedCount },
       { id: 'animations-package', label: 'Files using the @angular/animations package', value: animationFiles.length },
     ],
   };
@@ -192,10 +206,12 @@ interface SpeedFacts {
   untrackedLoops: SpeedHits;
   indexTrackedLoops: SpeedHits;
   methodCalls: SpeedHits;
+  getterReads: SpeedHits;
   impurePipes: SpeedHits;
+  images: SpeedHits;
 }
 
-const SPEED_RULES: { key: keyof SpeedFacts; measure: string; label: string; message: (count: number) => string; detail: string }[] = [
+const SPEED_RULES: { key: keyof SpeedFacts; measure: string; label: string; message: (count: number) => string; detail: string; fromMajor?: number }[] = [
   {
     key: 'untrackedLoops',
     measure: 'untracked-ngfor',
@@ -218,11 +234,26 @@ const SPEED_RULES: { key: keyof SpeedFacts; measure: string; label: string; mess
     detail: 'A method called from a binding runs on every check of the component, and one that returns a new array or object changes the binding each time. A cheap read costs nothing; a method that filters, sorts or formats belongs in `computed()` or a pure pipe. Only methods the class itself declares are counted, so signals are not, and neither are event handlers, `track` expressions or inherited methods.',
   },
   {
+    key: 'getterReads',
+    measure: 'template-getter-calls',
+    label: 'Expensive getters read in template bindings',
+    message: (count) => `${plural(count, 'read')} of an expensive getter in template bindings`,
+    detail: 'A getter read from a binding runs on every check of the component, just as a method call does, and these ones loop or call `filter`, `map`, `sort`, `reduce` or `find`, so each check walks the collection again and often builds a new array. `computed()` or a pure pipe does the work once per change. A getter that only returns a field is not counted, and neither is one some class sharing the template does not declare.',
+  },
+  {
     key: 'impurePipes',
     measure: 'impure-pipes',
     label: 'Impure pipes',
     message: (count) => `${plural(count, 'impure pipe')} in use`,
     detail: 'With `pure: false`, Angular calls `transform` on every check of every template that uses the pipe. Some pipes need it, because they read state that changes outside their arguments. Otherwise, pass the changing value as an argument, or read a signal, and remove `pure: false`. Only pipes this repository declares and a template uses are counted.',
+  },
+  {
+    key: 'images',
+    measure: 'unoptimized-images',
+    label: '<img> without NgOptimizedImage',
+    message: (count) => `${plural(count, '\`<img>\`')} without \`NgOptimizedImage\``,
+    detail: '`ngSrc` from `NgOptimizedImage` loads images below the fold lazily, makes width and height required so the layout does not jump, warns when an image is larger than shown, and takes `priority` for the largest image of the first screen, which is what Largest Contentful Paint measures. Replace `src` with `ngSrc` and add the size, or `fill` in a sized container. `data:` and `blob:` addresses are left out. The finding appears from Angular 15, where the directive is stable; the measure is counted on every version.',
+    fromMajor: 15,
   },
 ];
 
@@ -250,7 +281,7 @@ function templateSpeed(context: AnalysisContext, application: SourceFileFacts[])
     }
   }
 
-  const facts: SpeedFacts = { untrackedLoops: [], indexTrackedLoops: [], methodCalls: [], impurePipes: [] };
+  const facts: SpeedFacts = { untrackedLoops: [], indexTrackedLoops: [], methodCalls: [], getterReads: [], impurePipes: [], images: [] };
   const add = (hits: SpeedHits, path: string, lines: number[]): void => {
     if (lines.length > 0) hits.push({ path, lines });
   };
@@ -261,6 +292,8 @@ function templateSpeed(context: AnalysisContext, application: SourceFileFacts[])
     add(facts.untrackedLoops, template.path, template.speed.untrackedLoops.filter((loop) => !isConstantCollection(loop.collection, classes)).map((loop) => loop.line));
     add(facts.indexTrackedLoops, template.path, template.speed.indexTrackedLoops.filter((loop) => !isConstantCollection(loop.collection, classes)).map((loop) => loop.line));
     add(facts.methodCalls, template.path, template.speed.calls.filter((call) => classes.every((owner) => owner.methods?.includes(call.name))).map((call) => call.line).sort((left, right) => left - right));
+    add(facts.getterReads, template.path, (template.speed.reads ?? []).filter((read) => classes.every((owner) => owner.expensiveGetters?.includes(read.name))).map((read) => read.line).sort((left, right) => left - right));
+    add(facts.images, template.path, template.speed.images ?? []);
   }
 
   const usedPipes = new Set(templates.flatMap((template) => template.usage.pipes));

@@ -56,11 +56,20 @@
       "id": "dependencies",
       "grade": "info",
       "summary": "Dependencies are not installed and the npm registry was not used, so the packages that depend on Angular could not be read.",
-      "measures": {},
+      "measures": {
+        "unused-dependencies": 4
+      },
       "findings": [
         {
           "severity": "info",
           "message": "Install the dependencies, or run without --offline to read each package from the npm registry"
+        },
+        {
+          "severity": "low",
+          "message": "4 runtime dependencies nothing uses: `documentation`, `jsdoc`, `jsdoc-to-markdown`, `node-fetch`",
+          "files": [
+            "ui/package.json"
+          ]
         }
       ]
     },
@@ -100,7 +109,10 @@
         "untracked-ngfor": 0,
         "track-by-index": 0,
         "template-method-calls": 7,
+        "template-getter-calls": 0,
         "impure-pipes": 0,
+        "unoptimized-images": 0,
+        "nested-subscriptions": 4,
         "animations-package": 1
       },
       "findings": [
@@ -146,6 +158,16 @@
         },
         {
           "severity": "low",
+          "message": "4 `.subscribe()`s with another `.subscribe()` inside",
+          "files": [
+            "ui/src/app/pages/code-generate/code-generate.component.ts:120",
+            "ui/src/app/pages/prompt/prompt-detail/prompt-detail.component.ts:88",
+            "ui/src/app/pages/prompt/prompt.component.ts:100"
+          ],
+          "count": 3
+        },
+        {
+          "severity": "low",
           "message": "1 file uses the `@angular/animations` package",
           "files": [
             "ui/src/app/pages/aigc/aigc.component.ts:17"
@@ -174,6 +196,7 @@
         "very-large-files": 0,
         "constructor-injection": 1,
         "class-guards": 0,
+        "complex-functions": 9,
         "unused-files": 8,
         "unused-components": 1,
         "unused-pipes": 1
@@ -186,6 +209,16 @@
             "api/src/services/catalogue/catalogue.service.ts"
           ],
           "count": 1
+        },
+        {
+          "severity": "low",
+          "message": "9 functions with a cognitive complexity above 15",
+          "files": [
+            "ui/src/app/core/functions/functions.ts:40",
+            "ui/src/app/core/components/json-schema/json-schema.function.ts:18",
+            "ui/src/app/core/services/form.service.ts:9"
+          ],
+          "count": 9
         },
         {
           "severity": "low",

@@ -133,7 +133,10 @@
         "untracked-ngfor": 25,
         "track-by-index": 0,
         "template-method-calls": 13,
+        "template-getter-calls": 0,
         "impure-pipes": 0,
+        "unoptimized-images": 0,
+        "nested-subscriptions": 0,
         "animations-package": 0
       },
       "findings": [
@@ -235,6 +238,7 @@
         "very-large-files": 0,
         "constructor-injection": 92,
         "class-guards": 0,
+        "complex-functions": 0,
         "unused-files": 0,
         "unused-components": 0,
         "unused-pipes": 0

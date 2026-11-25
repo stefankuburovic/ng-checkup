@@ -1,5 +1,6 @@
 import type { CheckResult, Finding, Grade } from '../types.js';
 import { applicationFiles, formatCount, percent, plural, type AnalysisContext } from './context.js';
+import { COMPLEXITY_THRESHOLD } from '../code-shape.js';
 
 /** Lines of code from which a file is listed as large. */
 const LARGE_FILE = 500;
@@ -88,13 +89,27 @@ export function architectureCheck(context: AnalysisContext): CheckResult {
         .filter(({ file, commits }) => file.linesOfCode >= HOTSPOT_LINES && commits >= HOTSPOT_COMMITS)
         .sort((left, right) => right.file.linesOfCode * right.commits - left.file.linesOfCode * left.commits)
     : [];
+  // Cognitive complexity: functions harder to read than eslint-plugin-sonarjs allows by default. Outside the grade.
+  const complex = files.flatMap((file) => (file.complexFunctions ?? []).map((entry) => ({ path: file.path, ...entry }))).sort((left, right) => right.complexity - left.complexity || left.path.localeCompare(right.path));
+  if (complex.length > 0) {
+    findings.push({
+      severity: 'low',
+      message: `${plural(complex.length, 'function')} with a cognitive complexity above ${COMPLEXITY_THRESHOLD}`,
+      detail: `Most complex: ${complex
+        .slice(0, 5)
+        .map((entry) => `\`${entry.name}\` ${entry.complexity}`)
+        .join(', ')}. Cognitive complexity counts what makes code hard to follow: each branch and loop, more for each level of nesting, and each run of \`&&\`. It is computed as eslint-plugin-sonarjs computes it, with its default limit of ${COMPLEXITY_THRESHOLD}, so the two agree; the plugin shows the same in the editor. Early returns, extracted functions and lookup tables in place of \`if\` chains bring it down. A function that is complex and in a hotspot is the first to split.`,
+      files: complex.slice(0, max).map((entry) => ({ path: entry.path, line: entry.line })),
+      count: complex.length,
+    });
+  }
   if (hotspots.length > 0) {
     findings.push({
       severity: hotspots.some(({ file }) => file.linesOfCode >= LARGE_FILE) ? 'medium' : 'low',
       message: `Hotspots: ${hotspots.length > 5 ? 'the ' : ''}large files changed most often${hotspots.length > 5 ? ` (top 5 of ${formatCount(hotspots.length)})` : ''}`,
       detail: `${hotspots
         .slice(0, 5)
-        .map(({ file, commits }) => `${file.path.split('/').pop()} (${formatCount(file.linesOfCode)} lines, ${plural(commits, 'commit')})`)
+        .map(({ file, commits }) => `${file.path.split('/').pop()} (${formatCount(file.linesOfCode)} lines, ${plural(commits, 'commit')}${file.maxComplexity ? `, most complex function ${file.maxComplexity}` : ''})`)
         .join(', ')}, over the last year of history. A file that is both large and edited all the time costs its size on every change; these are where splitting or a refactor pays back first, more than the largest file nobody touches.`,
       files: hotspots.slice(0, max).map(({ file }) => ({ path: file.path })),
       count: hotspots.length,
@@ -207,6 +222,7 @@ export function architectureCheck(context: AnalysisContext): CheckResult {
       { id: 'very-large-files', label: `Files over ${VERY_LARGE_FILE} lines`, value: veryLarge.length },
       { id: 'constructor-injection', label: 'Classes with constructor injection', value: constructorInjections.length },
       { id: 'class-guards', label: 'Class-based guards and interceptors', value: classGuards.length },
+      { id: 'complex-functions', label: `Functions with a cognitive complexity above ${COMPLEXITY_THRESHOLD}`, value: complex.length },
       ...(unimported ? [{ id: 'unused-files', label: 'Files nothing imports', value: unimported.length }] : []),
       ...(declarables ? [{ id: 'unused-components', label: 'Components no template uses', value: unusedComponents.length }, { id: 'unused-pipes', label: 'Pipes no template uses', value: unusedPipes.length }] : []),
       // Only with --attribute-selectors, so a baseline taken without it never sees the measure appear or vanish.

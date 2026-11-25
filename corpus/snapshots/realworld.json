@@ -61,7 +61,9 @@
       "id": "dependencies",
       "grade": "info",
       "summary": "Dependencies are not installed and the npm registry was not used, so the packages that depend on Angular could not be read.",
-      "measures": {},
+      "measures": {
+        "unused-dependencies": 0
+      },
       "findings": [
         {
           "severity": "info",
@@ -109,7 +111,10 @@
         "untracked-ngfor": 8,
         "track-by-index": 0,
         "template-method-calls": 0,
+        "template-getter-calls": 0,
         "impure-pipes": 0,
+        "unoptimized-images": 5,
+        "nested-subscriptions": 0,
         "animations-package": 0
       },
       "findings": [
@@ -194,6 +199,7 @@
         "very-large-files": 0,
         "constructor-injection": 28,
         "class-guards": 7,
+        "complex-functions": 0,
         "unused-files": 0,
         "unused-components": 0,
         "unused-pipes": 0

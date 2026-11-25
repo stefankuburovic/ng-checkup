@@ -27,6 +27,7 @@ export function dependenciesCheck(context: AnalysisContext): CheckResult {
   // Without node_modules the peer ranges come from the registry, so only an
   // offline run (or an unreachable registry) leaves nothing to read.
   const unreadable = !workspace.hasNodeModules && context.latestAngular.source === 'bundled' && compatibility.length === 0;
+  const unused = unusedDependencies(context);
   if (current === undefined || unreadable) {
     return {
       id,
@@ -34,7 +35,8 @@ export function dependenciesCheck(context: AnalysisContext): CheckResult {
       grade: 'info',
       summary: current === undefined ? 'No Angular dependency to check against.' : 'Dependencies are not installed and the npm registry was not used, so the packages that depend on Angular could not be read.',
       metrics: [],
-      findings: current === undefined ? [] : [{ severity: 'info', message: 'Install the dependencies, or run without --offline to read each package from the npm registry' }],
+      findings: [...(current === undefined ? [] : [{ severity: 'info' as const, message: 'Install the dependencies, or run without --offline to read each package from the npm registry' }]), ...unused.findings],
+      ...(unused.measures.length > 0 ? { measures: unused.measures } : {}),
     };
   }
 
@@ -83,11 +85,12 @@ export function dependenciesCheck(context: AnalysisContext): CheckResult {
       { label: 'Peer mismatches', value: formatCount(mismatched.length), hint: `with Angular ${current}` },
       { label: 'Deprecated on npm', value: formatCount(deprecated.length) },
     ],
-    findings,
+    findings: [...findings, ...unused.findings],
     // Only what the code controls: blocking packages depend on when Angular ships, so they are not a measure.
     measures: [
       { id: 'peer-mismatches', label: 'Packages that do not accept the installed Angular', value: mismatched.length },
       { id: 'deprecated-packages', label: 'Packages deprecated on npm', value: deprecated.length },
+      ...unused.measures,
     ],
   };
 }
@@ -96,4 +99,23 @@ export function dependenciesCheck(context: AnalysisContext): CheckResult {
 function releaseHint(entry: { releaseFor?: Record<number, { version: string } | null> }, major: number): string {
   const release = entry.releaseFor?.[major];
   return release ? ` Version ${release.version} supports Angular ${major}.` : '';
+}
+
+/** Runtime dependencies nothing uses, outside the grade; nothing at all when they could not be judged. */
+function unusedDependencies(context: AnalysisContext): { findings: Finding[]; measures: Array<{ id: string; label: string; value: number }> } {
+  const unused = context.unusedDependencies;
+  if (!unused) return { findings: [], measures: [] };
+  const measures = [{ id: 'unused-dependencies', label: 'Runtime dependencies nothing uses', value: unused.packages.length }];
+  if (unused.packages.length === 0) return { findings: [], measures };
+  return {
+    measures,
+    findings: [
+      {
+        severity: 'low',
+        message: `${plural(unused.packages.length, 'runtime dependency', 'runtime dependencies')} nothing uses: ${unused.packages.map((name) => `\`${name}\``).join(', ')}`,
+        detail: 'No file imports or requires them, and neither the workspace config, a stylesheet, an HTML file, a `package.json` script nor a root config file names them. Each one still installs on every CI run and every machine, and a library left behind can hold back an upgrade. Check before removing: something may load it by a name built at runtime, or a tool may need it without saying so. A package only tests or tools use belongs in `devDependencies`. Angular\'s own packages, `tslib`, `zone.js`, `@types/*` and packages another one declares as a peer are left out.',
+        files: [{ path: unused.file }],
+      },
+    ],
+  };
 }

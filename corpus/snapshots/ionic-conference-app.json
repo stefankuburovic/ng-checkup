@@ -72,11 +72,20 @@
       "id": "dependencies",
       "grade": "info",
       "summary": "Dependencies are not installed and the npm registry was not used, so the packages that depend on Angular could not be read.",
-      "measures": {},
+      "measures": {
+        "unused-dependencies": 4
+      },
       "findings": [
         {
           "severity": "info",
           "message": "Install the dependencies, or run without --offline to read each package from the npm registry"
+        },
+        {
+          "severity": "low",
+          "message": "4 runtime dependencies nothing uses: `core-js`, `sw-toolbox`, `wait-on`, `webdriver-manager`",
+          "files": [
+            "package.json"
+          ]
         }
       ]
     },
@@ -105,7 +114,10 @@
         "untracked-ngfor": 0,
         "track-by-index": 2,
         "template-method-calls": 0,
+        "template-getter-calls": 0,
         "impure-pipes": 0,
+        "unoptimized-images": 8,
+        "nested-subscriptions": 0,
         "animations-package": 0
       },
       "findings": [
@@ -147,6 +159,16 @@
             "src/app/pages/session-detail/session-detail.html:25"
           ],
           "count": 2
+        },
+        {
+          "severity": "low",
+          "message": "8 `<img>`s without `NgOptimizedImage`",
+          "files": [
+            "src/app/pages/tutorial/tutorial.html:14",
+            "src/app/pages/login/login.html:13",
+            "src/app/pages/signup/signup.html:12"
+          ],
+          "count": 5
         }
       ]
     },
@@ -179,11 +201,21 @@
         "very-large-files": 0,
         "constructor-injection": 0,
         "class-guards": 0,
+        "complex-functions": 1,
         "unused-files": 0,
         "unused-components": 0,
         "unused-pipes": 0
       },
-      "findings": []
+      "findings": [
+        {
+          "severity": "low",
+          "message": "1 function with a cognitive complexity above 15",
+          "files": [
+            "src/app/pages/session-detail/session-detail.ts:61"
+          ],
+          "count": 1
+        }
+      ]
     },
     {
       "id": "testing",

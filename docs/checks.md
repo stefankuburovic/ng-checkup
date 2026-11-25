@@ -129,6 +129,8 @@ With `--plan`, each package update is scheduled at the step that needs it ("Upda
 
 **Fixing it:** update the package at the step the plan names; for one with no release, plan its replacement, or stop at the last major it supports.
 
+**Unused dependencies** (`unused-dependencies`, low, outside the grade): runtime `dependencies` (not `devDependencies`) nothing uses. A package counts as used when a file imports or requires it (a subpath, `x/y`, too), when `angular.json`, a `project.json` target, a `package.json` script, a stylesheet (`@use`, `@import`, `~x`), an HTML file, a root config file, a root `tsconfig*.json` (`paths` aliases) or a root script names it, when the `cordova` section of `package.json` lists it, or, in a Capacitor project, when it is a `@capacitor/` package or the native project files link it. Angular's own packages, `tslib`, `zone.js`, `@types/*` and packages another one declares as a peer are left out. The peers come from `node_modules`, else from `package-lock.json`; with neither, the check says nothing rather than call a peer unused. Something loaded by a name built at runtime cannot be seen, so check before removing; a package only tests or tools use belongs in `devDependencies`. On the corpus: 1 to 9 in nine repositories, mostly tools in the wrong section (`jsdoc`, `cordova-res`, `wait-on`), polyfills nothing loads (`core-js`, `intl`) and wrappers no file imports, each read by hand.
+
 ---
 
 ## Change detection & zoneless readiness (`change-detection`) <a id="change-detection"></a>
@@ -157,12 +159,16 @@ From Angular 22, OnPush is the default, so a component without `changeDetection`
 
 **Subscriptions nothing ends** are a finding and a measure of their own (`unended-subscriptions`): no `takeUntilDestroyed`, `takeUntil`, `take`, `first` or `takeWhile` in the chain, no cleanup anywhere in the class (`ngOnDestroy`, `unsubscribe()`, `DestroyRef`, `Subscription.add`), and a source that outlives the component. Sources that complete or die with the component are left out: `HttpClient`, `ActivatedRoute`, a form's `valueChanges`, a dialog's close event, `translate.get()`, and a `Subject` or `EventEmitter` the class creates itself. A service call that completes after one value cannot be told from one that never completes, so the finding is low and the count is an upper bound. On the corpus it lists 0 to 25 per repository; a codebase that already guards every component file (one with a `check-subscriptions` script, say) reads 0.
 
-**Template speed** is four low findings and measures, outside the grade: what a template makes change detection repeat. A template is read only when a component class in application code owns it, through `templateUrl` or an inline `template`, and a template several classes share needs all of them to agree, so a rule in doubt says nothing.
+**Template speed** is six low findings and measures, outside the grade: what a template makes change detection repeat. A template is read only when a component class in application code owns it, through `templateUrl` or an inline `template`, and a template several classes share needs all of them to agree, so a rule in doubt says nothing.
 
 - *`*ngFor` without `trackBy`* (`untracked-ngfor`): `*ngFor` or `[ngForOf]` with no `trackBy`. A list rebuilt from new objects recreates every row. A list of strings or numbers is fine as it is and cannot be told from the template, so the count is an upper bound.
 - *`@for` with `track $index`* (`track-by-index`), the variable it was renamed to included: state in the DOM or a child stays at the position when items move. Harmless on a list that never changes order, which the code cannot always show.
 - *Method calls in template bindings* (`template-method-calls`): a call of a method the class itself declares, or a field holding a function, in an interpolation, property binding, structural directive, block condition or `@let`. Signals (`signal`, `computed`, `input`, ...) are not methods and are not counted, nor are event handlers, `track` expressions, calls on another object (`form.get('x')`), template variables, getters or inherited methods. A cheap read costs nothing, so this is the list to look through, not to empty.
 - *Impure pipes* (`impure-pipes`): `pure: false` on a pipe this repository declares and a template uses. Some pipes need it, `push` from rx-angular for one.
+- *Expensive getters read in template bindings* (`template-getter-calls`): a getter the class declares whose body loops or calls `filter`, `map`, `flatMap`, `sort`, `reduce` or `find`, read from a binding. It runs on every check, as a method call does. A getter that only returns a field is not counted. On the corpus: two reads in go-data, of a getter that walks every tab of a form.
+- *`<img>` without `NgOptimizedImage`* (`unoptimized-images`): an `<img>` with `src`, `[src]` or `bind-src` and no `ngSrc`. `ngSrc` loads images below the fold lazily, requires a size so the layout does not jump, and takes `priority` for the image that decides Largest Contentful Paint. `data:` and `blob:` addresses are left out. A finding from Angular 15, where the directive is stable; the measure is counted on every version. On the corpus: 1 to 41 in sixteen repositories.
+
+**Nested subscriptions** (`nested-subscriptions`, low, outside the grade): a `.subscribe()` with another `.subscribe()` inside one of its arguments, a callback or an observer object, in any application file, services included. The inner stream starts per value of the outer one, nothing cancels the previous run, and an error in the inner one is not the outer one's. `switchMap`, `concatMap` or `mergeMap` say which of those is meant. Each outer call counts once, however deep it nests. On the corpus: 181 in go-data, 4 in ng-nest-admin, 2 in vendure-storefront, each read by hand.
 
 **The animations package** (`animations-package`, low, outside the grade): application files that import `@angular/animations` for its code (`import type` and `@angular/platform-browser/animations` do not count). Deprecated since Angular 20.2 in favour of CSS with `animate.enter` and `animate.leave`; the finding appears from Angular 20, where the replacement exists, and the measure is counted on every version. On the corpus: a `trigger()` in one component each of ng-nest-admin and scion-workbench.
 
@@ -212,6 +218,8 @@ A `component:` route counts as eager only in a file the app loads at startup: ev
 | poor | ten or more eager routes and none lazy |
 
 Constructor injection and class-based guards are reported as low findings but never change the grade: they work, they are only the older style. `inject()` and functional guards are what current Angular and its migrations produce.
+
+**Cognitive complexity** (`complex-functions`, low, outside the grade): functions whose cognitive complexity is above 15, SonarSource's measure of how hard code is to follow, the five worst named with their file and line. It is computed exactly as eslint-plugin-sonarjs 4 does (`sonarjs/cognitive-complexity`, threshold 15), so the numbers can be checked against it: +1 for each `if`, `else if`, `else`, `?:`, `switch`, loop, `catch` and labelled jump, plus the nesting level for the nesting ones, +1 for each run of `&&`; every function, a callback too, counts on its own. On the corpus the counts match the plugin's function for function, apart from files that turn ESLint off with a comment. A hotspot also names its most complex function. Specs are left out. On the corpus: 1 to 15 in ten repositories, 88 in go-data.
 
 **Hotspots.** In a git repository with its history, the check also reads how often each file changed in the last twelve months (`git log`, merges left out, limited to the analysed folder). A file of at least 300 lines changed in at least 10 commits is a hotspot, ranked by lines times commits, and the five worst are listed: that is where a refactoring pays off first, since the file is read and edited all the time. Hotspots never change the grade and are not a baseline measure, because the count moves with how busy the team is, not with the code. In a shallow clone (`fetch-depth: 1` in CI, a remote repository argument) there is one commit of history, and the report says so instead of ranking nothing.
 
@@ -443,6 +451,7 @@ By default a rule reads application code: no specs, e2e or mock files, and no ge
 | `angularjs.angularjs-templates` | Templates with AngularJS syntax |
 | `angularjs.scope-files` | Files using `$scope` |
 | `architecture.class-guards` | Class-based guards and interceptors |
+| `architecture.complex-functions` | Functions with a cognitive complexity above 15 |
 | `architecture.constructor-injection` | Classes with constructor injection |
 | `architecture.eager-routes` | Eagerly loaded routes (in files loaded at startup) |
 | `architecture.unused-attribute-selectors` | Directives and attribute selectors no template matches (only with `--attribute-selectors`) |
@@ -468,12 +477,16 @@ By default a rule reads application code: no specs, e2e or mock files, and no ge
 | `components.legacy-control-flow` | `*ngIf` / `*ngFor` / `[ngSwitch]` uses |
 | `components.manual-subscriptions` | Manual `.subscribe()` in components and directives |
 | `components.module-components` | Components declared in NgModules |
+| `components.nested-subscriptions` | `.subscribe()` with another `.subscribe()` inside |
+| `components.template-getter-calls` | Expensive getters read in template bindings |
 | `components.template-method-calls` | Method calls in template bindings |
 | `components.track-by-index` | `@for` with `track $index` |
 | `components.unended-subscriptions` | `.subscribe()` in components and directives that nothing ends |
+| `components.unoptimized-images` | `<img>` without `NgOptimizedImage` |
 | `components.untracked-ngfor` | `*ngFor` without `trackBy` |
 | `dependencies.deprecated-packages` | Packages deprecated on npm |
 | `dependencies.peer-mismatches` | Packages that do not accept the installed Angular |
+| `dependencies.unused-dependencies` | Runtime dependencies nothing uses |
 | `deprecated-apis.deprecated-usages` | Deprecated API uses (symbol × file) |
 | `deprecated-apis.legacy-template-directives` | `*ngIf` / `*ngFor` / `[ngSwitch]` uses |
 | `deprecated-apis.to-promise-calls` | `.toPromise()` calls |

@@ -93,11 +93,20 @@
       "id": "dependencies",
       "grade": "info",
       "summary": "Dependencies are not installed and the npm registry was not used, so the packages that depend on Angular could not be read.",
-      "measures": {},
+      "measures": {
+        "unused-dependencies": 5
+      },
       "findings": [
         {
           "severity": "info",
           "message": "Install the dependencies, or run without --offline to read each package from the npm registry"
+        },
+        {
+          "severity": "low",
+          "message": "5 runtime dependencies nothing uses: `@awesome-cordova-plugins/splash-screen`, `@awesome-cordova-plugins/status-bar`, `cordova-res`, `intl`, `jetifier`",
+          "files": [
+            "package.json"
+          ]
         }
       ]
     },
@@ -151,7 +160,10 @@
         "untracked-ngfor": 6,
         "track-by-index": 0,
         "template-method-calls": 2,
+        "template-getter-calls": 0,
         "impure-pipes": 0,
+        "unoptimized-images": 3,
+        "nested-subscriptions": 0,
         "animations-package": 5
       },
       "findings": [
@@ -221,6 +233,16 @@
             "src/app/pages/logview/logview.page.html:22"
           ],
           "count": 2
+        },
+        {
+          "severity": "low",
+          "message": "3 `<img>`s without `NgOptimizedImage`",
+          "files": [
+            "src/app/components/block/block.component.html:5",
+            "src/app/components/validator/validator.component.html:25",
+            "src/app/pages/block-detail/block-detail.page.html:22"
+          ],
+          "count": 3
         }
       ]
     },
@@ -244,6 +266,7 @@
         "very-large-files": 0,
         "constructor-injection": 43,
         "class-guards": 0,
+        "complex-functions": 8,
         "unused-files": 0,
         "unused-components": 0,
         "unused-pipes": 0
@@ -258,6 +281,16 @@
             "src/app/requests/requests.ts"
           ],
           "count": 7
+        },
+        {
+          "severity": "low",
+          "message": "8 functions with a cognitive complexity above 15",
+          "files": [
+            "src/app/utils/ValidatorUtils.ts:351",
+            "src/app/tab-preferences/notification-base.ts:90",
+            "src/app/services/sync.service.ts:153"
+          ],
+          "count": 8
         },
         {
           "severity": "low",

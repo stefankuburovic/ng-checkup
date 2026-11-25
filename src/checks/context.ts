@@ -13,6 +13,7 @@ import type { I18nFacts } from '../i18n.js';
 import type { RuleFacts } from '../rules.js';
 import type { DuplicatePackages } from '../lockfile.js';
 import type { LintFacts } from '../lint.js';
+import type { UnusedDependencies } from '../unused-deps.js';
 import type { TranslationFacts } from '../translations.js';
 import type { StylesheetFact } from '../stylesheets.js';
 import type { CheckResult, FileRef } from '../types.js';
@@ -93,6 +94,8 @@ export interface AnalysisContext {
   duplicatePackages?: DuplicatePackages;
   /** TSLint and ESLint config files of the workspace (see `readLintFacts`). Absent in contexts built by hand. */
   lint?: LintFacts;
+  /** Runtime dependencies nothing uses (see `readUnusedDependencies`). Undefined when the peers cannot be read. */
+  unusedDependencies?: UnusedDependencies;
   maxExamples: number;
 }
 

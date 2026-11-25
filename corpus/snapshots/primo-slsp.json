@@ -115,7 +115,8 @@
         "eager-routes": 0,
         "very-large-files": 0,
         "constructor-injection": 0,
-        "class-guards": 0
+        "class-guards": 0,
+        "complex-functions": 0
       },
       "findings": []
     },

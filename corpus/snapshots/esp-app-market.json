@@ -49,7 +49,9 @@
       "id": "dependencies",
       "grade": "info",
       "summary": "Dependencies are not installed and the npm registry was not used, so the packages that depend on Angular could not be read.",
-      "measures": {},
+      "measures": {
+        "unused-dependencies": 0
+      },
       "findings": [
         {
           "severity": "info",
@@ -97,7 +99,10 @@
         "untracked-ngfor": 9,
         "track-by-index": 0,
         "template-method-calls": 7,
+        "template-getter-calls": 0,
         "impure-pipes": 0,
+        "unoptimized-images": 4,
+        "nested-subscriptions": 0,
         "animations-package": 0
       },
       "findings": [
@@ -165,6 +170,16 @@
             "src/app/diagnostics/diagnostics.component.html:65"
           ],
           "count": 3
+        },
+        {
+          "severity": "low",
+          "message": "4 `<img>`s without `NgOptimizedImage`",
+          "files": [
+            "src/app/apps/apps.component.html:5",
+            "src/app/devices/devices.component.html:34",
+            "src/app/flasher/flasher.component.html:5"
+          ],
+          "count": 3
         }
       ]
     },
@@ -188,6 +203,7 @@
         "very-large-files": 0,
         "constructor-injection": 9,
         "class-guards": 1,
+        "complex-functions": 0,
         "unused-files": 0,
         "unused-components": 0,
         "unused-pipes": 0

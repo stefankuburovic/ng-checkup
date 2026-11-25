@@ -49,11 +49,20 @@
       "id": "dependencies",
       "grade": "info",
       "summary": "Dependencies are not installed and the npm registry was not used, so the packages that depend on Angular could not be read.",
-      "measures": {},
+      "measures": {
+        "unused-dependencies": 3
+      },
       "findings": [
         {
           "severity": "info",
           "message": "Install the dependencies, or run without --offline to read each package from the npm registry"
+        },
+        {
+          "severity": "low",
+          "message": "3 runtime dependencies nothing uses: `eslint-config-prettier`, `eslint-plugin-prettier`, `prettier-eslint`",
+          "files": [
+            "package.json"
+          ]
         }
       ]
     },
@@ -97,7 +106,10 @@
         "untracked-ngfor": 4,
         "track-by-index": 0,
         "template-method-calls": 0,
+        "template-getter-calls": 0,
         "impure-pipes": 0,
+        "unoptimized-images": 4,
+        "nested-subscriptions": 0,
         "animations-package": 0
       },
       "findings": [
@@ -130,6 +142,16 @@
             "src/app/pages/cards/cards.component.ts:29"
           ],
           "count": 3
+        },
+        {
+          "severity": "low",
+          "message": "4 `<img>`s without `NgOptimizedImage`",
+          "files": [
+            "src/app/pages/support/support.component.html:84",
+            "src/app/components/collection-card/collection-card.component.ts:10",
+            "src/app/components/collection-loading/collection-loading.component.ts:10"
+          ],
+          "count": 4
         }
       ]
     },
@@ -153,6 +175,7 @@
         "very-large-files": 0,
         "constructor-injection": 0,
         "class-guards": 0,
+        "complex-functions": 0,
         "unused-files": 9,
         "unused-components": 0,
         "unused-pipes": 0

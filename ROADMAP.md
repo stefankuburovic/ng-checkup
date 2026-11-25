@@ -122,6 +122,14 @@ Angular излази отприлике сваких шест месеци: 22 �
 - **Замке:** рачун мора да се поклопи са sonarjs-овим, па се проверава на corpus-у упоредо са њим. Генерисан код и тестови се не броје.
 - **Уз то:** README помиње eslint-plugin-sonarjs као допуну на нивоу функције, у едитору, а ng-checkup остаје на нивоу пројекта.
 
+**Још четири провере перформанси (M).** Рупе које је показало поређење са чек-листом [Angular Performance Checklist That Actually Works](https://medium.com/@sumit-ranjan/angular-performance-checklist-that-actually-works-from-real-projects-68f04410289b) (Sumit Ranjan, април 2026). Остало из те листе већ покривамо: OnPush, `trackBy`, async pipe, lazy руте, bundle и тешке пакете, позиве метода у шаблону. Све четири су налази `low` и мере у baseline-у, без оцене, као остатак брзине шаблона.
+- **Угњеждени `subscribe`** (`nested-subscriptions`, Components), KAN-83: `.subscribe()` у callback-у другог `.subscribe()`-а, у целом апликационом коду, не само у компонентама. Налаз упућује на `switchMap`, `combineLatest` и `forkJoin`. Синтаксно је једнозначно, па нема лажних погодака.
+- **Скупи getter-и у шаблону** (`template-getter-calls`, Components), KAN-84: читање getter-а из bindinga, кад у телу getter-а има `filter`, `map`, `sort`, `reduce`, `find` или петље. Јефтини getter-и се не броје. Шаблон бележи и читања имена, не само позиве, а класа бележи такве getter-е, као `methods` данас. Тиме се укида изузетак „nor getters“ у `docs/checks.md`.
+- **`<img>` без `NgOptimizedImage`** (`unoptimized-images`, Components), KAN-85: `src` или `[src]` без `ngSrc`, у шаблону компоненте из апликације, а налаз тек од Angular 15. `ngSrc` даје lazy loading, обавезне димензије и `priority` одједном. Ван бројања остају `data:` и `blob:` адресе. Замењује ред из залихе правила.
+- **Неискоришћени npm пакети** (`unused-dependencies`, Third-party compatibility), KAN-86: пакет из `dependencies` који ниједан фајл не увози и који не помињу `angular.json` или `project.json` (`styles`, `scripts`, `assets`, `polyfills`), stylesheet-ови (`@use`, `@import`), скрипте у `package.json` ни конфигурациони JS фајлови. Ван бројања остају `@angular/*`, `tslib`, `zone.js`, `@types/*` и пакети који су peer зависност другог инсталираног пакета (`@angular/cdk` уз Material). Налаз каже да се пакет провери пре брисања.
+- **Замке:** за getter-е шаблон не зна тип, па важи исто што и за методе: рачуна се само кад све класе које деле шаблон декларишу такав getter. За пакете, оно што се учитава по имену у време извршавања не може да се види, па се изузима преко `ignore` у конфигурацији.
+- **Готово кад:** тестови, `docs/checks.md` и табела мера, ручно прегледани погоци на corpus-у.
+
 **Docker слика (S).** `ghcr.io/stefankuburovic/ng-checkup:2.4.0` и покретни `:2`, за Jenkins, TeamCity и затворене мреже. Ради као `npx`, плус унапред скинути typings за последње три Angular верзије, да ради и без мреже.
 
 ## 2.6: JetBrains plugin
@@ -436,7 +444,6 @@ Angular излази отприлике сваких шест месеци: 22 �
 | Правило | Област | Ниво | Напомена |
 | --- | --- | --- | --- |
 | претплате у сервисима који нису root | Components | low | сервис у `providers` компоненте живи колико и она |
-| `<img src>` без `NgOptimizedImage` | Components | low | само за слике у шаблонима са `width` и `height` |
 | нетипизоване форме (`UntypedFormGroup`) | Type safety | low | мера, Angular има миграцију |
 | кључеви и тајне у `environment.ts` | Security | medium | образац као у gitleaks, укључује се опцијом |
 | лиценце зависности (GPL, AGPL у затвореном коду) | Dependencies | info | из `node_modules`, без мреже |
