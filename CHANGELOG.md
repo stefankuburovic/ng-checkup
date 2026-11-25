@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 2.4.0 (2026-11-25)
 
 No score or grade changes: eight new findings and measures, all outside the grade.
 
