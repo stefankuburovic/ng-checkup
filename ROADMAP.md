@@ -386,7 +386,7 @@ Angular излази отприлике сваких шест месеци: 22 �
 ### Екстензија и MCP
 - Екстензија прати свако CLI издање у року од недеље, са бројем верзије који каже који CLI садржи.
 - MCP добија алате кад их добије CLI, осим `fix`, `upgrade` и `issues sync`, који остају само у терминалу.
-- Упис у званични MCP регистар још није урађен, а `mcpName` је у пакету од 2.2.0.
+- ng-checkup је у званичном MCP регистру од 2.4.0 (`io.github.stefankuburovic/ng-checkup`), из `server.json` у корену репоа.
 
 ### Понуда и видљивост
 - Страница са понудом, приручник и брошура се освежавају уз свако мање издање са новом облашћу.
@@ -402,12 +402,13 @@ Angular излази отприлике сваких шест месеци: 22 �
 Научено на 2.1 до 2.2.1:
 
 1. Тестови, `node scripts/corpus.mjs` после свежег build-а, ручни преглед нових налаза.
-2. Верзија у `package.json`, `package-lock.json` и `gitlab/ng-checkup.yml`, CHANGELOG са датумом, ROADMAP.
+2. Верзија у `package.json`, `package-lock.json`, `gitlab/ng-checkup.yml` и `server.json` (оба поља `version`), CHANGELOG са датумом, ROADMAP.
 3. Commit, спајање у `main` и push **пре** GitHub release-а. Release на commit-у који нема нову верзију пада на провери тага.
 4. `npm whoami` пре објаве. Истекла пријава враћа E404 при објави, што изгледа као да пакет не постоји.
 5. GitHub release на пуном SHA-у, па померање `v2` тек кад npm врати 200 за tarball.
 6. GitLab компонента тек кад npm нуди нову верзију. Иначе pipeline на `main`-у падне са ETARGET.
 7. GitHub Marketplace: Edit на release-у, „Publish this Action“.
+   MCP регистар: кад npm нуди нову верзију, `mcp-publisher validate` и `mcp-publisher publish` (пријава `mcp-publisher login github`).
 8. Екстензија (VS Code Marketplace и Open VSX) ако се мења нешто што она приказује.
 9. Страница са понудом, приручник и брошура ако постоји нова област или формат.
 10. Jira: задаци издања у Done, нови у To Do.

@@ -1,0 +1,27 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.stefankuburovic/ng-checkup",
+  "title": "ng-checkup",
+  "description": "Angular and AngularJS modernization checkup: findings, grades and the upgrade plan of a workspace.",
+  "repository": {
+    "url": "https://github.com/stefankuburovic/ng-checkup",
+    "source": "github"
+  },
+  "version": "2.4.0",
+  "packages": [
+    {
+      "registryType": "npm",
+      "identifier": "ng-checkup-cli",
+      "version": "2.4.0",
+      "transport": {
+        "type": "stdio"
+      },
+      "packageArguments": [
+        {
+          "type": "positional",
+          "value": "mcp"
+        }
+      ]
+    }
+  ]
+}
