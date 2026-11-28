@@ -405,7 +405,7 @@ Angular излази отприлике сваких шест месеци: 22 �
 2. Верзија у `package.json`, `package-lock.json`, `gitlab/ng-checkup.yml` и `server.json` (оба поља `version`), CHANGELOG са датумом, ROADMAP.
 3. Commit, спајање у `main` и push **пре** GitHub release-а. Release на commit-у који нема нову верзију пада на провери тага.
 4. `npm whoami` пре објаве. Истекла пријава враћа E404 при објави, што изгледа као да пакет не постоји.
-5. GitHub release на пуном SHA-у, па померање `v2` тек кад npm врати 200 за tarball.
+5. GitHub release на пуном SHA-у, па померање `v2` тек кад npm врати 200 за tarball. Исти release покреће и `docker.yml`, који објављује слику на ghcr.io; провери да је прошао.
 6. GitLab компонента тек кад npm нуди нову верзију. Иначе pipeline на `main`-у падне са ETARGET.
 7. GitHub Marketplace: Edit на release-у, „Publish this Action“.
    MCP регистар: кад npm нуди нову верзију, `mcp-publisher validate` и `mcp-publisher publish` (пријава `mcp-publisher login github`).

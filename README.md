@@ -760,6 +760,30 @@ ng-checkup:
 
 The job runs on merge requests and on the default branch, which is what the widget compares with. For the comment, add a token with the `api` scope as the CI/CD variable `NG_CHECKUP_TOKEN`, **masked but not protected** (merge request branches are not protected, so a protected variable never reaches them). A project access token comments as a bot; on gitlab.com Free, where those need Premium, a personal access token works and comments as you. GitLab's own job token cannot write comments, so without the variable the comment is skipped and the rest runs. A live example: [ng-checkup-demo](https://gitlab.com/stefankuburovic/ng-checkup-demo). `npx ng-checkup-cli init` writes this for a repository with a `.gitlab-ci.yml`. If your GitLab cannot reach GitHub, copy [`gitlab/ng-checkup.yml`](https://github.com/stefankuburovic/ng-checkup/blob/main/gitlab/ng-checkup.yml) into the repository and include it with `local:`.
 
+**Jenkins, TeamCity and other CI: the container image**
+
+From 2.5.0, every release is also an image on the GitHub Container Registry, `ghcr.io/stefankuburovic/ng-checkup:<version>` and the moving `:2`, built from the release commit with a provenance attestation (`gh attestation verify oci://ghcr.io/stefankuburovic/ng-checkup:2.5.0 --owner stefankuburovic`). It needs neither Node.js on the agent nor npm at run time, and has git for hotspots and `--since`:
+
+```bash
+docker run --rm -v "$PWD:/work" ghcr.io/stefankuburovic/ng-checkup:2 --offline --report checkup.html
+```
+
+The image already holds the Angular typings of the newest release of the last three majors (and RxJS 7), so `--offline` reads deprecations on a network with no npm access for a project on one of those exact versions, or for any project whose `node_modules` is installed. Any other version is downloaded when the run is online. In a Jenkinsfile:
+
+```groovy
+pipeline {
+  agent { docker { image 'ghcr.io/stefankuburovic/ng-checkup:2'; args '--entrypoint=' } }
+  stages {
+    stage('ng-checkup') {
+      steps { sh 'ng-checkup . --offline --fail-on regression --report checkup.html --report checkup.json' }
+      post { always { archiveArtifacts artifacts: 'checkup.*' } }
+    }
+  }
+}
+```
+
+In TeamCity, a Command Line step with *Run step within Docker container* set to the same image runs the same command.
+
 **GitHub code scanning**
 
 `--report ng-checkup.sarif` writes [SARIF](https://sarifweb.azurewebsites.net/), so findings show up as annotations on the changed lines of a pull request and in the Security tab:
